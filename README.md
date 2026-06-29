@@ -10,7 +10,7 @@ Core product loop:
 cat-care task -> photo proof -> server validation -> metadata strip -> Gemini verification -> daily anti-cheat caps -> Turso points ledger -> rewards
 ```
 
-The backend foundation for OAuth sessions, secure photo verification, and server-owned points is implemented. UI wiring for the full photo-upload flow should be verified before recording the final demo.
+The home screen now wires this flow through the secure `/api/verify` endpoint. Live OAuth, Turso, and Gemini credentials still need a final smoke test before recording the demo.
 
 ## Why It Fits
 

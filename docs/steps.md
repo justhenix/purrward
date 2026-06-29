@@ -11,19 +11,19 @@
 - [x] Create route stubs (`/`, `/rewards`, `/vet`, `/dev`, `/auth/*`).
 - [x] Create server-side auth + security utility stubs.
 - [ ] Set up Google OAuth app in Google Cloud Console.
-- [ ] Configure CSP headers in Cloudflare Workers.
-- [ ] Set up rate limiting middleware.
-- [ ] Configure base design system in the stylesheet imported by `src/routes/+layout.svelte`.
-- [ ] Update docs that track setup changes: `docs/scaffold.md`, `docs/steps.md`, `docs/design.md`, `docs/assets.md`.
+- [x] Configure CSP headers in Cloudflare Workers.
+- [x] Set up verification rate limits and daily caps.
+- [x] Configure base design system in the stylesheet imported by `src/routes/+layout.svelte`.
+- [x] Update docs that track setup changes: `docs/scaffold.md`, `docs/steps.md`, `docs/design.md`, `docs/assets.md`.
 
 ## Phase 1: Core Mechanics (MVP / VIP)
 
-- [ ] **Google OAuth**: Implement full flow (Worker endpoints + Turso session table).
-- [ ] **Habit Tracker UI**: Daily checklists for feeding, water, litter, and medication.
-- [ ] **Verification Engine**: Cloudflare Worker endpoint calling the Gemini 3.1 Flash Lite API to verify uploaded photos.
-- [ ] **Input Validation**: Server-side validation for photo uploads (MIME, size, EXIF strip).
-- [ ] **Gemini Prompt Hardening**: Immutable system prompt, sandboxed user input template.
-- [ ] **Points Ledger**: Database logic to award and store `Purrpoints` securely (parameterized queries only).
+- [x] **Google OAuth**: Implement full flow (Worker endpoints + Turso session table).
+- [x] **Habit Tracker UI**: Daily checklists for feeding, water, litter, and medication.
+- [x] **Verification Engine**: Cloudflare Worker endpoint calling the Gemini API to verify uploaded photos.
+- [x] **Input Validation**: Server-side validation for photo uploads (MIME, size, metadata strip).
+- [x] **Gemini Prompt Hardening**: Immutable server prompt and structured JSON response parsing.
+- [x] **Points Ledger**: Database logic to award and store `Purrpoints` securely (parameterized queries only).
 
 ## Phase 2: Gamification & Avatar (MVP / VIP)
 

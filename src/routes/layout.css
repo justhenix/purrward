@@ -1,1 +1,69 @@
 @import 'tailwindcss';
+
+@theme {
+	--font-display: 'Quicksand', ui-rounded, system-ui, sans-serif;
+	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+	--color-paper: #fdf8ef;
+	--color-paper-2: #fffdf8;
+	--color-paper-3: #f6eedb;
+	--color-charcoal: #242626;
+	--color-ink: #171a19;
+	--color-muted: #7a746b;
+	--color-line: #e8decb;
+	--color-sage: #a9c8a8;
+	--color-sage-soft: #dcead7;
+	--color-peach: #f4bfa8;
+	--color-peach-soft: #fbe2d4;
+	--color-sky: #a9d9e8;
+	--color-butter: #f6d98b;
+	--color-success-bg: #dcead7;
+	--color-success-text: #406b43;
+	--color-warning-bg: #fff0c7;
+	--color-warning-text: #8a651b;
+	--radius-card: 28px;
+	--radius-card-lg: 36px;
+	--radius-pill: 999px;
+	--shadow-card: 0 14px 40px rgba(36, 38, 38, 0.08);
+	--shadow-float: 0 18px 50px rgba(36, 38, 38, 0.16);
+}
+
+:root {
+	font-family: var(--font-sans);
+	color: var(--color-ink);
+	background: var(--color-paper);
+}
+
+html {
+	min-height: 100%;
+	background:
+		radial-gradient(
+			circle at 12% 10%,
+			color-mix(in srgb, var(--color-sky) 22%, transparent),
+			transparent 28%
+		),
+		radial-gradient(
+			circle at 88% 18%,
+			color-mix(in srgb, var(--color-peach) 18%, transparent),
+			transparent 30%
+		),
+		var(--color-paper);
+}
+
+body {
+	min-height: 100vh;
+	margin: 0;
+	background: transparent;
+}
+
+button,
+input,
+select {
+	font: inherit;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-display);
+	letter-spacing: 0;
+}
