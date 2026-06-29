@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { authFailure, handleGoogleCallback } from './google-oauth';
+
+function createDatabase(inserts: unknown[]) {
+	return {
+		select: () => ({
+			from: () => ({
+				where: () => ({
+					limit: async () => []
+				})
+			})
+		}),
+		insert: () => ({
+			values: async (value: unknown) => {
+				inserts.push(value);
+			}
+		}),
+		delete: () => ({
+			where: async () => undefined
+		})
+	} as unknown as Parameters<typeof handleGoogleCallback>[0]['database'];
+}
+
+describe('google oauth callback', () => {
+	it('returns a generic auth failure', async () => {
+		const response = authFailure();
+
+		expect(response.status).toBe(400);
+		expect(await response.text()).toBe('Authentication failed.');
+	});
+
+	it('creates user and session from valid Google responses', async () => {
+		const inserts: unknown[] = [];
+		let calls = 0;
+		const fetcher = async () => {
+			calls += 1;
+			if (calls === 1) return new Response(JSON.stringify({ access_token: 'token' }));
+			return new Response(
+				JSON.stringify({
+					sub: 'google-1',
+					email: 'cat@example.com',
+					name: 'Cat Parent',
+					picture: 'https://example.com/avatar.png'
+				})
+			);
+		};
+
+		const response = await handleGoogleCallback({
+			code: 'code',
+			fetcher,
+			database: createDatabase(inserts),
+			config: {
+				clientId: 'client',
+				clientSecret: 'secret',
+				redirectUri: 'http://localhost:5173/auth/callback'
+			},
+			secureCookie: false
+		});
+
+		const setCookie = response.headers.get('set-cookie') ?? '';
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe('/');
+		expect(setCookie).toContain('session=');
+		expect(inserts).toHaveLength(2);
+	});
+});

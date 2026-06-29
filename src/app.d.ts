@@ -10,7 +10,23 @@ declare global {
 		}
 
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			user: {
+				id: string;
+				googleSub: string;
+				email: string;
+				displayName: string | null;
+				avatarUrl: string | null;
+				purrpoints: number;
+			} | null;
+			session: {
+				id: string;
+				userId: string;
+				googleSub: string;
+				email: string;
+				expiresAt: number;
+			} | null;
+		}
 		// interface PageData {}
 		// interface PageState {}
 	}
