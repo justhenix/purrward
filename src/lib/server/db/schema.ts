@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const task = sqliteTable('task', {
 	id: text('id')
@@ -31,3 +31,27 @@ export const sessions = sqliteTable('sessions', {
 	expiresAt: integer('expires_at').notNull()
 });
 
+export const habitCompletions = sqliteTable(
+	'habit_completions',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		taskType: text('task_type').notNull(),
+		verified: integer('verified').notNull(),
+		pointsAwarded: integer('points_awarded').notNull().default(0),
+		reason: text('reason').notNull(),
+		createdAt: integer('created_at').notNull()
+	},
+	(table) => [
+		index('habit_completions_user_created_idx').on(table.userId, table.createdAt),
+		index('habit_completions_user_task_created_idx').on(
+			table.userId,
+			table.taskType,
+			table.createdAt
+		)
+	]
+);

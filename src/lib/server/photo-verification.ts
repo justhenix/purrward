@@ -1,0 +1,261 @@
+// SECURITY: verifies care photos and records server-owned points.
+import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { habitCompletions, users } from './db/schema';
+import { stripImageMetadata, validateTaskType, validateUpload, type TaskType } from './security';
+
+type Database = typeof import('./db').db;
+type Fetcher = typeof fetch;
+
+const POINTS_PER_VERIFICATION = 10;
+const MAX_UPLOADS_PER_DAY = 20;
+const MAX_VERIFIED_TASKS_PER_DAY = 6;
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+
+type GeminiVerification = {
+	verified: boolean;
+	reason: string;
+};
+
+export type VerificationResponse = {
+	status: number;
+	body: { verified?: boolean; reason?: string; pointsAwarded?: number; error?: string };
+};
+
+export function utcDayStart(timestamp = Date.now()): number {
+	const date = new Date(timestamp);
+	return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+	let binary = '';
+	const chunkSize = 0x8000;
+	for (let index = 0; index < bytes.length; index += chunkSize) {
+		binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
+	}
+	return btoa(binary);
+}
+
+export function parseGeminiVerification(payload: unknown): GeminiVerification | null {
+	const text = extractGeminiText(payload);
+	if (!text) return null;
+
+	try {
+		const parsed = JSON.parse(text) as { verified?: unknown; reason?: unknown };
+		if (typeof parsed.verified !== 'boolean' || typeof parsed.reason !== 'string') return null;
+		return { verified: parsed.verified, reason: parsed.reason.slice(0, 240) };
+	} catch {
+		return null;
+	}
+}
+
+function extractGeminiText(payload: unknown): string | null {
+	if (!payload || typeof payload !== 'object') return null;
+	const record = payload as Record<string, unknown>;
+	if (typeof record.output_text === 'string') return record.output_text;
+
+	const outputs = record.outputs;
+	if (Array.isArray(outputs)) {
+		const textOutput = outputs.find(
+			(output): output is { text: string } =>
+				typeof output === 'object' &&
+				output !== null &&
+				typeof (output as { text?: unknown }).text === 'string'
+		);
+		if (textOutput) return textOutput.text;
+	}
+
+	const candidates = record.candidates;
+	if (Array.isArray(candidates)) {
+		const parts = (candidates[0] as { content?: { parts?: { text?: string }[] } } | undefined)
+			?.content?.parts;
+		const textPart = parts?.find((part) => typeof part.text === 'string');
+		if (textPart?.text) return textPart.text;
+	}
+
+	return null;
+}
+
+export function buildGeminiVerificationRequest(input: {
+	imageBytes: Uint8Array;
+	mime: string;
+	taskType: TaskType;
+	model?: string;
+}) {
+	const taskLabels: Record<TaskType, string> = {
+		feeding: 'feeding or food bowl care',
+		water: 'fresh water or hydration care',
+		litter: 'litter box care',
+		play: 'play or enrichment activity',
+		grooming: 'grooming care',
+		meds: 'medication care'
+	};
+
+	return {
+		model: input.model ?? DEFAULT_GEMINI_MODEL,
+		input: [
+			{
+				type: 'text',
+				text:
+					'You verify cat wellness care photos for Purrward. Return only compact JSON with keys verified and reason. Verify only if the image plausibly shows a cat-related care task matching this requested task. Reject non-cats, screenshots, unrelated images, stock-looking images, or low-confidence matches. Requested task: ' +
+					taskLabels[input.taskType]
+			},
+			{
+				type: 'image',
+				data: bytesToBase64(input.imageBytes),
+				mime_type: input.mime
+			}
+		],
+		response_format: {
+			type: 'text',
+			mime_type: 'application/json',
+			schema: {
+				type: 'object',
+				properties: {
+					verified: { type: 'boolean' },
+					reason: { type: 'string' }
+				},
+				required: ['verified', 'reason']
+			}
+		}
+	};
+}
+
+async function callGemini(input: {
+	fetcher: Fetcher;
+	apiKey: string;
+	imageBytes: Uint8Array;
+	mime: string;
+	taskType: TaskType;
+	model?: string;
+}): Promise<GeminiVerification | null> {
+	const response = await input.fetcher(
+		'https://generativelanguage.googleapis.com/v1beta/interactions',
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-goog-api-key': input.apiKey
+			},
+			body: JSON.stringify(
+				buildGeminiVerificationRequest({
+					imageBytes: input.imageBytes,
+					mime: input.mime,
+					taskType: input.taskType,
+					model: input.model
+				})
+			)
+		}
+	);
+	if (!response.ok) return null;
+	return parseGeminiVerification(await response.json());
+}
+
+async function checkLimits(input: {
+	database: Database;
+	userId: string;
+	taskType: TaskType;
+	now: number;
+}): Promise<VerificationResponse | null> {
+	// simplify: UTC day boundary; switch to user timezone if streak UX needs it.
+	const dayStart = utcDayStart(input.now);
+	const uploadRows = await input.database
+		.select({ value: count() })
+		.from(habitCompletions)
+		.where(
+			and(eq(habitCompletions.userId, input.userId), gte(habitCompletions.createdAt, dayStart))
+		);
+	if ((uploadRows[0]?.value ?? 0) >= MAX_UPLOADS_PER_DAY) {
+		return { status: 429, body: { error: 'Daily upload limit reached.' } };
+	}
+
+	const taskRows = await input.database
+		.select({ value: count() })
+		.from(habitCompletions)
+		.where(
+			and(
+				eq(habitCompletions.userId, input.userId),
+				eq(habitCompletions.taskType, input.taskType),
+				eq(habitCompletions.verified, 1),
+				gte(habitCompletions.createdAt, dayStart)
+			)
+		);
+	if ((taskRows[0]?.value ?? 0) >= MAX_VERIFIED_TASKS_PER_DAY) {
+		return { status: 429, body: { error: 'Daily task limit reached.' } };
+	}
+
+	return null;
+}
+
+async function recordVerification(input: {
+	database: Database;
+	userId: string;
+	taskType: TaskType;
+	result: GeminiVerification;
+	now: number;
+}): Promise<number> {
+	const pointsAwarded = input.result.verified ? POINTS_PER_VERIFICATION : 0;
+	await input.database.transaction(async (tx) => {
+		await tx.insert(habitCompletions).values({
+			userId: input.userId,
+			taskType: input.taskType,
+			verified: input.result.verified ? 1 : 0,
+			pointsAwarded,
+			reason: input.result.reason,
+			createdAt: input.now
+		});
+		if (pointsAwarded > 0) {
+			await tx
+				.update(users)
+				.set({ purrpoints: sql`${users.purrpoints} + ${pointsAwarded}` })
+				.where(eq(users.id, input.userId));
+		}
+	});
+	return pointsAwarded;
+}
+
+export async function verifyCarePhoto(input: {
+	userId: string;
+	formData: FormData;
+	database: Database;
+	fetcher: Fetcher;
+	apiKey: string;
+	model?: string;
+	now?: number;
+}): Promise<VerificationResponse> {
+	const photo = input.formData.get('photo');
+	const taskType = validateTaskType(input.formData.get('taskType'));
+	if (!(photo instanceof File)) return { status: 400, body: { error: 'Photo is required.' } };
+	if (!taskType) return { status: 400, body: { error: 'Choose a valid care task.' } };
+
+	const upload = validateUpload(photo);
+	if (!upload.ok) return { status: 400, body: { error: upload.error } };
+
+	const now = input.now ?? Date.now();
+	const limit = await checkLimits({
+		database: input.database,
+		userId: input.userId,
+		taskType,
+		now
+	});
+	if (limit) return limit;
+
+	const imageBytes = stripImageMetadata(new Uint8Array(await photo.arrayBuffer()), photo.type);
+	const result = await callGemini({
+		fetcher: input.fetcher,
+		apiKey: input.apiKey,
+		imageBytes,
+		mime: photo.type,
+		taskType,
+		model: input.model
+	});
+	if (!result) return { status: 502, body: { error: 'Verification failed. Please try again.' } };
+
+	const pointsAwarded = await recordVerification({
+		database: input.database,
+		userId: input.userId,
+		taskType,
+		result,
+		now
+	});
+	return { status: 200, body: { ...result, pointsAwarded } };
+}
