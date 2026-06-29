@@ -25,8 +25,8 @@
 ## Anti-Hallucination
 
 - Never invent APIs, packages, or Svelte 5 syntax. Unsure → read docs/SKILL.md first
-- Reference actual file paths from [scaffold.md](file:///d:/DevProj/hackkitty/docs/scaffold.md). Never guess routes
-- "Good-to-Have" in [steps.md](file:///d:/DevProj/hackkitty/docs/steps.md) → don't build unless explicitly asked
+- Reference actual file paths from [scaffold.md](docs/scaffold.md). Never guess routes
+- "Good-to-Have" in [steps.md](docs/steps.md) → don't build unless explicitly asked
 - Use `/systematic-debugging` skill before proposing bug fixes
 - Don't generate placeholder data that looks real (fake vet names, fake clinic addresses)
 - When using Svelte 5: `$state`, `$derived`, `$effect`, `$props`, `$bindable` — no legacy `$:`, no stores, no `createEventDispatcher`
@@ -34,7 +34,7 @@
 
 ## Security (Aikido-Grade)
 
-Full spec → [security.md](file:///d:/DevProj/hackkitty/docs/security.md). Summary:
+Full spec → [security.md](docs/security.md). Summary:
 
 - All input: validate + sanitize at Cloudflare Worker boundary
 - File uploads: MIME allowlist (jpeg/png/webp), 5MB cap, strip EXIF
@@ -46,7 +46,7 @@ Full spec → [security.md](file:///d:/DevProj/hackkitty/docs/security.md). Summ
 - CSP + CORS: strict, allowlist-only
 - Solana: validate tx params server-side, wallet client-side only
 - Tag security code with `// SECURITY:` comments
-- Run [security.md](file:///d:/DevProj/hackkitty/docs/security.md) checklist before deploy
+- Run [security.md](docs/security.md) checklist before deploy
 
 ## Code Style
 
@@ -54,7 +54,7 @@ Full spec → [security.md](file:///d:/DevProj/hackkitty/docs/security.md). Summ
 - Svelte 5 runes only — no legacy patterns
 - TypeScript strict, no `any`
 - Small focused components, one concern per file
-- Follow [scaffold.md](file:///d:/DevProj/hackkitty/docs/scaffold.md) file structure exactly
-- Mark simplifications: `// ponytail:` comments
+- Follow [scaffold.md](docs/scaffold.md) file structure exactly
+- Mark simplifications: `// simplify:` comments
 - Mark security-critical code: `// SECURITY:` comments
 - Every new file: 1-line comment header explaining purpose
