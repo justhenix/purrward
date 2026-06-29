@@ -48,8 +48,8 @@
 
 ## Phase 5: Finalization
 
-- [ ] Run [security.md](file:///d:/DevProj/hackkitty/docs/security.md) pre-deploy checklist.
-- [ ] Complete [submission.md](file:///d:/DevProj/hackkitty/docs/submission.md) checklist.
+- [ ] Run [security.md](security.md) pre-deploy checklist.
+- [ ] Complete [submission.md](submission.md) checklist.
 - [ ] Cloudflare Pages deployment.
 - [ ] Record the 5-minute hackathon demonstration video.
 

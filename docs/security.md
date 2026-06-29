@@ -1,7 +1,7 @@
 # Purrward Security Architecture
 
 > Standalone security spec. Judges: read this one file to see Purrward's security posture.
-> Referenced by [AGENTS.md](file:///d:/DevProj/hackkitty/AGENTS.md) and [scaffold.md](file:///d:/DevProj/hackkitty/docs/scaffold.md).
+> Referenced by [AGENTS.md](../AGENTS.md) and [scaffold.md](scaffold.md).
 
 ---
 

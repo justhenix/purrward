@@ -84,6 +84,16 @@ Desktop.ini
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Agent local dev folders
-# .kiro is OK
+# Local AI/dev folders
+.vscode
+.agentcoding
 .agents
+.claude
+.codex
+.copilot
+.gemini
+.kiro
+.commandcode
+.antigravity
+.antigravity-ide
+.cagent

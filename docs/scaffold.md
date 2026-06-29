@@ -20,7 +20,6 @@ Purrward is a mobile-first care-to-earn cat wellness PWA. Cat owners log healthy
 - Design system: `docs/design.md`
 - Asset inventory: `docs/assets.md`
 - Commit style: `docs/commit.md`
-- Implementation plans: `plans/README.md`
 
 ## Current Repo Shape
 
@@ -29,16 +28,15 @@ D:/DevProj/hackkitty/
 ├── AGENTS.md
 ├── README.md
 ├── docs/
-│   ├── agent-divide.md
 │   ├── assets.md
 │   ├── commit.md
 │   ├── design.md
+│   ├── demo.md
 │   ├── scaffold.md
 │   ├── security.md
+│   ├── submission.md
 │   └── steps.md
 ├── drizzle/
-├── plans/
-├── scripts/
 ├── src/
 │   ├── app.d.ts
 │   ├── app.html
@@ -79,4 +77,4 @@ Core demo flow:
 cat-care habit -> photo upload -> server validation -> metadata strip -> Gemini verification -> anti-cheat cap -> points ledger -> rewards
 ```
 
-Full rules live in `docs/security.md` and execution tasks live in `docs/steps.md`.
+Full rules live in `docs/security.md` and roadmap tasks live in `docs/steps.md`.
