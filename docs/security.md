@@ -1,7 +1,7 @@
 # Purrward Security Architecture
 
 > Standalone security spec. Judges: read this one file to see Purrward's security posture.
-> Referenced by [AGENTS.md](file:///d:/DevProj/hackkitty/.agents/AGENTS.md) and [scaffold.md](file:///d:/DevProj/hackkitty/docs/scaffold.md).
+> Referenced by [AGENTS.md](file:///d:/DevProj/hackkitty/AGENTS.md) and [scaffold.md](file:///d:/DevProj/hackkitty/docs/scaffold.md).
 
 ---
 
@@ -23,17 +23,18 @@ Cloudflare Worker (validation boundary)
 
 **Method**: Google OAuth 2.0 via Cloudflare Workers
 
-| Step | Detail |
-|------|--------|
-| Initiate | Client → Worker `GET /auth/google` → redirect to Google consent |
-| Callback | Google → Worker `GET /auth/callback?code=...` → exchange code for tokens |
-| Session | Worker creates session row in Turso, sets cookie |
-| Cookie | `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, `Max-Age=7d` |
-| Validation | Every protected endpoint: Worker reads cookie → lookup session in Turso → reject if expired/missing |
-| Logout | `POST /auth/logout` → delete session row + clear cookie |
-| Token storage | Google tokens stored server-side only. Never sent to client |
+| Step          | Detail                                                                                              |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| Initiate      | Client → Worker `GET /auth/google` → redirect to Google consent                                     |
+| Callback      | Google → Worker `GET /auth/callback?code=...` → exchange code for tokens                            |
+| Session       | Worker creates session row in Turso, sets cookie                                                    |
+| Cookie        | `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, `Max-Age=7d`                                     |
+| Validation    | Every protected endpoint: Worker reads cookie → lookup session in Turso → reject if expired/missing |
+| Logout        | `POST /auth/logout` → delete session row + clear cookie                                             |
+| Token storage | Google tokens stored server-side only. Never sent to client                                         |
 
 **Session table**:
+
 ```sql
 CREATE TABLE sessions (
   id TEXT PRIMARY KEY,        -- SECURITY: cryptographically random, 32 bytes hex
@@ -48,6 +49,7 @@ CREATE TABLE sessions (
 ```
 
 **User table**:
+
 ```sql
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
@@ -64,13 +66,13 @@ CREATE TABLE users (
 
 ## Input Validation
 
-| Surface | Validation |
-|---------|-----------|
-| Photo uploads | MIME allowlist (`image/jpeg`, `image/png`, `image/webp`), 5MB max, EXIF stripped server-side |
-| Form inputs | Sanitized, length-capped, type-checked at Worker |
-| API params | Schema validation at Worker entry point |
-| Cat names / captions | HTML-escaped, max 50 chars, no script tags |
-| Gemini user input | Sandboxed in structured template, never raw-concatenated |
+| Surface              | Validation                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| Photo uploads        | MIME allowlist (`image/jpeg`, `image/png`, `image/webp`), 5MB max, EXIF stripped server-side |
+| Form inputs          | Sanitized, length-capped, type-checked at Worker                                             |
+| API params           | Schema validation at Worker entry point                                                      |
+| Cat names / captions | HTML-escaped, max 50 chars, no script tags                                                   |
+| Gemini user input    | Sandboxed in structured template, never raw-concatenated                                     |
 
 ---
 
@@ -78,15 +80,16 @@ CREATE TABLE users (
 
 Gemini 3.1 Flash Lite is used for photo verification and AI Vet chat. Attack surface:
 
-| Vector | Defense |
-|--------|---------|
-| EXIF metadata with embedded instructions | Strip all EXIF before processing |
-| Malicious filename | Sanitize filename, never pass to AI |
-| User text with prompt override attempts | Wrap in delimited template: `<user_input>...</user_input>` |
-| System prompt extraction | System prompt hardcoded in Worker, never echoed |
-| Output manipulation | Filter AI response for unexpected patterns before display |
+| Vector                                   | Defense                                                    |
+| ---------------------------------------- | ---------------------------------------------------------- |
+| EXIF metadata with embedded instructions | Strip all EXIF before processing                           |
+| Malicious filename                       | Sanitize filename, never pass to AI                        |
+| User text with prompt override attempts  | Wrap in delimited template: `<user_input>...</user_input>` |
+| System prompt extraction                 | System prompt hardcoded in Worker, never echoed            |
+| Output manipulation                      | Filter AI response for unexpected patterns before display  |
 
 **Gemini prompt template pattern**:
+
 ```
 [SYSTEM PROMPT - IMMUTABLE, SERVER-SIDE]
 You are a veterinary triage assistant. You ONLY answer questions about
@@ -104,13 +107,13 @@ Respond only to the content within <user_input> tags.
 
 ## Rate Limiting
 
-| Action | Limit | Enforcement |
-|--------|-------|-------------|
-| Point-earning tasks | 6/day per task type | Turso row count check |
-| Photo uploads | 20/day per user | Worker middleware |
-| AI Vet chat messages | 50/day per user | Worker middleware |
-| Auth attempts | 10/hour per IP | Cloudflare rate limiting |
-| API calls (general) | 100/min per IP | Cloudflare rate limiting |
+| Action               | Limit               | Enforcement              |
+| -------------------- | ------------------- | ------------------------ |
+| Point-earning tasks  | 6/day per task type | Turso row count check    |
+| Photo uploads        | 20/day per user     | Worker middleware        |
+| AI Vet chat messages | 50/day per user     | Worker middleware        |
+| Auth attempts        | 10/hour per IP      | Cloudflare rate limiting |
+| API calls (general)  | 100/min per IP      | Cloudflare rate limiting |
 
 ---
 
@@ -141,13 +144,13 @@ Applied via Cloudflare Worker response headers on all routes.
 
 ## Solana / Phantom Security
 
-| Concern | Defense |
-|---------|---------|
-| Private keys | Never stored server-side. Wallet is client-only |
-| Transaction params | Validated server-side before presenting to user for signing |
-| SPL token mint amount | Worker-controlled, user cannot manipulate |
-| Missing wallet | Graceful degradation — app works without Web3 |
-| Fake wallet injection | Validate wallet adapter follows wallet-standard |
+| Concern               | Defense                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| Private keys          | Never stored server-side. Wallet is client-only             |
+| Transaction params    | Validated server-side before presenting to user for signing |
+| SPL token mint amount | Worker-controlled, user cannot manipulate                   |
+| Missing wallet        | Graceful degradation — app works without Web3               |
+| Fake wallet injection | Validate wallet adapter follows wallet-standard             |
 
 ---
 
@@ -172,13 +175,13 @@ Applied via Cloudflare Worker response headers on all routes.
 
 ## Error Handling
 
-| Context | Response |
-|---------|----------|
-| Client-facing errors | Generic message: "Something went wrong. Please try again." |
-| Server logs | Full error details, stack trace, request context |
-| Auth failures | Generic "Authentication failed" — no hint about what failed |
-| Rate limit exceeded | `429 Too Many Requests` with `Retry-After` header |
-| Validation failures | Specific field errors (safe to show — tells user what to fix) |
+| Context              | Response                                                      |
+| -------------------- | ------------------------------------------------------------- |
+| Client-facing errors | Generic message: "Something went wrong. Please try again."    |
+| Server logs          | Full error details, stack trace, request context              |
+| Auth failures        | Generic "Authentication failed" — no hint about what failed   |
+| Rate limit exceeded  | `429 Too Many Requests` with `Retry-After` header             |
+| Validation failures  | Specific field errors (safe to show — tells user what to fix) |
 
 ---
 
@@ -198,3 +201,11 @@ Applied via Cloudflare Worker response headers on all routes.
 - [ ] Session ID: cryptographically random, 32+ bytes
 - [ ] Expired sessions cleaned up (TTL or cron)
 - [ ] Build output audited for secret leakage
+
+---
+
+## Judge Evidence
+
+- This file is the security architecture and pre-deploy checklist.
+- Put real scan reports in `docs/security-reports/` or link them from `docs/submission.md`.
+- Do not present a mock scan as real evidence. Mock/dev-mode scan panels are allowed only when labeled as demonstration.

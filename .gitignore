@@ -83,3 +83,7 @@ Desktop.ini
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Agent local dev folders
+# .kiro is OK
+.agents

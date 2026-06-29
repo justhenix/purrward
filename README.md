@@ -1,42 +1,64 @@
-# sv
+# Purrward
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Purrward is a care-to-earn cat wellness PWA for #hackthekitty 2026. It rewards cat owners for consistent routines like feeding, water, litter care, play, grooming, and medication.
 
-## Creating a project
+## Demo Flow
 
-If you're seeing this, you've probably already done this step. Congrats!
+Core product loop:
 
-```sh
-# create a new project
-bunx sv create my-app
+```text
+cat-care task -> photo proof -> server validation -> metadata strip -> Gemini verification -> daily anti-cheat caps -> Turso points ledger -> rewards
 ```
 
-To recreate this project with the same configuration:
+The backend foundation for OAuth sessions, secure photo verification, and server-owned points is implemented. UI wiring for the full photo-upload flow should be verified before recording the final demo.
 
-```sh
-# recreate this project
-bun x sv@0.16.1 create --template minimal --types ts --add tailwindcss="plugins:none" sveltekit-adapter="adapter:cloudflare+cfTarget:pages" drizzle="database:sqlite+sqlite:turso" vitest="usages:unit" prettier eslint --no-download-check --install bun ./
-```
+## Why It Fits
 
-## Developing
+Purrward makes the cat theme functional, not decorative: the app rewards real feline care, rejects unrelated or low-confidence proof, and keeps rewards tied to a server-side wellness ledger.
 
-Once you've created a project and installed dependencies with `bun install`, start a development server:
+## Stack
 
-```sh
+- SvelteKit 5 + TypeScript + Bun
+- TailwindCSS v4
+- Cloudflare Pages/Workers
+- Turso/LibSQL + Drizzle ORM
+- Google OAuth + HttpOnly sessions
+- Gemini REST API for photo verification
+
+## Security Highlights
+
+- Google OAuth callback exchanges tokens server-side only.
+- Session cookie is HttpOnly, SameSite=Strict, and Secure in production.
+- Protected endpoints use `event.locals.user`; client user IDs are ignored.
+- Photo uploads enforce jpeg/png/webp and 5MB max.
+- JPEG/PNG metadata is stripped before Gemini.
+- Gemini prompt is server-owned and asks for JSON-only verification.
+- Daily upload and task caps limit point farming.
+- Points are awarded in a server-side DB transaction.
+
+## Quickstart
+
+```powershell
+bun install
+Copy-Item .env.example .env
 bun run dev
-
-# or start the server and open the app in a new browser tab
-bun run dev -- --open
 ```
 
-## Building
+Fill `.env` with Turso, Google OAuth, and Gemini credentials before testing auth or verification.
 
-To create a production version of your app:
+## Checks
 
-```sh
-bun run build
+```powershell
+bun run check
+bun test
+bun run lint
 ```
 
-You can preview the production build with `bun run preview`.
+## Docs
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- [Scaffold](docs/scaffold.md)
+- [Security](docs/security.md)
+- [Design](docs/design.md)
+- [Roadmap](docs/steps.md)
+- [Demo Script](docs/demo.md)
+- [Submission Checklist](docs/submission.md)
