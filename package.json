@@ -48,6 +48,7 @@
 		"wrangler": "^4.97.0"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.22.0",
 		"driver.js": "^1.6.0"
 	}
 }

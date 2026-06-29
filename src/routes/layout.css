@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Quicksand:wght@500;700&display=swap');
 @import 'tailwindcss';
 
 @theme {
@@ -7,19 +8,26 @@
 	--color-paper-2: #fffdf8;
 	--color-paper-3: #f6eedb;
 	--color-charcoal: #242626;
+	--color-charcoal-soft: #343837;
 	--color-ink: #171a19;
 	--color-muted: #7a746b;
 	--color-line: #e8decb;
-	--color-sage: #a9c8a8;
-	--color-sage-soft: #dcead7;
-	--color-peach: #f4bfa8;
-	--color-peach-soft: #fbe2d4;
-	--color-sky: #a9d9e8;
-	--color-butter: #f6d98b;
+	--color-sage: #8ebc8c;
+	--color-sage-soft: #cce2c6;
+	--color-peach: #f0a688;
+	--color-peach-soft: #f8cfbb;
+	--color-sky: #88cedf;
+	--color-sky-soft: #c4edf3;
+	--color-butter: #f4cb63;
+	--color-rose: #e9a7b5;
 	--color-success-bg: #dcead7;
 	--color-success-text: #406b43;
 	--color-warning-bg: #fff0c7;
 	--color-warning-text: #8a651b;
+	--color-danger-bg: #fad8d4;
+	--color-danger-text: #9c3329;
+	--color-info-bg: #ddf3f7;
+	--color-info-text: #2f6470;
 	--radius-card: 28px;
 	--radius-card-lg: 36px;
 	--radius-pill: 999px;
@@ -38,12 +46,12 @@ html {
 	background:
 		radial-gradient(
 			circle at 12% 10%,
-			color-mix(in srgb, var(--color-sky) 22%, transparent),
+			color-mix(in srgb, var(--color-sky) 14%, transparent),
 			transparent 28%
 		),
 		radial-gradient(
 			circle at 88% 18%,
-			color-mix(in srgb, var(--color-peach) 18%, transparent),
+			color-mix(in srgb, var(--color-peach) 12%, transparent),
 			transparent 30%
 		),
 		var(--color-paper);
@@ -57,13 +65,51 @@ body {
 
 button,
 input,
-select {
-	font: inherit;
+select,
+textarea {
+	font-family: var(--font-sans);
 }
 
 h1,
 h2,
-h3 {
+h3,
+.display-font {
 	font-family: var(--font-display);
 	letter-spacing: 0;
+}
+
+@media (min-width: 768px) {
+	html {
+		background:
+			radial-gradient(circle at 12% 10%, rgba(169, 217, 232, 0.15), transparent 30%),
+			radial-gradient(circle at 88% 18%, rgba(244, 191, 168, 0.1), transparent 35%),
+			var(--color-paper-3);
+	}
+}
+
+/* Restrained Watercolor Washes */
+.watercolor-blob-peach {
+	background: radial-gradient(circle, rgba(244, 191, 168, 0.15) 0%, transparent 70%);
+}
+.watercolor-blob-sky {
+	background: radial-gradient(circle, rgba(169, 217, 232, 0.15) 0%, transparent 70%);
+}
+.watercolor-blob-butter {
+	background: radial-gradient(circle, rgba(246, 217, 139, 0.18) 0%, transparent 70%);
+}
+.watercolor-blob-sage {
+	background: radial-gradient(circle, rgba(169, 200, 168, 0.15) 0%, transparent 70%);
+}
+
+/* Subtle parchment grain backdrop overlay */
+.paper-texture {
+	position: relative;
+}
+.paper-texture::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0.035;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
