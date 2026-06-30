@@ -118,15 +118,16 @@
 	}
 
 	.bottom-nav a[aria-current='page'] {
-		display: flex;
-		flex-direction: row;
+		display: grid;
+		grid-template-rows: 22px auto;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		justify-items: center;
+		gap: 2px;
 		background: var(--color-paper-2);
 		color: var(--color-charcoal);
 		box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-		padding: 0 16px;
+		padding: 8px 0;
 		height: 100%;
 	}
 
