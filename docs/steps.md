@@ -19,7 +19,7 @@
 ## Phase 1: Core Mechanics (MVP / VIP)
 
 - [x] **Google OAuth**: Implement full flow (Worker endpoints + Turso session table).
-- [x] **Habit Tracker UI**: Daily checklists for feeding, water, litter, and medication.
+- [x] **Habit Tracker UI**: Daily checklists for feeding, water, litter, play, grooming, and medication.
 - [x] **Verification Engine**: Cloudflare Worker endpoint calling the Gemini API to verify uploaded photos.
 - [x] **Input Validation**: Server-side validation for photo uploads (MIME, size, metadata strip).
 - [x] **Gemini Prompt Hardening**: Immutable server prompt and structured JSON response parsing.

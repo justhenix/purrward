@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
+	import Brush from '@lucide/svelte/icons/brush';
 	import Camera from '@lucide/svelte/icons/camera';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Gift from '@lucide/svelte/icons/gift';
 	import Heart from '@lucide/svelte/icons/heart';
+	import Pill from '@lucide/svelte/icons/pill';
 	import Search from '@lucide/svelte/icons/search';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import Star from '@lucide/svelte/icons/star';
 	import type { PageProps } from './$types';
 
-	type TaskType = 'feeding' | 'water' | 'litter' | 'play';
+	type TaskType = 'feeding' | 'water' | 'litter' | 'play' | 'grooming' | 'meds';
 	type VerifyBody = {
 		verified?: boolean;
 		reason?: string;
@@ -44,7 +46,7 @@
 			id: 'water',
 			name: 'Water',
 			status: 'Done',
-			points: '+5 pts',
+			points: '+10 pts',
 			proof: 'verified',
 			tone: 'sky'
 		},
@@ -60,9 +62,25 @@
 			id: 'play',
 			name: 'Play',
 			status: 'Proof needed',
-			points: '+5 pts',
+			points: '+10 pts',
 			proof: 'upload',
 			tone: 'butter'
+		},
+		{
+			id: 'grooming',
+			name: 'Groom',
+			status: 'Pending',
+			points: '+10 pts',
+			proof: 'photo proof',
+			tone: 'sage'
+		},
+		{
+			id: 'meds',
+			name: 'Meds',
+			status: 'Pending',
+			points: '+10 pts',
+			proof: 'photo proof',
+			tone: 'peach'
 		}
 	]);
 
@@ -74,7 +92,7 @@
 	];
 
 	let { data }: PageProps = $props();
-	let selectedTask = $state<TaskType>('feeding');
+	let selectedTask = $derived(data.selectedTask);
 	let selectedFile = $state('No photo chosen');
 	let verifying = $state(false);
 	let result = $state<VerifyBody | null>(null);
@@ -85,7 +103,6 @@
 	// Digital Twin derived properties
 	let completedCount = $derived(tasks.filter((t) => t.status === 'Done').length);
 	let totalTasks = $derived(tasks.length);
-	let completionPercentage = $derived((completedCount / totalTasks) * 100);
 
 	let nextTask = $derived(tasks.find((t) => t.status !== 'Done'));
 
@@ -98,7 +115,11 @@
 					? 'Mochi is thirsty'
 					: nextTask.id === 'litter'
 						? 'Litter box is untidy'
-						: 'Mochi wants to play'
+						: nextTask.id === 'play'
+							? 'Mochi wants to play'
+							: nextTask.id === 'grooming'
+								? 'Mochi needs brushing'
+								: 'Mochi needs medication care'
 	);
 
 	let bubbleText = $derived(
@@ -110,7 +131,11 @@
 					? 'Fill the real water bowl with fresh water.'
 					: nextTask.id === 'litter'
 						? 'Clean the real litter box.'
-						: 'Time to play with Mochi!'
+						: nextTask.id === 'play'
+							? 'Time to play with Mochi!'
+							: nextTask.id === 'grooming'
+								? 'Brush Mochi gently.'
+								: 'Log medication care.'
 	);
 
 	let tasksLeftText = $derived(
@@ -154,7 +179,17 @@
 
 {#snippet taskIcon(type: TaskType, size = 23, strokeWidth = 2.1)}
 	{#if type === 'feeding'}
-		<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width={strokeWidth}
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M5 13c1-3 3-5 7-5s6 2 7 5" />
 			<path d="M3 13h18l-1.5 6.5c-.3 1.2-1.4 2.1-2.7 2.1H7.2c-1.3 0-2.4-.9-2.7-2.1L3 13Z" />
 			<circle cx="12" cy="17" r="1.5" fill="currentColor" />
@@ -164,11 +199,31 @@
 			<circle cx="14.5" cy="14.5" r="0.7" fill="currentColor" />
 		</svg>
 	{:else if type === 'water'}
-		<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width={strokeWidth}
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z" />
 		</svg>
 	{:else if type === 'litter'}
-		<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width={strokeWidth}
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M3 13v6c0 1.6 1.4 3 3 3h12c1.6 0 3-1.4 3-3v-6" />
 			<path d="M3 16c2-1 4-1 6 0s4 1 6 0 4-1 6 0" />
 			<path d="M16 6l-2.5 4.5" />
@@ -178,12 +233,26 @@
 			<circle cx="14" cy="18.5" r="0.6" fill="currentColor" />
 		</svg>
 	{:else if type === 'play'}
-		<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width={strokeWidth}
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M3 21 17 7" />
 			<path d="M17 7c1 2 1.5 4 0 6.5" stroke-dasharray="1 1" />
 			<circle cx="17" cy="15.5" r="2" />
 			<path d="M17 17.5v2.5M16 17.2l-1.5 2M18 17.2l1.5 2" />
 		</svg>
+	{:else if type === 'grooming'}
+		<Brush {size} {strokeWidth} aria-hidden="true" />
+	{:else if type === 'meds'}
+		<Pill {size} {strokeWidth} aria-hidden="true" />
 	{/if}
 {/snippet}
 
@@ -245,20 +314,20 @@
 				/>
 				<path class="rug" d="M82 237c35-35 153-42 221-8 34 17 14 53-90 57-111 4-167-14-131-49Z" />
 				<path class="bowl food-bowl" d="M95 248h63c-5 27-57 27-63 0Z" />
-				
-				{#if tasks.find(t => t.id === 'feeding')?.status === 'Done'}
+
+				{#if tasks.find((t) => t.id === 'feeding')?.status === 'Done'}
 					<path
 						class="kibble"
 						d="M111 242c9-13 24-9 29 4M119 244c3-12 19-12 23 0M104 250c15-7 37-7 50 0"
 					/>
 				{/if}
-				
+
 				<path class="bowl water-bowl" d="M292 248h68c-7 27-61 27-68 0Z" />
-				
-				{#if tasks.find(t => t.id === 'water')?.status === 'Done'}
+
+				{#if tasks.find((t) => t.id === 'water')?.status === 'Done'}
 					<path class="water" d="M304 247c11-10 32-10 45 0" />
 				{/if}
-				
+
 				<path
 					class="toy-ball"
 					d="M154 282a12 12 0 1 0 0-24 12 12 0 0 0 0 24ZM147 263c7 4 14 10 18 17M165 263c-9 3-16 9-22 17"
@@ -276,17 +345,31 @@
 				<path class="cat-head" d="M150 133c0-46 96-46 96 0 0 40-20 62-48 62s-48-22-48-62Z" />
 				<path class="cat-ear" d="M162 105 151 62l33 30M234 105l12-43-34 30" />
 				<path class="ear-inner" d="M162 91 157 74l14 12M233 91l6-17-15 12" />
-				
+
 				{#if completedCount === totalTasks}
 					<!-- Happy closed eyes -->
-					<path class="cat-eye-happy" d="M176 130c2 2 8 2 10 0" stroke="#695841" stroke-width="2.4" stroke-linecap="round" fill="none" />
-					<path class="cat-eye-happy" d="M210 130c2 2 8 2 10 0" stroke="#695841" stroke-width="2.4" stroke-linecap="round" fill="none" />
+					<path
+						class="cat-eye-happy"
+						d="M176 130c2 2 8 2 10 0"
+						stroke="#695841"
+						stroke-width="2.4"
+						stroke-linecap="round"
+						fill="none"
+					/>
+					<path
+						class="cat-eye-happy"
+						d="M210 130c2 2 8 2 10 0"
+						stroke="#695841"
+						stroke-width="2.4"
+						stroke-linecap="round"
+						fill="none"
+					/>
 				{:else}
 					<!-- Open eyes -->
 					<circle class="cat-eye" cx="181" cy="130" r="4" />
 					<circle class="cat-eye" cx="215" cy="130" r="4" />
 				{/if}
-				
+
 				<path
 					class="cat-face"
 					d="M198 138v8M189 151c6 6 13 6 19 0M171 143l-28-5M173 153l-29 4M224 143l28-5M222 153l29 4"
@@ -299,8 +382,11 @@
 		</div>
 
 		<div class="scene-bubble">
-			<h2 id="scene-title">{completedCount === totalTasks ? 'Mochi is happy!' : 'Mochi is hungry'}</h2>
-			<p>{totalTasks - completedCount === 0 ? 'Completed today!' : `${totalTasks - completedCount} care tasks left`}</p>
+			<h2 id="scene-title">
+				{bubbleTitle}
+			</h2>
+			<p>{tasksLeftText}</p>
+			<p>{bubbleText}</p>
 		</div>
 	</section>
 
@@ -311,10 +397,11 @@
 		</button>
 		<label class="upload-button">
 			<span>Upload proof</span>
+			<input type="hidden" name="taskType" value={selectedTask} />
 			<input
 				name="photo"
 				type="file"
-				accept="image/jpeg,image/png,image/webp"
+				accept="image/jpeg,image/png"
 				required={Boolean(data.user)}
 				disabled={!data.user || verifying}
 				onchange={handleFileChange}
@@ -649,8 +736,6 @@
 		line-height: 1.25;
 	}
 
-
-
 	.scene-actions {
 		display: grid;
 		grid-template-columns: 1.04fr 0.96fr;
@@ -671,7 +756,9 @@
 		text-decoration: none;
 		cursor: pointer;
 		box-sizing: border-box;
-		transition: transform 120ms ease, box-shadow 120ms ease;
+		transition:
+			transform 120ms ease,
+			box-shadow 120ms ease;
 	}
 
 	.feed-button:hover,
@@ -877,7 +964,10 @@
 		background: var(--color-paper-2);
 		border: 1px solid rgba(36, 38, 38, 0.08);
 		box-shadow: 0 4px 12px rgba(36, 38, 38, 0.04);
-		transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+		transition:
+			transform 120ms ease,
+			border-color 120ms ease,
+			box-shadow 120ms ease;
 		color: var(--color-charcoal);
 	}
 
@@ -891,10 +981,21 @@
 		transform: scale(1.06);
 	}
 
-	.care-preview-chip.peach .preview-icon-wrapper { background: #ffdccc; }
-	.care-preview-chip.sky .preview-icon-wrapper { background: #cceefa; }
-	.care-preview-chip.lavender .preview-icon-wrapper { background: #e4dcff; }
-	.care-preview-chip.butter .preview-icon-wrapper { background: #ffe9ae; }
+	.care-preview-chip.peach .preview-icon-wrapper {
+		background: #ffdccc;
+	}
+	.care-preview-chip.sky .preview-icon-wrapper {
+		background: #cceefa;
+	}
+	.care-preview-chip.lavender .preview-icon-wrapper {
+		background: #e4dcff;
+	}
+	.care-preview-chip.butter .preview-icon-wrapper {
+		background: #ffe9ae;
+	}
+	.care-preview-chip.sage .preview-icon-wrapper {
+		background: #d4eccf;
+	}
 
 	.status-dot {
 		position: absolute;

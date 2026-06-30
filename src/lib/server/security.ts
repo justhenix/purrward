@@ -6,7 +6,7 @@ export function sanitize(input: string): string {
 }
 
 /** SECURITY: validate MIME type for photo uploads */
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const ALLOWED_MIMES = ['image/jpeg', 'image/png'] as const;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
 const TASK_TYPES = ['feeding', 'water', 'litter', 'play', 'grooming', 'meds'] as const;
 
@@ -14,7 +14,7 @@ export type TaskType = (typeof TASK_TYPES)[number];
 
 export function validateUpload(file: File): { ok: boolean; error?: string } {
 	if (!ALLOWED_MIMES.includes(file.type as (typeof ALLOWED_MIMES)[number])) {
-		return { ok: false, error: 'Invalid file type. Use JPEG, PNG, or WebP.' };
+		return { ok: false, error: 'Invalid file type. Use JPEG or PNG.' };
 	}
 	if (file.size > MAX_UPLOAD_BYTES) {
 		return { ok: false, error: 'File too large. Maximum 5MB.' };
@@ -30,7 +30,6 @@ export function validateTaskType(value: FormDataEntryValue | null): TaskType | n
 export function stripImageMetadata(bytes: Uint8Array, mime: string): Uint8Array {
 	if (mime === 'image/jpeg') return stripJpegExif(bytes);
 	if (mime === 'image/png') return stripPngMetadata(bytes);
-	// simplify: WebP metadata stripping needs a chunk parser; keep MVP dependency-free.
 	return bytes;
 }
 

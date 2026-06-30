@@ -30,7 +30,7 @@ Purrward makes the cat theme functional, not decorative: the app rewards real fe
 - Google OAuth callback exchanges tokens server-side only.
 - Session cookie is HttpOnly, SameSite=Strict, and Secure in production.
 - Protected endpoints use `event.locals.user`; client user IDs are ignored.
-- Photo uploads enforce jpeg/png/webp and 5MB max.
+- Photo uploads enforce jpeg/png and 5MB max.
 - JPEG/PNG metadata is stripped before Gemini.
 - Gemini prompt is server-owned and asks for JSON-only verification.
 - Daily upload and task caps limit point farming.
@@ -56,9 +56,13 @@ bun run lint
 
 ## Docs
 
-- [Scaffold](docs/scaffold.md)
-- [Security](docs/security.md)
-- [Design](docs/design.md)
-- [Roadmap](docs/steps.md)
-- [Demo Script](docs/demo.md)
-- [Submission Checklist](docs/submission.md)
+All project knowledge lives in `.kiro/`:
+
+- [Product & Stack](.kiro/steering/product.md)
+- [Code Style & Commits](.kiro/steering/code-style.md)
+- [Security](.kiro/steering/security.md)
+- [Design System](.kiro/steering/design.md)
+- [Repo Structure](.kiro/steering/structure.md)
+- [Assets](.kiro/steering/assets.md)
+- [Demo & Submission](.kiro/steering/demo.md)
+- [MVP Spec](.kiro/specs/core-platform/)

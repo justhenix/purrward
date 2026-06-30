@@ -1,26 +1,7 @@
 <script lang="ts">
-	const securityChecklist = [
-		{ id: 1, label: 'Turso DB Param Queries Only', passed: true },
-		{ id: 2, label: 'EXIF Metadata Stripped Server-Side', passed: true },
-		{ id: 3, label: 'HttpOnly Secure SameSite Cookies', passed: true },
-		{ id: 4, label: 'CSP Headers Configured at Edge', passed: true },
-		{ id: 5, label: 'Verification Rate Limits Active', passed: true }
-	];
+	import type { PageProps } from './$types';
 
-	const traceLogs = [
-		{ step: 'Edge Request', detail: 'Cloudflare Worker routing /api/verify', status: 'Authorized' },
-		{ step: 'Metadata Clean', detail: 'Photo buffer parsed, EXIF stripped', status: 'Clean' },
-		{
-			step: 'Gemini Verification',
-			detail: 'JSON response parsed successfully',
-			status: 'Confidence 98%'
-		},
-		{
-			step: 'Turso Ledger Write',
-			detail: 'Awarded 10 Purrpoints via SQL params',
-			status: 'Committed'
-		}
-	];
+	let { data }: PageProps = $props();
 </script>
 
 <!-- Developer Mode technical appendix for security posture, traces, and scheduler config. -->
@@ -35,35 +16,38 @@
 		<div class="dev-hero-content">
 			<span class="dev-badge">Technical Appendix</span>
 			<h2>Developer Mode</h2>
-			<p>A look at the security posture, rate limiting, and system tracing backing Purrward.</p>
+			<p>{data.verificationRows} photo verification events recorded in the care ledger.</p>
 		</div>
 	</section>
 
 	<!-- Security Posture Checklist -->
 	<section class="security-card card">
-		<h3>Security Compliance Audit</h3>
-		<p class="card-desc">Active boundary protections enforced at the Cloudflare Worker layer.</p>
+		<h3>Security Review Notes</h3>
+		<p class="card-desc">Implementation evidence for the Cloudflare Worker boundary.</p>
 		<div class="checklist">
-			{#each securityChecklist as item (item.id)}
+			{#each data.securityChecklist as item (item.id)}
 				<div class="checklist-item">
-					<span class="status-dot passed">✓</span>
+					<span class={['status-dot', item.ready ? 'evidence' : 'pending']}>
+						{item.ready ? '✓' : '!'}
+					</span>
 					<span class="label-text">{item.label}</span>
 				</div>
 			{/each}
 		</div>
 	</section>
 
-	<!-- Mock Aikido Scan -->
-	<section class="aikido-card card bg-sage-soft/30">
-		<div class="aikido-header">
-			<span class="badge">Compliance Verified</span>
-			<h3>Aikido Code Scan</h3>
+	<!-- Demo-only security review note -->
+	<section class="review-card card bg-sage-soft/30">
+		<div class="review-header">
+			<span class="badge">Demo note</span>
+			<h3>Security Scan Evidence</h3>
 		</div>
-		<div class="status-summary">
-			<span class="grade">A+</span>
+		<div class="review-summary">
 			<div>
-				<h4>Grade A Compliance</h4>
-				<p>No high or critical vulnerabilities detected in active project dependencies.</p>
+				<h4>Real scan report not attached</h4>
+				<p>
+					This panel is a demo reminder. Attach real scan evidence before claiming scan results.
+				</p>
 			</div>
 		</div>
 	</section>
@@ -73,7 +57,7 @@
 		<h3>Verification Workflow Trace</h3>
 		<p class="card-desc">Step-by-step telemetry for photo care validations.</p>
 		<div class="trace-timeline">
-			{#each traceLogs as log (log.step)}
+			{#each data.traceLogs as log (log.step)}
 				<div class="trace-step">
 					<div class="step-marker"></div>
 					<div class="step-content">
@@ -173,9 +157,14 @@
 		font-weight: 700;
 	}
 
-	.status-dot.passed {
+	.status-dot.evidence {
 		background: var(--color-sage-soft);
 		color: var(--color-success-text);
+	}
+
+	.status-dot.pending {
+		background: var(--color-warning-bg);
+		color: var(--color-warning-text);
 	}
 
 	.label-text {
@@ -184,11 +173,11 @@
 		color: var(--color-ink);
 	}
 
-	.aikido-card {
+	.review-card {
 		padding: 20px;
 	}
 
-	.aikido-header {
+	.review-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
@@ -206,35 +195,20 @@
 		color: var(--color-success-text);
 	}
 
-	.status-summary {
+	.review-summary {
 		display: flex;
 		align-items: center;
 		gap: 16px;
 	}
 
-	.grade {
-		font-family: var(--font-display);
-		font-size: 2.2rem;
-		font-weight: 700;
-		color: var(--color-success-text);
-		background: var(--color-paper-2);
-		width: 60px;
-		height: 60px;
-		border-radius: 50%;
-		display: grid;
-		place-items: center;
-		box-shadow: 0 4px 10px rgba(169, 200, 168, 0.2);
-		border: 1px solid var(--color-sage);
-	}
-
-	.status-summary h4 {
+	.review-summary h4 {
 		margin: 0 0 2px;
 		font-size: 0.88rem;
 		font-weight: 700;
 		color: var(--color-ink);
 	}
 
-	.status-summary p {
+	.review-summary p {
 		margin: 0;
 		font-size: 0.75rem;
 		color: var(--color-muted);

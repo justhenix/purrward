@@ -44,6 +44,7 @@ export const habitCompletions = sqliteTable(
 		verified: integer('verified').notNull(),
 		pointsAwarded: integer('points_awarded').notNull().default(0),
 		reason: text('reason').notNull(),
+		dayStart: integer('day_start').notNull().default(0),
 		createdAt: integer('created_at').notNull()
 	},
 	(table) => [
@@ -52,6 +53,8 @@ export const habitCompletions = sqliteTable(
 			table.userId,
 			table.taskType,
 			table.createdAt
-		)
+		),
+		index('habit_completions_user_day_idx').on(table.userId, table.dayStart),
+		index('habit_completions_user_task_day_idx').on(table.userId, table.taskType, table.dayStart)
 	]
 );
