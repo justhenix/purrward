@@ -3,7 +3,13 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	let developerMode = $state(false);
+	let careReminders = $derived(data.preferences.careReminders);
+	let developerMode = $derived(data.preferences.developerMode);
+
+	function savePreference(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		input.form?.requestSubmit();
+	}
 </script>
 
 <!-- Profile and settings screen with hidden developer access. -->
@@ -47,15 +53,30 @@
 		</a>
 	</section>
 
-	<section class="settings-card" aria-labelledby="app-preferences-title">
+	<form
+		class="settings-card"
+		method="POST"
+		action="?/preferences"
+		aria-labelledby="app-preferences-title"
+	>
 		<h2 id="app-preferences-title">App preferences</h2>
 		<label class="toggle-row">
 			<span>Gentle care reminders</span>
-			<input type="checkbox" checked />
+			<input
+				name="careReminders"
+				type="checkbox"
+				bind:checked={careReminders}
+				onchange={savePreference}
+			/>
 		</label>
 		<label class="toggle-row">
 			<span>Developer Mode</span>
-			<input type="checkbox" bind:checked={developerMode} />
+			<input
+				name="developerMode"
+				type="checkbox"
+				bind:checked={developerMode}
+				onchange={savePreference}
+			/>
 		</label>
 		<div class="developer-note">
 			<div>
@@ -64,7 +85,7 @@
 			</div>
 			<a class={['dev-link', developerMode && 'enabled']} href={resolve('/dev')}>Open</a>
 		</div>
-	</section>
+	</form>
 </div>
 
 <style>
