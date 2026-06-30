@@ -56,9 +56,13 @@ bun run lint
 
 ## Docs
 
-- [Scaffold](docs/scaffold.md)
-- [Security](docs/security.md)
-- [Design](docs/design.md)
-- [Roadmap](docs/steps.md)
-- [Demo Script](docs/demo.md)
-- [Submission Checklist](docs/submission.md)
+All project knowledge lives in `.kiro/`:
+
+- [Product & Stack](.kiro/steering/product.md)
+- [Code Style & Commits](.kiro/steering/code-style.md)
+- [Security](.kiro/steering/security.md)
+- [Design System](.kiro/steering/design.md)
+- [Repo Structure](.kiro/steering/structure.md)
+- [Assets](.kiro/steering/assets.md)
+- [Demo & Submission](.kiro/steering/demo.md)
+- [MVP Spec](.kiro/specs/core-platform/)
