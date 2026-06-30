@@ -66,13 +66,13 @@ CREATE TABLE users (
 
 ## Input Validation
 
-| Surface              | Validation                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| Photo uploads        | MIME allowlist (`image/jpeg`, `image/png`, `image/webp`), 5MB max, EXIF stripped server-side |
-| Form inputs          | Sanitized, length-capped, type-checked at Worker                                             |
-| API params           | Schema validation at Worker entry point                                                      |
-| Cat names / captions | HTML-escaped, max 50 chars, no script tags                                                   |
-| Gemini user input    | Sandboxed in structured template, never raw-concatenated                                     |
+| Surface              | Validation                                                                     |
+| -------------------- | ------------------------------------------------------------------------------ |
+| Photo uploads        | MIME allowlist (`image/jpeg`, `image/png`), 5MB max, EXIF stripped server-side |
+| Form inputs          | Sanitized, length-capped, type-checked at Worker                               |
+| API params           | Schema validation at Worker entry point                                        |
+| Cat names / captions | HTML-escaped, max 50 chars, no script tags                                     |
+| Gemini user input    | Sandboxed in structured template, never raw-concatenated                       |
 
 ---
 

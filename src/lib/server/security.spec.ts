@@ -1,11 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { stripImageMetadata, validateTaskType } from './security';
+import { stripImageMetadata, validateTaskType, validateUpload } from './security';
 
 describe('security helpers', () => {
 	it('validates known task types', () => {
 		expect(validateTaskType('feeding')).toBe('feeding');
 		expect(validateTaskType('bad')).toBeNull();
 		expect(validateTaskType(null)).toBeNull();
+	});
+
+	it('allows only JPEG and PNG uploads', () => {
+		expect(
+			validateUpload(new File([new Uint8Array([1])], 'cat.jpg', { type: 'image/jpeg' }))
+		).toEqual({
+			ok: true
+		});
+		expect(
+			validateUpload(new File([new Uint8Array([1])], 'cat.png', { type: 'image/png' }))
+		).toEqual({
+			ok: true
+		});
+		expect(
+			validateUpload(new File([new Uint8Array([1])], 'cat.webp', { type: 'image/webp' }))
+		).toEqual({
+			ok: false,
+			error: 'Invalid file type. Use JPEG or PNG.'
+		});
 	});
 
 	it('strips JPEG APP1 EXIF metadata', () => {

@@ -30,7 +30,7 @@ Purrward makes the cat theme functional, not decorative: the app rewards real fe
 - Google OAuth callback exchanges tokens server-side only.
 - Session cookie is HttpOnly, SameSite=Strict, and Secure in production.
 - Protected endpoints use `event.locals.user`; client user IDs are ignored.
-- Photo uploads enforce jpeg/png/webp and 5MB max.
+- Photo uploads enforce jpeg/png and 5MB max.
 - JPEG/PNG metadata is stripped before Gemini.
 - Gemini prompt is server-owned and asks for JSON-only verification.
 - Daily upload and task caps limit point farming.
