@@ -1,51 +1,45 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	type RewardItem = {
-		id: string;
-		title: string;
-		cost: number;
-		desc: string;
-		category: 'vet' | 'treat' | 'toy' | 'shelter';
-		available: boolean;
+	type RedeemBody = {
+		reward?: { title: string };
+		balance?: number;
+		code?: string;
+		error?: string;
 	};
 
-	const rewards: RewardItem[] = [
-		{
-			id: 'vet_discount',
-			title: 'Vet Consultation Disc.',
-			cost: 100,
-			desc: 'Get 25% off your next physical vet visit.',
-			category: 'vet',
-			available: true
-		},
-		{
-			id: 'cat_treats',
-			title: 'Premium Tuna Treats',
-			cost: 150,
-			desc: 'All-natural organic freeze-dried tuna bites.',
-			category: 'treat',
-			available: true
-		},
-		{
-			id: 'feather_wand',
-			title: 'Rainbow Feather Wand',
-			cost: 200,
-			desc: 'Interactive toy with comfortable wooden handle.',
-			category: 'toy',
-			available: true
-		},
-		{
-			id: 'shelter_don',
-			title: 'Feed a Shelter Kitty',
-			cost: 100,
-			desc: 'Donate daily meals to cat rescue shelters.',
-			category: 'shelter',
-			available: true
+	let redeemedBalance = $state<number | null>(null);
+	let balance = $derived(redeemedBalance ?? data.user?.purrpoints ?? 0);
+	let redeeming = $state<string | null>(null);
+	let message = $state('');
+	let messageOk = $state(false);
+
+	async function redeemReward(rewardId: string) {
+		if (!data.user || redeeming) return;
+
+		redeeming = rewardId;
+		message = '';
+
+		const formData = new FormData();
+		formData.set('rewardId', rewardId);
+		const response = await fetch('/api/rewards/redeem', { method: 'POST', body: formData });
+		const body = (await response.json()) as RedeemBody;
+
+		if (response.ok && typeof body.balance === 'number' && body.reward && body.code) {
+			redeemedBalance = body.balance;
+			messageOk = true;
+			message = `${body.reward.title} redeemed. Code ${body.code}.`;
+			await invalidateAll();
+		} else {
+			messageOk = false;
+			message = body.error ?? 'Could not redeem this reward.';
 		}
-	];
+
+		redeeming = null;
+	}
 </script>
 
 <!-- Rewards store for Purrpoints, care discounts, and cat treats. -->
@@ -67,30 +61,37 @@
 	<div class="points-summary card">
 		<div class="points-info">
 			<span>Available Balance</span>
-			<h2>🪙 {data.user?.purrpoints ?? 0} Purrpoints</h2>
+			<h2>{balance} Purrpoints</h2>
 		</div>
 	</div>
 
+	{#if message}
+		<p class={['redeem-message', messageOk ? 'ok' : 'warn']}>{message}</p>
+	{/if}
+
 	<section class="rewards-grid">
-		{#each rewards as reward (reward.id)}
-			<div
-				class="reward-card card"
-				class:unavailable={!reward.available || (data.user?.purrpoints ?? 0) < reward.cost}
-			>
+		{#each data.rewards as reward (reward.id)}
+			<div class="reward-card card" class:unavailable={!data.user || balance < reward.cost}>
 				<div class="reward-header">
 					<span class="reward-cat-tag {reward.category}">{reward.category}</span>
-					<span class="reward-cost">🪙 {reward.cost} Pts</span>
+					<span class="reward-cost">{reward.cost} pts</span>
 				</div>
 				<div class="reward-body">
 					<h4>{reward.title}</h4>
 					<p>{reward.desc}</p>
 				</div>
-				<button class="redeem-btn" disabled={!data.user || data.user.purrpoints < reward.cost}>
+				<button
+					class="redeem-btn"
+					disabled={!data.user || balance < reward.cost || redeeming !== null}
+					onclick={() => redeemReward(reward.id)}
+				>
 					{!data.user
 						? 'Sign in to Redeem'
-						: data.user.purrpoints < reward.cost
+						: balance < reward.cost
 							? 'Need More Points'
-							: 'Redeem Reward'}
+							: redeeming === reward.id
+								? 'Redeeming'
+								: 'Redeem Reward'}
 				</button>
 			</div>
 		{/each}
@@ -167,6 +168,25 @@
 		font-weight: 700;
 		color: var(--color-ink);
 		margin: 4px 0 0;
+	}
+
+	.redeem-message {
+		margin: 0;
+		border-radius: 18px;
+		padding: 12px 14px;
+		font-size: 0.82rem;
+		font-weight: 700;
+		line-height: 1.35;
+	}
+
+	.redeem-message.ok {
+		background: var(--color-success-bg);
+		color: var(--color-success-text);
+	}
+
+	.redeem-message.warn {
+		background: var(--color-warning-bg);
+		color: var(--color-warning-text);
 	}
 
 	.rewards-grid {
