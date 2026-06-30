@@ -1,0 +1,60 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "lint-svelte-on-save",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(svelte|ts)$",
+      "action": {
+        "type": "command",
+        "command": "bun run lint"
+      },
+      "timeout": 30,
+      "enabled": true
+    },
+    {
+      "name": "typecheck-on-save",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(svelte|ts)$",
+      "action": {
+        "type": "command",
+        "command": "bun run check"
+      },
+      "timeout": 60,
+      "enabled": true
+    },
+    {
+      "name": "enforce-file-header",
+      "trigger": "PostFileCreate",
+      "matcher": "src/.*\\.(svelte|ts)$",
+      "action": {
+        "type": "agent",
+        "prompt": "This file was just created. Ensure it has a 1-line comment header explaining its purpose, as required by project conventions (AGENTS.md). If missing, add one."
+      },
+      "timeout": 15,
+      "enabled": true
+    },
+    {
+      "name": "security-review-server",
+      "trigger": "PostFileSave",
+      "matcher": "src/lib/server/.*\\.ts$",
+      "action": {
+        "type": "agent",
+        "prompt": "A server-side file was modified. Review the change for security issues per .kiro/steering/security.md: check for string interpolation in DB queries, exposed API keys, missing input validation, raw user input in Gemini prompts, or missing // SECURITY: comments on critical code paths."
+      },
+      "timeout": 30,
+      "enabled": true
+    },
+    {
+      "name": "no-monospace-check",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(svelte|css)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Check the saved file for monospace font usage (font-mono, font-family: monospace, Courier, Consolas). Purrward design rules forbid monospace fonts in user-facing UI. Flag any violations."
+      },
+      "timeout": 15,
+      "enabled": true
+    }
+  ]
+}
