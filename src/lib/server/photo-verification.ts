@@ -1,5 +1,5 @@
 // SECURITY: verifies care photos and records server-owned points.
-import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import { habitCompletions, users } from './db/schema';
 import { stripImageMetadata, validateTaskType, validateUpload, type TaskType } from './security';
 
@@ -20,6 +20,12 @@ export type VerificationResponse = {
 	status: number;
 	body: { verified?: boolean; reason?: string; pointsAwarded?: number; error?: string };
 };
+
+class LimitExceededError extends Error {
+	constructor(readonly response: VerificationResponse) {
+		super(response.body.error);
+	}
+}
 
 export function utcDayStart(timestamp = Date.now()): number {
 	const date = new Date(timestamp);
@@ -62,6 +68,23 @@ function extractGeminiText(payload: unknown): string | null {
 				typeof (output as { text?: unknown }).text === 'string'
 		);
 		if (textOutput) return textOutput.text;
+	}
+
+	const steps = record.steps;
+	if (Array.isArray(steps)) {
+		const step = steps.find(
+			(item): item is { content: unknown[] } =>
+				typeof item === 'object' &&
+				item !== null &&
+				Array.isArray((item as { content?: unknown }).content)
+		);
+		const textContent = step?.content.find(
+			(item): item is { text: string } =>
+				typeof item === 'object' &&
+				item !== null &&
+				typeof (item as { text?: unknown }).text === 'string'
+		);
+		if (textContent) return textContent.text;
 	}
 
 	const candidates = record.candidates;
@@ -161,9 +184,7 @@ async function checkLimits(input: {
 	const uploadRows = await input.database
 		.select({ value: count() })
 		.from(habitCompletions)
-		.where(
-			and(eq(habitCompletions.userId, input.userId), gte(habitCompletions.createdAt, dayStart))
-		);
+		.where(and(eq(habitCompletions.userId, input.userId), eq(habitCompletions.dayStart, dayStart)));
 	if ((uploadRows[0]?.value ?? 0) >= MAX_UPLOADS_PER_DAY) {
 		return { status: 429, body: { error: 'Daily upload limit reached.' } };
 	}
@@ -176,7 +197,7 @@ async function checkLimits(input: {
 				eq(habitCompletions.userId, input.userId),
 				eq(habitCompletions.taskType, input.taskType),
 				eq(habitCompletions.verified, 1),
-				gte(habitCompletions.createdAt, dayStart)
+				eq(habitCompletions.dayStart, dayStart)
 			)
 		);
 	if ((taskRows[0]?.value ?? 0) >= MAX_VERIFIED_TASKS_PER_DAY) {
@@ -194,13 +215,42 @@ async function recordVerification(input: {
 	now: number;
 }): Promise<number> {
 	const pointsAwarded = input.result.verified ? POINTS_PER_VERIFICATION : 0;
+	const dayStart = utcDayStart(input.now);
 	await input.database.transaction(async (tx) => {
+		const uploadRows = await tx
+			.select({ value: count() })
+			.from(habitCompletions)
+			.where(
+				and(eq(habitCompletions.userId, input.userId), eq(habitCompletions.dayStart, dayStart))
+			);
+		if ((uploadRows[0]?.value ?? 0) >= MAX_UPLOADS_PER_DAY) {
+			throw new LimitExceededError({ status: 429, body: { error: 'Daily upload limit reached.' } });
+		}
+
+		if (input.result.verified) {
+			const taskRows = await tx
+				.select({ value: count() })
+				.from(habitCompletions)
+				.where(
+					and(
+						eq(habitCompletions.userId, input.userId),
+						eq(habitCompletions.taskType, input.taskType),
+						eq(habitCompletions.verified, 1),
+						eq(habitCompletions.dayStart, dayStart)
+					)
+				);
+			if ((taskRows[0]?.value ?? 0) >= MAX_VERIFIED_TASKS_PER_DAY) {
+				throw new LimitExceededError({ status: 429, body: { error: 'Daily task limit reached.' } });
+			}
+		}
+
 		await tx.insert(habitCompletions).values({
 			userId: input.userId,
 			taskType: input.taskType,
 			verified: input.result.verified ? 1 : 0,
 			pointsAwarded,
 			reason: input.result.reason,
+			dayStart,
 			createdAt: input.now
 		});
 		if (pointsAwarded > 0) {
@@ -248,14 +298,33 @@ export async function verifyCarePhoto(input: {
 		taskType,
 		model: input.model
 	});
-	if (!result) return { status: 502, body: { error: 'Verification failed. Please try again.' } };
+	if (!result) {
+		try {
+			await recordVerification({
+				database: input.database,
+				userId: input.userId,
+				taskType,
+				result: { verified: false, reason: 'Verification failed. Please try again.' },
+				now
+			});
+		} catch (error) {
+			if (error instanceof LimitExceededError) return error.response;
+			throw error;
+		}
+		return { status: 502, body: { error: 'Verification failed. Please try again.' } };
+	}
 
-	const pointsAwarded = await recordVerification({
-		database: input.database,
-		userId: input.userId,
-		taskType,
-		result,
-		now
-	});
-	return { status: 200, body: { ...result, pointsAwarded } };
+	try {
+		const pointsAwarded = await recordVerification({
+			database: input.database,
+			userId: input.userId,
+			taskType,
+			result,
+			now
+		});
+		return { status: 200, body: { ...result, pointsAwarded } };
+	} catch (error) {
+		if (error instanceof LimitExceededError) return error.response;
+		throw error;
+	}
 }
