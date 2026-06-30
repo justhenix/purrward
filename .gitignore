@@ -84,15 +84,13 @@ Desktop.ini
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Local AI/dev folders
+# Bloat AI/dev folders
 .vscode
-.agentcoding
 .agents
 .claude
 .codex
 .copilot
 .gemini
-.kiro
 .commandcode
 .antigravity
 .antigravity-ide
