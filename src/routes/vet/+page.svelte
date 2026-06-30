@@ -6,6 +6,7 @@
 	};
 
 	let userQuery = $state('');
+	let sending = $state(false);
 	let chats = $state<ChatMessage[]>([
 		{
 			sender: 'vet',
@@ -21,30 +22,33 @@
 		chats.push({ sender, text, time });
 	}
 
-	function handleSend(event: Event) {
-		event.preventDefault();
-		if (!userQuery.trim()) return;
+	async function sendQuestion(question: string) {
+		if (sending) return;
+		const cleanQuestion = question.trim();
+		if (!cleanQuestion) return;
 
-		const query = userQuery;
-		addMessage('user', query);
-		userQuery = '';
+		addMessage('user', cleanQuestion);
+		sending = true;
 
-		setTimeout(() => {
-			addMessage(
-				'vet',
-				'Checking symptoms... Remember, I am an AI helper. If your cat shows severe lethargy, blood, or difficulty breathing, visit a vet clinic immediately.'
-			);
-		}, 800);
+		const formData = new FormData();
+		formData.set('question', cleanQuestion);
+		const response = await fetch('/api/vet/triage', { method: 'POST', body: formData });
+		const body = (await response.json()) as { reply?: string; error?: string };
+		addMessage('vet', body.reply ?? body.error ?? 'Vet triage is unavailable right now.');
+		sending = false;
 	}
 
-	function selectSymptom(symptom: string) {
-		addMessage('user', `My cat has ${symptom.toLowerCase()}`);
-		setTimeout(() => {
-			addMessage(
-				'vet',
-				`Understood. Please monitor for any other symptoms like diarrhea, changes in bathroom habits, or changes in activity. Let me know if you see these.`
-			);
-		}, 800);
+	async function handleSend(event: Event) {
+		event.preventDefault();
+		const query = userQuery.trim();
+		if (!query) return;
+
+		userQuery = '';
+		await sendQuestion(query);
+	}
+
+	async function selectSymptom(symptom: string) {
+		await sendQuestion(`My cat has ${symptom.toLowerCase()}`);
 	}
 </script>
 
@@ -94,7 +98,9 @@
 			<span class="chips-label">Quick Symptoms:</span>
 			<div class="chips-row">
 				{#each symptoms as symptom (symptom)}
-					<button class="chip" onclick={() => selectSymptom(symptom)}>{symptom}</button>
+					<button class="chip" disabled={sending} onclick={() => selectSymptom(symptom)}
+						>{symptom}</button
+					>
 				{/each}
 			</div>
 		</div>
@@ -107,7 +113,7 @@
 				bind:value={userQuery}
 				required
 			/>
-			<button type="submit" class="send-btn" aria-label="Send message">
+			<button type="submit" class="send-btn" aria-label="Send message" disabled={sending}>
 				<svg
 					viewBox="0 0 24 24"
 					fill="none"
@@ -316,6 +322,11 @@
 		background: var(--color-line);
 	}
 
+	.chip:disabled {
+		opacity: 0.58;
+		cursor: progress;
+	}
+
 	.chat-input-form {
 		display: flex;
 		padding: 10px;
@@ -354,6 +365,11 @@
 		width: 14px;
 		height: 14px;
 		margin-right: 2px;
+	}
+
+	.send-btn:disabled {
+		opacity: 0.62;
+		cursor: progress;
 	}
 
 	.disclaimer-text {
