@@ -1,13 +1,10 @@
-// Profile settings data and persisted preference actions.
+// Profile page data (care stats) and persisted preference action.
 import type { Actions, PageServerLoad } from './$types';
-import { fail, redirect } from '@sveltejs/kit';
-import { deleteSessionCookie, shouldUseSecureCookie } from '$lib/server/auth';
-import { deleteAccount } from '$lib/server/account';
+import { shouldUseSecureCookie } from '$lib/server/auth';
 import { habitCompletions } from '$lib/server/db/schema';
 import { utcDayStart } from '$lib/server/photo-verification';
 import { parsePreferences, serializePreferences } from '$lib/server/preferences';
 import { parseSandboxTasks, SANDBOX_TASKS_COOKIE } from '$lib/server/sandbox';
-import { validateAvatarChoice } from '$lib/avatar-ids';
 import { habitSetFor } from '$lib/tasks';
 import { and, eq } from 'drizzle-orm';
 
@@ -73,47 +70,5 @@ export const actions: Actions = {
 		});
 
 		return { saved: true };
-	},
-	avatar: async ({ request, cookies, locals, url }) => {
-		if (!locals.user) {
-			return fail(401, { message: 'Sign in to choose an avatar.' });
-		}
-
-		const formData = await request.formData();
-		const current = parsePreferences(cookies.get('purrward_prefs'));
-		const preferences = {
-			...current,
-			avatarChoice: validateAvatarChoice(formData.get('avatarChoice')?.toString())
-		};
-
-		cookies.set('purrward_prefs', serializePreferences(preferences), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'strict',
-			secure: shouldUseSecureCookie(url),
-			maxAge: 60 * 60 * 24 * 365
-		});
-
-		return { saved: true };
-	},
-	deleteAccount: async ({ request, cookies, locals, url }) => {
-		// SECURITY: only the authenticated owner can delete their own account.
-		if (!locals.user) return fail(401, { message: 'Sign in first.', deleteError: true });
-
-		const formData = await request.formData();
-		if (formData.get('confirm') !== 'DELETE') {
-			return fail(400, { message: 'Type DELETE to confirm.', deleteError: true });
-		}
-
-		try {
-			const { db } = await import('$lib/server/db');
-			await deleteAccount(db, locals.user.id);
-		} catch {
-			// SECURITY: never leak internal errors/stack traces to the client.
-			return fail(500, { message: 'Could not delete account. Try again.', deleteError: true });
-		}
-
-		deleteSessionCookie(cookies, shouldUseSecureCookie(url));
-		redirect(303, '/auth/login');
 	}
 };
