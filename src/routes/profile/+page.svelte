@@ -1,4 +1,4 @@
-<!-- Profile home: account summary, active cat, quick settings, and a menu list. -->
+<!-- Profile home: account summary, active cat, and a tidy settings menu. -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Bell from '@lucide/svelte/icons/bell';
@@ -6,12 +6,11 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FlaskConical from '@lucide/svelte/icons/flask-conical';
-	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
-	import PawPrint from '@lucide/svelte/icons/paw-print';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import UserRound from '@lucide/svelte/icons/user-round';
 	import { getCatAvatar } from '$lib/cat-avatars';
-	import { avatarInitial, deriveParentName } from '$lib/account-identity';
+	import { deriveParentName } from '$lib/account-identity';
+	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,14 +18,8 @@
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 
 	let parentName = $derived(deriveParentName(data.user));
-	let initial = $derived(avatarInitial(data.user));
-	let selectedCatAvatar = $derived(getCatAvatar(data.preferences.avatarChoice));
-	let activeCatName = $derived(data.activeCat?.name ?? 'Add a cat');
+	let profileAvatar = $derived(resolveProfileAvatar(data.user, data.preferences.avatarChoice));
 	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
-	let catCount = $derived(data.cats?.length ?? 0);
-	let catsSubtitle = $derived(
-		catCount > 0 ? `${catCount} ${catCount === 1 ? 'cat' : 'cats'}` : 'Your cats'
-	);
 	let carePercent = $derived(
 		Math.round((data.careStats.completedCount / data.careStats.totalCount) * 100)
 	);
@@ -52,10 +45,10 @@
 	{#if data.user}
 		<a class="summary-card" href={resolve('/profile/settings')} aria-label="Open profile settings">
 			<span class="summary-avatar" aria-hidden="true">
-				{#if selectedCatAvatar}
-					<img src={selectedCatAvatar.src} alt="" />
+				{#if profileAvatar.kind === 'image'}
+					<img class={profileAvatar.cat ? undefined : 'photo'} src={profileAvatar.src} alt="" />
 				{:else}
-					<span class="letter">{initial}</span>
+					<span class="letter">{profileAvatar.letter}</span>
 				{/if}
 			</span>
 			<span class="summary-copy">
@@ -65,8 +58,8 @@
 			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 		</a>
 	{:else}
-		<section class="summary-card guest">
-			<span class="summary-avatar" aria-hidden="true"><span class="letter">P</span></span>
+		<section class="summary-card">
+			<span class="summary-avatar" aria-hidden="true"><span class="letter">G</span></span>
 			<span class="summary-copy">
 				<strong>Guest</strong>
 				<small>Sign in to save progress.</small>
@@ -84,41 +77,60 @@
 			{/if}
 		</span>
 		<span class="cat-copy">
-			<small>{catsSubtitle}</small>
-			<strong id="cat-card-title">{activeCatName}</strong>
-			<span class="progress-track" aria-label={`Daily care ${carePercent}% complete`}>
-				<span style={`width: ${carePercent}%`}></span>
-			</span>
+			<small>{data.activeCat ? 'Active cat' : 'No cat yet'}</small>
+			<strong id="cat-card-title">{data.activeCat ? data.activeCat.name : 'Add a cat'}</strong>
+			{#if data.activeCat}
+				<span class="progress-track" aria-label={`Daily care ${carePercent}% complete`}>
+					<span style={`width: ${carePercent}%`}></span>
+				</span>
+			{/if}
 		</span>
 		<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 	</a>
 
-	<form class="settings-panel" method="POST" action="?/preferences" aria-labelledby="prefs-title">
-		<div class="panel-heading">
-			<h2 id="prefs-title">Quick settings</h2>
-			<p>Saved here.</p>
-		</div>
-
-		<label class="setting-row">
-			<span class="setting-icon sky"><Bell size={20} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="setting-copy">
-				<strong>Daily reminder</strong>
-				<small>Get a gentle care nudge.</small>
+	<nav class="menu" aria-label="Profile menu">
+		<a class="menu-row" href={resolve('/profile/settings')}>
+			<span class="menu-icon"><UserRound size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
+				<strong>Profile settings</strong>
+				<small>Name, picture, email</small>
 			</span>
-			<input
-				name="careReminders"
-				type="checkbox"
-				bind:checked={careReminders}
-				onchange={savePreference}
-				aria-label="Daily reminder"
-			/>
-		</label>
+			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+		</a>
 
-		<label class="setting-row">
-			<span class="setting-icon peach">
-				<ShieldCheck size={20} strokeWidth={2.2} aria-hidden="true" />
+		<form method="POST" action="?/preferences">
+			<input type="hidden" name="sandboxMode" value={sandboxMode ? 'on' : ''} />
+			<label class="menu-row toggle-row">
+				<span class="menu-icon"><Bell size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+				<span class="menu-copy">
+					<strong>Reminders</strong>
+					<small>Daily care nudges</small>
+				</span>
+				<input
+					name="careReminders"
+					type="checkbox"
+					bind:checked={careReminders}
+					onchange={savePreference}
+					aria-label="Daily reminder"
+				/>
+			</label>
+		</form>
+
+		<a class="menu-row" href={resolve('/profile/privacy')}>
+			<span class="menu-icon"><ShieldCheck size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
+				<strong>Privacy</strong>
+				<small>Data and account</small>
 			</span>
-			<span class="setting-copy">
+			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+		</a>
+	</nav>
+
+	<form method="POST" action="?/preferences" class="sandbox-form">
+		<input type="hidden" name="careReminders" value={careReminders ? 'on' : ''} />
+		<label class="menu-row toggle-row sandbox-row">
+			<span class="menu-icon"><FlaskConical size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
 				<strong>Sandbox mode</strong>
 				<small>Test mode.</small>
 			</span>
@@ -131,41 +143,6 @@
 			/>
 		</label>
 	</form>
-
-	<nav class="menu" aria-label="Profile menu">
-		<a class="menu-row" href={resolve('/profile/settings')}>
-			<span class="menu-icon"><UserRound size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>Profile settings</strong>
-				<small>Name, picture, email</small>
-			</span>
-			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
-		</a>
-		<a class="menu-row" href={resolve('/cats')}>
-			<span class="menu-icon"><PawPrint size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>My cats</strong>
-				<small>{catsSubtitle}</small>
-			</span>
-			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
-		</a>
-		<a class="menu-row" href={resolve('/profile/privacy')}>
-			<span class="menu-icon"><ShieldCheck size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>Privacy</strong>
-				<small>Data and account</small>
-			</span>
-			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
-		</a>
-		<a class="menu-row" href={resolve('/profile/help')}>
-			<span class="menu-icon"><LifeBuoy size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>Help</strong>
-				<small>Tips and answers</small>
-			</span>
-			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
-		</a>
-	</nav>
 
 	{#if sandboxMode}
 		<a class="dev-link" href={resolve('/dev')}>
@@ -221,7 +198,6 @@
 		background: var(--color-paper-2);
 		color: var(--color-charcoal);
 		text-decoration: none;
-		box-shadow: var(--shadow-card);
 	}
 
 	.summary-card {
@@ -229,6 +205,7 @@
 		gap: 14px;
 		border-radius: 28px;
 		padding: 16px;
+		box-shadow: var(--shadow-card);
 	}
 
 	.summary-avatar {
@@ -247,6 +224,11 @@
 		height: 100%;
 		object-fit: contain;
 		padding: 7px;
+	}
+
+	.summary-avatar img.photo {
+		padding: 0;
+		object-fit: cover;
 	}
 
 	.summary-avatar .letter {
@@ -294,6 +276,7 @@
 		gap: 14px;
 		border-radius: 28px;
 		padding: 16px;
+		box-shadow: var(--shadow-card);
 	}
 
 	.cat-art {
@@ -357,121 +340,13 @@
 		background: linear-gradient(90deg, var(--color-sage), var(--color-sky));
 	}
 
-	.settings-panel {
-		display: grid;
-		gap: 10px;
-		border: 1px solid var(--color-line);
-		border-radius: 28px;
-		background: var(--color-paper-2);
-		padding: 18px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.panel-heading {
-		display: grid;
-		gap: 3px;
-		margin-bottom: 2px;
-	}
-
-	.panel-heading h2 {
-		margin: 0;
-		color: var(--color-ink);
-		font-size: 1.14rem;
-	}
-
-	.panel-heading p {
-		margin: 0;
-		color: var(--color-muted);
-		font-size: 0.82rem;
-		font-weight: 800;
-	}
-
-	.setting-row {
-		display: grid;
-		grid-template-columns: 46px 1fr auto;
-		gap: 12px;
-		align-items: center;
-		border-radius: 20px;
-		background: var(--color-paper);
-		padding: 12px;
-	}
-
-	.setting-icon {
-		display: grid;
-		width: 46px;
-		height: 46px;
-		place-items: center;
-		border-radius: 16px;
-		color: var(--color-charcoal);
-	}
-
-	.setting-icon.sky {
-		background: var(--color-sky-soft);
-	}
-
-	.setting-icon.peach {
-		background: var(--color-peach-soft);
-	}
-
-	.setting-copy {
-		min-width: 0;
-	}
-
-	.setting-copy strong,
-	.menu-copy strong {
-		display: block;
-		margin-bottom: 2px;
-		color: var(--color-ink);
-		font-size: 0.92rem;
-	}
-
-	.setting-copy small,
-	.menu-copy small {
-		display: block;
-		overflow: hidden;
-		color: var(--color-muted);
-		font-size: 0.76rem;
-		font-weight: 650;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.setting-row input {
-		appearance: none;
-		position: relative;
-		width: 48px;
-		height: 30px;
-		border: 1px solid color-mix(in srgb, var(--color-charcoal) 14%, transparent);
-		border-radius: var(--radius-pill);
-		background: var(--color-paper-3);
-		cursor: pointer;
-		transition: background 140ms ease;
-	}
-
-	.setting-row input::after {
-		content: '';
-		position: absolute;
-		top: 4px;
-		left: 4px;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--color-paper-2);
-		box-shadow: 0 2px 8px color-mix(in srgb, var(--color-charcoal) 18%, transparent);
-		transition: transform 140ms ease;
-	}
-
-	.setting-row input:checked {
-		background: var(--color-charcoal);
-	}
-
-	.setting-row input:checked::after {
-		transform: translateX(18px);
-	}
-
 	.menu {
 		display: grid;
 		gap: 10px;
+	}
+
+	.menu form {
+		display: contents;
 	}
 
 	.menu-row,
@@ -480,6 +355,11 @@
 		gap: 12px;
 		border-radius: 22px;
 		padding: 13px 14px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.toggle-row {
+		cursor: pointer;
 	}
 
 	.dev-link {
@@ -494,6 +374,73 @@
 		border-radius: 16px;
 		background: var(--color-paper-3);
 		color: var(--color-charcoal);
+	}
+
+	.menu-copy {
+		min-width: 0;
+	}
+
+	.menu-copy strong {
+		display: block;
+		margin-bottom: 2px;
+		color: var(--color-ink);
+		font-size: 0.92rem;
+	}
+
+	.menu-copy small {
+		display: block;
+		overflow: hidden;
+		color: var(--color-muted);
+		font-size: 0.76rem;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sandbox-form {
+		display: grid;
+	}
+
+	.sandbox-row {
+		background: var(--color-paper);
+		box-shadow: none;
+	}
+
+	.sandbox-row .menu-icon {
+		background: var(--color-peach-soft);
+	}
+
+	.toggle-row input {
+		appearance: none;
+		position: relative;
+		width: 48px;
+		height: 30px;
+		border: 1px solid color-mix(in srgb, var(--color-charcoal) 14%, transparent);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-3);
+		cursor: pointer;
+		transition: background 140ms ease;
+	}
+
+	.toggle-row input::after {
+		content: '';
+		position: absolute;
+		top: 4px;
+		left: 4px;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: var(--color-paper-2);
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--color-charcoal) 18%, transparent);
+		transition: transform 140ms ease;
+	}
+
+	.toggle-row input:checked {
+		background: var(--color-charcoal);
+	}
+
+	.toggle-row input:checked::after {
+		transform: translateX(18px);
 	}
 
 	@media (max-width: 390px) {

@@ -17,28 +17,28 @@ export const REWARDS: RewardItem[] = [
 		id: 'vet_discount',
 		title: 'Vet Visit Discount',
 		cost: 100,
-		desc: '25% off a vet visit.',
+		desc: 'Save on a clinic visit.',
 		category: 'vet'
 	},
 	{
 		id: 'cat_treats',
 		title: 'Tuna Treats',
 		cost: 150,
-		desc: 'Freeze-dried tuna bites.',
+		desc: 'Cat snack reward.',
 		category: 'treat'
 	},
 	{
 		id: 'feather_wand',
 		title: 'Feather Wand',
 		cost: 200,
-		desc: 'A soft play wand.',
+		desc: 'A soft play toy.',
 		category: 'toy'
 	},
 	{
 		id: 'shelter_don',
 		title: 'Shelter Meal',
-		cost: 100,
-		desc: 'Donate one cat meal.',
+		cost: 200,
+		desc: 'Help a shelter cat.',
 		category: 'shelter'
 	}
 ];

@@ -89,7 +89,9 @@
 			</button>
 		</div>
 
-		<a class="google-button" href={resolve('/auth/google')}>
+		<!-- data-sveltekit-reload: /auth/google is a server endpoint that 302s to Google;
+		     force a full navigation so the browser follows the redirect instead of the SPA router. -->
+		<a class="google-button" href={resolve('/auth/google')} data-sveltekit-reload>
 			<span class="google-mark" aria-hidden="true">G</span>
 			<span>Continue with Google</span>
 		</a>

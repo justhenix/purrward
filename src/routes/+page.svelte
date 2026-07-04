@@ -12,8 +12,9 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Toilet from '@lucide/svelte/icons/toilet';
 	import Utensils from '@lucide/svelte/icons/utensils';
-	import { avatarInitial, deriveParentName } from '$lib/account-identity';
+	import { deriveParentName } from '$lib/account-identity';
 	import { getCatAvatar } from '$lib/cat-avatars';
+	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import { deriveCatState } from '$lib/cat-state';
 	import { habitSetFor } from '$lib/tasks';
 	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
@@ -29,8 +30,8 @@
 	type TaskMeta = {
 		id: TaskType;
 		label: string;
-		need: string;
-		action: string;
+		heroTitle: string;
+		log: string;
 		reward: number;
 		tone: 'peach' | 'sky' | 'rose' | 'butter' | 'sage';
 	};
@@ -39,64 +40,43 @@
 		{
 			id: 'feeding',
 			label: 'Feed',
-			need: 'Breakfast time',
-			action: 'Take feeding photo',
+			heroTitle: 'Breakfast',
+			log: 'breakfast',
 			reward: 10,
 			tone: 'peach'
 		},
 		{
 			id: 'water',
 			label: 'Water',
-			need: 'Fresh water time',
-			action: 'Take water photo',
+			heroTitle: 'Fresh water',
+			log: 'water',
 			reward: 10,
 			tone: 'sky'
 		},
-		{
-			id: 'litter',
-			label: 'Litter',
-			need: 'Clean litter time',
-			action: 'Take litter photo',
-			reward: 10,
-			tone: 'rose'
-		},
-		{
-			id: 'play',
-			label: 'Play',
-			need: 'Play time',
-			action: 'Take play photo',
-			reward: 10,
-			tone: 'butter'
-		},
+		{ id: 'litter', label: 'Litter', heroTitle: 'Litter', log: 'litter', reward: 10, tone: 'rose' },
+		{ id: 'play', label: 'Play', heroTitle: 'Playtime', log: 'play', reward: 10, tone: 'butter' },
 		{
 			id: 'grooming',
 			label: 'Groom',
-			need: 'Brush time',
-			action: 'Take grooming photo',
+			heroTitle: 'Grooming',
+			log: 'grooming',
 			reward: 10,
 			tone: 'sage'
 		},
-		{
-			id: 'meds',
-			label: 'Meds',
-			need: 'Medicine time',
-			action: 'Take medicine photo',
-			reward: 10,
-			tone: 'peach'
-		},
+		{ id: 'meds', label: 'Meds', heroTitle: 'Medicine', log: 'meds', reward: 10, tone: 'peach' },
 		{
 			id: 'street_feeding',
 			label: 'Street',
-			need: 'Street feeding time',
-			action: 'Take feeding photo',
+			heroTitle: 'Street feeding',
+			log: 'feeding',
 			reward: 10,
 			tone: 'peach'
 		},
 		{
 			id: 'shelter_care',
 			label: 'Shelter',
-			need: 'Shelter care time',
-			action: 'Take shelter photo',
+			heroTitle: 'Shelter care',
+			log: 'care',
 			reward: 10,
 			tone: 'sage'
 		}
@@ -109,7 +89,6 @@
 	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
 	let canSwitch = $derived(cats.length > 1);
 
-	let catName = $derived(data.activeCat?.name ?? 'your cat');
 	// Show the habit set that matches the active cat's care mode.
 	let habitSet = $derived(habitSetFor(data.activeCat?.careMode ?? 'owned'));
 	let tasks = $derived(TASKS.filter((task) => habitSet.includes(task.id)));
@@ -121,7 +100,7 @@
 		data.selectedTask && !completed.has(data.selectedTask) ? data.selectedTask : nextTask.id
 	);
 	let active = $derived(tasks.find((task) => task.id === requestedTask) ?? nextTask);
-	let profileInitial = $derived(avatarInitial(data.user));
+	let profileAvatar = $derived(resolveProfileAvatar(data.user, data.preferences.avatarChoice));
 	let firstName = $derived(deriveParentName(data.user).split(' ')[0]);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
@@ -130,7 +109,6 @@
 	let heroBase = $derived(heroAvatar?.src ?? orangeCat);
 	// The orange face overlay only matches the orange mascot art.
 	let showExpression = $derived(!data.activeCat || data.activeCat.avatarId === 'orange');
-	let selectedCatAvatar = $derived(data.user ? getCatAvatar(data.preferences.avatarChoice) : null);
 	let catState = $derived(
 		deriveCatState({ completed: data.completedTasks, required: tasks.map((task) => task.id) })
 	);
@@ -145,14 +123,11 @@
 	);
 	let heroCopy = $derived.by(() => {
 		if (allDone) {
-			return {
-				title: `${catName} is cared for today`,
-				body: `All routines done. +${doneCount * 10} Purrpoints.`
-			};
+			return { title: 'All done today', body: `+${doneCount * 10} pts` };
 		}
 		return {
-			title: active.need,
-			body: `+${sandboxMode ? 1000 : active.reward} pts.`
+			title: active.heroTitle,
+			body: `+${sandboxMode ? 1000 : active.reward} pts`
 		};
 	});
 </script>
@@ -191,13 +166,17 @@
 	<header class="top">
 		<div class="greeting">
 			<p>Hi {firstName}</p>
-			<h1>{allDone ? `${catName} is settled in` : `${catName} needs care`}</h1>
+			<h1>Today’s care</h1>
 		</div>
 		<a class="avatar" href={resolve('/profile')} aria-label="Profile and settings">
-			{#if selectedCatAvatar}
-				<img class="cat-avatar-img" src={selectedCatAvatar.src} alt="" />
+			{#if profileAvatar.kind === 'image'}
+				<img
+					class={profileAvatar.cat ? 'cat-avatar-img' : undefined}
+					src={profileAvatar.src}
+					alt=""
+				/>
 			{:else}
-				<span>{profileInitial}</span>
+				<span>{profileAvatar.letter}</span>
 			{/if}
 		</a>
 	</header>
@@ -215,7 +194,7 @@
 					{#if activeCatAvatar}<img src={activeCatAvatar.src} alt="" />{/if}
 				</span>
 				<span class="switcher-copy">
-					<small>Caring for</small>
+					<small>Active cat</small>
 					<strong>{data.activeCat.name}</strong>
 				</span>
 				{#if canSwitch}
@@ -291,7 +270,7 @@
 		{:else if data.user}
 			<a class="cta" href={resolve(`/care-proof?task=${active.id}`)}>
 				<Camera size={20} strokeWidth={2.3} aria-hidden="true" />
-				<span>Open proof camera</span>
+				<span>Log {active.log}</span>
 			</a>
 		{:else}
 			<a class="cta" href={resolve('/auth/login')}>
@@ -304,8 +283,8 @@
 	<section class="today" aria-labelledby="today-title">
 		<div class="section-head">
 			<div>
-				<p>Today’s care</p>
-				<h2 id="today-title">{doneCount} of {tasks.length} routines done</h2>
+				<p>Routines</p>
+				<h2 id="today-title">{doneCount} of {tasks.length} done</h2>
 			</div>
 			<a href={resolve('/care')} aria-label="Open full care plan">
 				View all <ChevronRight size={15} strokeWidth={2.3} aria-hidden="true" />
@@ -324,6 +303,8 @@
 					<span class="marker-check" aria-hidden="true">
 						{#if isDone}
 							<Check size={14} strokeWidth={3} />
+						{:else if active.id === task.id}
+							<span class="marker-next">Next</span>
 						{/if}
 					</span>
 				</li>
@@ -758,7 +739,7 @@
 
 	.marker {
 		display: grid;
-		grid-template-columns: 24px 1fr 22px;
+		grid-template-columns: 24px 1fr auto;
 		min-height: 44px;
 		align-items: center;
 		gap: 9px;
@@ -789,7 +770,7 @@
 
 	.marker-check {
 		display: grid;
-		width: 22px;
+		min-width: 22px;
 		height: 22px;
 		place-items: center;
 		border-radius: 50%;
@@ -798,6 +779,18 @@
 
 	.marker.done .marker-check {
 		background: var(--color-paper-2);
+	}
+
+	.marker-next {
+		font-size: 0.6rem;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-muted);
+	}
+
+	.marker.active .marker-next {
+		color: var(--color-charcoal);
 	}
 
 	.marker.sky .marker-icon {

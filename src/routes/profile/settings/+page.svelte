@@ -6,6 +6,7 @@
 	import { CAT_AVATARS } from '$lib/cat-avatars';
 	import { untrack } from 'svelte';
 	import { avatarInitial, deriveParentName } from '$lib/account-identity';
+	import { isRenderableAvatarUrl } from '$lib/avatar-url';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -14,6 +15,8 @@
 	let parentName = $state(untrack(() => deriveParentName(data.user)));
 	let initial = $derived(avatarInitial(data.user));
 	let avatarChoice = $derived(data.preferences.avatarChoice);
+	// Google accounts default to their own photo; other accounts default to a letter.
+	let photoUrl = $derived(isRenderableAvatarUrl(data.user?.avatarUrl) ? data.user.avatarUrl : null);
 </script>
 
 <svelte:head>
@@ -51,8 +54,13 @@
 				value="initial"
 				aria-pressed={avatarChoice === 'initial'}
 			>
-				<span class="avatar-preview letter">{initial}</span>
-				<span>Letter</span>
+				{#if photoUrl}
+					<span class="avatar-preview photo"><img src={photoUrl} alt="" /></span>
+					<span>Photo</span>
+				{:else}
+					<span class="avatar-preview letter">{initial}</span>
+					<span>Letter</span>
+				{/if}
 			</button>
 			{#each CAT_AVATARS as avatar (avatar.id)}
 				<button
@@ -226,6 +234,12 @@
 		height: 100%;
 		object-fit: contain;
 		padding: 4px;
+	}
+
+	.avatar-preview.photo img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.row {
