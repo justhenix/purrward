@@ -1,32 +1,73 @@
-<!-- Profile home: account summary, active cat, and a tidy settings menu. -->
+<!-- Profile home: account summary, active cat, and a grouped Manage menu. -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import Bell from '@lucide/svelte/icons/bell';
 	import Cat from '@lucide/svelte/icons/cat';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FlaskConical from '@lucide/svelte/icons/flask-conical';
+	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import UserRound from '@lucide/svelte/icons/user-round';
+	import logo from '$lib/assets/logo/logo.svg';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import { deriveParentName } from '$lib/account-identity';
 	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import type { PageProps } from './$types';
 
+	const DEVELOPER_KEY = 'purrward:developer-unlocked';
+	const TAP_TARGET = 7;
+	const TAP_RESET_MS = 3000;
+
 	let { data }: PageProps = $props();
-	let careReminders = $derived(data.preferences.careReminders);
-	let sandboxMode = $derived(data.preferences.sandboxMode);
 
 	let parentName = $derived(deriveParentName(data.user));
 	let profileAvatar = $derived(resolveProfileAvatar(data.user, data.preferences.avatarChoice));
 	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
-	let carePercent = $derived(
-		Math.round((data.careStats.completedCount / data.careStats.totalCount) * 100)
-	);
 
-	function savePreference(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		input.form?.requestSubmit();
+	let developerUnlocked = $state(false);
+	let tapCount = $state(0);
+	let toast = $state<string | null>(null);
+	let tapTimer: number | null = null;
+	let toastTimer: number | null = null;
+
+	onMount(() => {
+		developerUnlocked = localStorage.getItem(DEVELOPER_KEY) === '1';
+	});
+
+	function showToast(message: string) {
+		toast = message;
+		if (toastTimer) window.clearTimeout(toastTimer);
+		toastTimer = window.setTimeout(() => {
+			toast = null;
+			toastTimer = null;
+		}, 2400);
+	}
+
+	// Hidden developer unlock: seven taps on the app logo within a short window.
+	function tapLogo() {
+		if (developerUnlocked) return;
+
+		tapCount += 1;
+		if (tapTimer) window.clearTimeout(tapTimer);
+		tapTimer = window.setTimeout(() => {
+			tapCount = 0;
+			tapTimer = null;
+		}, TAP_RESET_MS);
+
+		if (tapCount === TAP_TARGET - 2) showToast('2 taps left');
+
+		if (tapCount >= TAP_TARGET) {
+			developerUnlocked = true;
+			localStorage.setItem(DEVELOPER_KEY, '1');
+			tapCount = 0;
+			if (tapTimer) {
+				window.clearTimeout(tapTimer);
+				tapTimer = null;
+			}
+			showToast('Developer mode unlocked');
+		}
 	}
 </script>
 
@@ -40,6 +81,9 @@
 			<ChevronLeft size={23} strokeWidth={2.3} aria-hidden="true" />
 		</a>
 		<h1>Profile</h1>
+		<button class="logo-button" type="button" onclick={tapLogo} aria-label="Purrward">
+			<img src={logo} alt="" width="24" height="24" />
+		</button>
 	</header>
 
 	{#if data.user}
@@ -77,18 +121,19 @@
 			{/if}
 		</span>
 		<span class="cat-copy">
-			<small>{data.activeCat ? 'Active cat' : 'No cat yet'}</small>
+			<small>{data.activeCat ? 'Active cat' : 'Your cats'}</small>
 			<strong id="cat-card-title">{data.activeCat ? data.activeCat.name : 'Add a cat'}</strong>
 			{#if data.activeCat}
-				<span class="progress-track" aria-label={`Daily care ${carePercent}% complete`}>
-					<span style={`width: ${carePercent}%`}></span>
+				<span class="progress-text">
+					{data.careStats.completedCount} of {data.careStats.totalCount} today
 				</span>
 			{/if}
 		</span>
 		<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 	</a>
 
-	<nav class="menu" aria-label="Profile menu">
+	<h2 class="section-label">Manage</h2>
+	<nav class="manage" aria-label="Manage">
 		<a class="menu-row" href={resolve('/profile/settings')}>
 			<span class="menu-icon"><UserRound size={19} strokeWidth={2.2} aria-hidden="true" /></span>
 			<span class="menu-copy">
@@ -98,63 +143,60 @@
 			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 		</a>
 
-		<form method="POST" action="?/preferences">
-			<input type="hidden" name="sandboxMode" value={sandboxMode ? 'on' : ''} />
-			<label class="menu-row toggle-row">
-				<span class="menu-icon"><Bell size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-				<span class="menu-copy">
-					<strong>Reminders</strong>
-					<small>Daily care nudges</small>
-				</span>
-				<input
-					name="careReminders"
-					type="checkbox"
-					bind:checked={careReminders}
-					onchange={savePreference}
-					aria-label="Daily reminder"
-				/>
-			</label>
-		</form>
+		<a class="menu-row" href={resolve('/cats')}>
+			<span class="menu-icon"><Cat size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
+				<strong>My cats</strong>
+				<small>Cats and care profiles</small>
+			</span>
+			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+		</a>
+
+		<a class="menu-row" href={resolve('/profile/reminders')}>
+			<span class="menu-icon"><Bell size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
+				<strong>Reminders</strong>
+				<small>Daily care nudges</small>
+			</span>
+			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+		</a>
 
 		<a class="menu-row" href={resolve('/profile/privacy')}>
 			<span class="menu-icon"><ShieldCheck size={19} strokeWidth={2.2} aria-hidden="true" /></span>
 			<span class="menu-copy">
 				<strong>Privacy</strong>
-				<small>Data and account</small>
+				<small>Privacy, terms, cookies</small>
 			</span>
 			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 		</a>
+
+		<a class="menu-row" href={resolve('/profile/help')}>
+			<span class="menu-icon"><LifeBuoy size={19} strokeWidth={2.2} aria-hidden="true" /></span>
+			<span class="menu-copy">
+				<strong>Help</strong>
+				<small>Search guides and FAQs</small>
+			</span>
+			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+		</a>
+
+		{#if developerUnlocked}
+			<a class="menu-row" href={resolve('/profile/developer')}>
+				<span class="menu-icon">
+					<FlaskConical size={19} strokeWidth={2.2} aria-hidden="true" />
+				</span>
+				<span class="menu-copy">
+					<strong>Developer</strong>
+					<small>Test tools</small>
+				</span>
+				<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
+			</a>
+		{/if}
 	</nav>
-
-	<form method="POST" action="?/preferences" class="sandbox-form">
-		<input type="hidden" name="careReminders" value={careReminders ? 'on' : ''} />
-		<label class="menu-row toggle-row sandbox-row">
-			<span class="menu-icon"><FlaskConical size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>Sandbox mode</strong>
-				<small>Test mode.</small>
-			</span>
-			<input
-				name="sandboxMode"
-				type="checkbox"
-				bind:checked={sandboxMode}
-				onchange={savePreference}
-				aria-label="Sandbox mode"
-			/>
-		</label>
-	</form>
-
-	{#if sandboxMode}
-		<a class="dev-link" href={resolve('/dev')}>
-			<span class="menu-icon"><FlaskConical size={19} strokeWidth={2.2} aria-hidden="true" /></span>
-			<span class="menu-copy">
-				<strong>Dev mode</strong>
-				<small>Sandbox traces</small>
-			</span>
-			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
-		</a>
-	{/if}
 </div>
+
+{#if toast}
+	<div class="toast" role="status" aria-live="polite">{toast}</div>
+{/if}
 
 <style>
 	.profile-screen {
@@ -184,14 +226,35 @@
 
 	.profile-header h1 {
 		margin: 0;
+		flex: 1 1 auto;
 		color: var(--color-ink);
 		font-size: 1.5rem;
 	}
 
+	.logo-button {
+		display: grid;
+		width: 38px;
+		height: 38px;
+		flex: 0 0 auto;
+		place-items: center;
+		overflow: hidden;
+		border: 1px solid var(--color-line);
+		border-radius: 14px;
+		background: var(--color-paper-2);
+		padding: 0;
+		cursor: pointer;
+	}
+
+	.logo-button img {
+		display: block;
+		width: 24px;
+		height: 24px;
+		object-fit: contain;
+	}
+
 	.summary-card,
 	.cat-card,
-	.menu-row,
-	.dev-link {
+	.menu-row {
 		display: grid;
 		align-items: center;
 		border: 1px solid var(--color-line);
@@ -318,52 +381,48 @@
 	.cat-copy strong {
 		display: block;
 		overflow: hidden;
-		margin: 3px 0 8px;
+		margin: 3px 0;
 		color: var(--color-ink);
 		font-size: 1.12rem;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	.progress-track {
+	.progress-text {
 		display: block;
-		height: 9px;
-		overflow: hidden;
-		border-radius: var(--radius-pill);
-		background: var(--color-paper-3);
+		margin-top: 4px;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 700;
 	}
 
-	.progress-track span {
-		display: block;
-		height: 100%;
-		border-radius: inherit;
-		background: linear-gradient(90deg, var(--color-sage), var(--color-sky));
+	.section-label {
+		margin: 6px 0 -4px 4px;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 	}
 
-	.menu {
+	.manage {
 		display: grid;
-		gap: 10px;
-	}
-
-	.menu form {
-		display: contents;
-	}
-
-	.menu-row,
-	.dev-link {
-		grid-template-columns: 46px 1fr auto;
-		gap: 12px;
-		border-radius: 22px;
-		padding: 13px 14px;
+		border: 1px solid var(--color-line);
+		border-radius: 24px;
+		background: var(--color-paper-2);
+		overflow: hidden;
 		box-shadow: var(--shadow-card);
 	}
 
-	.toggle-row {
-		cursor: pointer;
+	.menu-row {
+		grid-template-columns: 46px 1fr auto;
+		gap: 12px;
+		border-radius: 0;
+		padding: 13px 16px;
 	}
 
-	.dev-link {
-		border-style: dashed;
+	.menu-row + .menu-row {
+		border-top: 1px solid var(--color-line);
 	}
 
 	.menu-icon {
@@ -397,50 +456,22 @@
 		white-space: nowrap;
 	}
 
-	.sandbox-form {
-		display: grid;
-	}
-
-	.sandbox-row {
-		background: var(--color-paper);
-		box-shadow: none;
-	}
-
-	.sandbox-row .menu-icon {
-		background: var(--color-peach-soft);
-	}
-
-	.toggle-row input {
-		appearance: none;
-		position: relative;
-		width: 48px;
-		height: 30px;
-		border: 1px solid color-mix(in srgb, var(--color-charcoal) 14%, transparent);
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: calc(96px + env(safe-area-inset-bottom));
+		z-index: 60;
+		max-width: min(88vw, 340px);
+		transform: translateX(-50%);
+		border: 1px solid var(--color-line);
 		border-radius: var(--radius-pill);
-		background: var(--color-paper-3);
-		cursor: pointer;
-		transition: background 140ms ease;
-	}
-
-	.toggle-row input::after {
-		content: '';
-		position: absolute;
-		top: 4px;
-		left: 4px;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--color-paper-2);
-		box-shadow: 0 2px 8px color-mix(in srgb, var(--color-charcoal) 18%, transparent);
-		transition: transform 140ms ease;
-	}
-
-	.toggle-row input:checked {
 		background: var(--color-charcoal);
-	}
-
-	.toggle-row input:checked::after {
-		transform: translateX(18px);
+		color: var(--color-paper-2);
+		padding: 10px 18px;
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-align: center;
+		box-shadow: var(--shadow-card);
 	}
 
 	@media (max-width: 390px) {
