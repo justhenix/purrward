@@ -1,9 +1,8 @@
-// Profile page data (care stats) and persisted preference action.
-import type { Actions, PageServerLoad } from './$types';
-import { shouldUseSecureCookie } from '$lib/server/auth';
+// Profile page data: care stats for the active cat summary.
+import type { PageServerLoad } from './$types';
 import { habitCompletions } from '$lib/server/db/schema';
 import { utcDayStart } from '$lib/server/photo-verification';
-import { parsePreferences, serializePreferences } from '$lib/server/preferences';
+import { parsePreferences } from '$lib/server/preferences';
 import { parseSandboxTasks, SANDBOX_TASKS_COOKIE } from '$lib/server/sandbox';
 import { habitSetFor } from '$lib/tasks';
 import { and, eq } from 'drizzle-orm';
@@ -49,26 +48,4 @@ export const load: PageServerLoad = async ({ cookies, locals, parent }) => {
 			lastVerifiedAt
 		}
 	};
-};
-
-export const actions: Actions = {
-	preferences: async ({ request, cookies, url }) => {
-		const formData = await request.formData();
-		const current = parsePreferences(cookies.get('purrward_prefs'));
-		const preferences = {
-			avatarChoice: current.avatarChoice,
-			careReminders: formData.get('careReminders') === 'on',
-			sandboxMode: formData.get('sandboxMode') === 'on'
-		};
-
-		cookies.set('purrward_prefs', serializePreferences(preferences), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'strict',
-			secure: shouldUseSecureCookie(url),
-			maxAge: 60 * 60 * 24 * 365
-		});
-
-		return { saved: true };
-	}
 };
