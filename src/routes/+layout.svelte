@@ -15,13 +15,16 @@
 
 	let { children, data }: LayoutProps = $props();
 	let isAuthRoute = $derived(page.url.pathname.startsWith('/auth/'));
+	// Onboarding is a pre-app welcome flow: no bottom nav or app chrome until a cat exists.
+	let isOnboardingRoute = $derived(page.url.pathname === '/onboarding');
+	let hideChrome = $derived(isAuthRoute || isOnboardingRoute);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let tappedPath = $state<string | null>(null);
 	let tapTimer: number | null = null;
 	let skeletonTimer: number | null = null;
 	let showSkeleton = $state(false);
 	let pendingPath = $derived(navigating.to?.url.pathname ?? tappedPath);
-	let isNavigating = $derived(!isAuthRoute && pendingPath !== null);
+	let isNavigating = $derived(!hideChrome && pendingPath !== null);
 
 	function warmRoute(href: string) {
 		void preloadCode(href).catch(() => undefined);
@@ -41,7 +44,7 @@
 	}
 
 	onMount(() => {
-		if (isAuthRoute) return;
+		if (hideChrome) return;
 
 		const timer = window.setTimeout(() => {
 			for (const route of NAV_ROUTES) {
@@ -88,10 +91,10 @@
 </svelte:head>
 
 <div class="app-shell paper-texture">
-	{#if sandboxMode && !isAuthRoute}
+	{#if sandboxMode && !hideChrome}
 		<div class="sandbox-strip" role="status">Sandbox mode</div>
 	{/if}
-	<main class={['app-content', isAuthRoute && 'auth-content']}>
+	<main class={['app-content', hideChrome && 'auth-content']}>
 		{@render children()}
 	</main>
 	{#if showSkeleton}
@@ -116,7 +119,7 @@
 	{/if}
 </div>
 
-{#if !isAuthRoute}
+{#if !hideChrome}
 	<nav
 		class="bottom-nav"
 		aria-label="Main navigation"

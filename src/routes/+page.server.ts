@@ -1,7 +1,9 @@
-// Home page server data: session, active task, and today's verified care.
-import type { PageServerLoad } from './$types';
+// Home page server data: session, active task, today's verified care, and cat switching.
+import type { Actions, PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { validateTaskType } from '$lib/server/security';
+import { setActiveCat } from '$lib/server/cats';
 import { habitCompletions } from '$lib/server/db/schema';
 import { utcDayStart } from '$lib/server/photo-verification';
 import { parsePreferences } from '$lib/server/preferences';
@@ -36,4 +38,18 @@ export const load: PageServerLoad = async ({ cookies, locals, parent, url }) => 
 		selectedTask: validateTaskType(url.searchParams.get('task')) ?? null,
 		completedTasks
 	};
+};
+
+export const actions: Actions = {
+	// Switch the active cat straight from Home so routine care never needs a detour.
+	select: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { message: 'Sign in first.' });
+		const formData = await request.formData();
+		const catId = formData.get('catId');
+		if (typeof catId !== 'string') return fail(400, { message: 'Choose a cat.' });
+		const { db } = await import('$lib/server/db');
+		const result = await setActiveCat(db, locals.user.id, catId);
+		if (!result.ok) return fail(result.status, { message: result.error });
+		return { selected: true };
+	}
 };

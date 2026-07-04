@@ -1,9 +1,10 @@
-<!-- Mobile-first cat manager: switch active cat, add a cat, and remove cats. -->
+<!-- Mobile-first cat manager: switch active cat, search, add a cat, and remove cats. -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import type { PageProps } from './$types';
@@ -14,8 +15,15 @@
 	let newName = $state('');
 	let newAvatar = $state<string>('orange');
 	let newMode = $state<'owned' | 'community'>('owned');
+	let query = $state('');
 
 	let atCap = $derived(data.cats.length >= data.catCap);
+	let showSearch = $derived(data.cats.length > 6);
+	let filteredCats = $derived(
+		query.trim()
+			? data.cats.filter((cat) => cat.name.toLowerCase().includes(query.trim().toLowerCase()))
+			: data.cats
+	);
 </script>
 
 <svelte:head>
@@ -33,8 +41,15 @@
 		</div>
 	</header>
 
+	{#if showSearch}
+		<label class="search">
+			<Search size={17} strokeWidth={2.3} aria-hidden="true" />
+			<input bind:value={query} placeholder="Search cats" autocomplete="off" />
+		</label>
+	{/if}
+
 	<section class="cat-list" aria-label="Your cats">
-		{#each data.cats as cat (cat.id)}
+		{#each filteredCats as cat (cat.id)}
 			{@const avatar = getCatAvatar(cat.avatarId)}
 			{@const isActive = cat.id === data.activeCatId}
 			<article class={['cat-card', isActive && 'active']}>
@@ -52,9 +67,9 @@
 				</div>
 				<div class="cat-actions">
 					{#if isActive}
-						<span class="active-badge"
-							><Check size={15} strokeWidth={3} aria-hidden="true" /> Active</span
-						>
+						<span class="active-badge">
+							<Check size={15} strokeWidth={3} aria-hidden="true" /> Active
+						</span>
 					{:else}
 						<form method="POST" action="?/select">
 							<input type="hidden" name="catId" value={cat.id} />
@@ -72,21 +87,20 @@
 						>
 							<input type="hidden" name="catId" value={cat.id} />
 							<button class="remove-button" type="submit" aria-label={`Remove ${cat.name}`}>
-								<Trash2 size={16} strokeWidth={2.2} aria-hidden="true" />
+								<Trash2 size={15} strokeWidth={2.2} aria-hidden="true" />
 							</button>
 						</form>
 					{/if}
 				</div>
 			</article>
 		{/each}
+
+		{#if filteredCats.length === 0}
+			<p class="empty">No cats match that name.</p>
+		{/if}
 	</section>
 
-	{#if !showAdd}
-		<button class="add-toggle" type="button" disabled={atCap} onclick={() => (showAdd = true)}>
-			<Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-			{atCap ? `Cat limit reached (${data.catCap})` : 'Add a cat'}
-		</button>
-	{:else}
+	{#if showAdd}
 		<form class="add-form" method="POST" action="?/create">
 			<h2>Add a cat</h2>
 			<div class="mode-switch">
@@ -114,7 +128,12 @@
 
 			<label class="field">
 				<span>Name</span>
-				<input name="name" bind:value={newName} placeholder="e.g. Mochi" maxlength="40" />
+				<input
+					name="name"
+					bind:value={newName}
+					placeholder="Mochi, Luna, Orange..."
+					maxlength="40"
+				/>
 			</label>
 
 			<fieldset class="avatar-grid">
@@ -142,13 +161,20 @@
 				<button class="submit" type="submit">Add cat</button>
 			</div>
 		</form>
+	{:else}
+		<div class="add-bar">
+			<button class="add-toggle" type="button" disabled={atCap} onclick={() => (showAdd = true)}>
+				<Plus size={18} strokeWidth={2.4} aria-hidden="true" />
+				{atCap ? `Cat limit reached (${data.catCap})` : 'Add cat'}
+			</button>
+		</div>
 	{/if}
 </div>
 
 <style>
 	.cats-screen {
 		display: grid;
-		gap: 16px;
+		gap: 14px;
 	}
 
 	.cats-header {
@@ -184,6 +210,31 @@
 		font-size: 1.5rem;
 	}
 
+	.search {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-2);
+		padding: 0 16px;
+		color: var(--color-muted);
+	}
+
+	.search input {
+		flex: 1;
+		border: 0;
+		background: transparent;
+		color: var(--color-ink);
+		padding: 12px 0;
+		font: inherit;
+		font-size: 0.92rem;
+	}
+
+	.search input:focus {
+		outline: none;
+	}
+
 	.cat-list {
 		display: grid;
 		gap: 10px;
@@ -191,41 +242,49 @@
 
 	.cat-card {
 		display: grid;
-		grid-template-columns: 56px 1fr auto;
+		grid-template-columns: 52px 1fr auto;
 		gap: 12px;
 		align-items: center;
 		border: 1px solid var(--color-line);
-		border-radius: 24px;
+		border-radius: 22px;
 		background: var(--color-paper-2);
-		padding: 12px 14px;
+		padding: 11px 13px;
 		box-shadow: var(--shadow-card);
 	}
 
 	.cat-card.active {
+		border-color: color-mix(in srgb, var(--color-success-text) 34%, var(--color-line));
 		box-shadow:
 			var(--shadow-card),
-			inset 0 0 0 1.5px color-mix(in srgb, var(--color-success-text) 30%, transparent);
+			inset 0 0 0 1.5px color-mix(in srgb, var(--color-success-text) 26%, transparent);
 	}
 
 	.cat-thumb {
 		display: grid;
-		width: 56px;
-		height: 56px;
+		width: 52px;
+		height: 52px;
 		place-items: center;
-		border-radius: 18px;
+		border-radius: 16px;
 		background: var(--color-peach-soft);
 	}
 
 	.cat-thumb img {
-		width: 44px;
-		height: 44px;
+		width: 42px;
+		height: 42px;
 		object-fit: contain;
+	}
+
+	.cat-info {
+		min-width: 0;
 	}
 
 	.cat-info h2 {
 		margin: 0;
+		overflow: hidden;
 		color: var(--color-ink);
-		font-size: 1.02rem;
+		font-size: 1rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.cat-info p {
@@ -234,7 +293,7 @@
 		gap: 7px;
 		margin: 4px 0 0;
 		color: var(--color-muted);
-		font-size: 0.8rem;
+		font-size: 0.78rem;
 		font-weight: 700;
 	}
 
@@ -256,9 +315,9 @@
 	}
 
 	.cat-actions {
-		display: grid;
-		gap: 6px;
-		justify-items: end;
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 
 	.active-badge {
@@ -271,11 +330,11 @@
 	}
 
 	.select-button {
-		border: 1px solid var(--color-line);
+		border: 0;
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
-		padding: 7px 14px;
+		padding: 8px 16px;
 		font-size: 0.78rem;
 		font-weight: 850;
 		cursor: pointer;
@@ -283,34 +342,51 @@
 
 	.remove-button {
 		display: grid;
-		width: 32px;
-		height: 32px;
+		width: 30px;
+		height: 30px;
 		place-items: center;
 		border: 1px solid var(--color-line);
 		border-radius: 50%;
 		background: var(--color-paper);
-		color: var(--color-danger-text);
+		color: var(--color-muted);
 		cursor: pointer;
+	}
+
+	.empty {
+		margin: 8px 0;
+		color: var(--color-muted);
+		font-size: 0.86rem;
+		font-weight: 600;
+		text-align: center;
+	}
+
+	.add-bar {
+		position: sticky;
+		bottom: calc(90px + env(safe-area-inset-bottom));
+		z-index: 20;
 	}
 
 	.add-toggle {
 		display: inline-flex;
+		width: 100%;
 		align-items: center;
 		justify-content: center;
 		gap: 8px;
-		min-height: 50px;
-		border: 1px dashed color-mix(in srgb, var(--color-charcoal) 24%, transparent);
+		min-height: 52px;
+		border: 0;
 		border-radius: var(--radius-pill);
-		background: var(--color-paper-2);
-		color: var(--color-charcoal);
-		font-size: 0.92rem;
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		font-size: 0.95rem;
 		font-weight: 850;
 		cursor: pointer;
+		box-shadow: 0 12px 26px color-mix(in srgb, var(--color-charcoal) 20%, transparent);
 	}
 
 	.add-toggle:disabled {
 		opacity: 0.55;
 		cursor: not-allowed;
+		box-shadow: none;
 	}
 
 	.add-form {
@@ -401,6 +477,7 @@
 	.avatar-choice {
 		display: grid;
 		place-items: center;
+		border: 1px solid transparent;
 		border-radius: 14px;
 		background: var(--color-paper);
 		padding: 7px;
@@ -409,7 +486,7 @@
 
 	.avatar-choice.active {
 		background: var(--color-sage-soft);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-success-text) 18%, transparent);
+		border-color: color-mix(in srgb, var(--color-success-text) 20%, transparent);
 	}
 
 	.avatar-choice input {

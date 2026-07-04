@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Brush from '@lucide/svelte/icons/brush';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Check from '@lucide/svelte/icons/check';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Droplet from '@lucide/svelte/icons/droplet';
 	import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
@@ -10,7 +12,7 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Toilet from '@lucide/svelte/icons/toilet';
 	import Utensils from '@lucide/svelte/icons/utensils';
-	import { isRenderableAvatarUrl } from '$lib/avatar-url';
+	import { avatarInitial, deriveParentName } from '$lib/account-identity';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import { deriveCatState } from '$lib/cat-state';
 	import { habitSetFor } from '$lib/tasks';
@@ -102,7 +104,10 @@
 
 	let { data }: PageProps = $props();
 
-	let avatarFailed = $state(false);
+	let switcherOpen = $state(false);
+	let cats = $derived(data.cats ?? []);
+	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
+	let canSwitch = $derived(cats.length > 1);
 
 	let catName = $derived(data.activeCat?.name ?? 'your cat');
 	// Show the habit set that matches the active cat's care mode.
@@ -116,8 +121,8 @@
 		data.selectedTask && !completed.has(data.selectedTask) ? data.selectedTask : nextTask.id
 	);
 	let active = $derived(tasks.find((task) => task.id === requestedTask) ?? nextTask);
-	let profileInitial = $derived(data.user?.displayName?.slice(0, 1).toUpperCase() ?? 'P');
-	let firstName = $derived(data.user?.displayName?.split(' ')[0] ?? 'cat parent');
+	let profileInitial = $derived(avatarInitial(data.user));
+	let firstName = $derived(deriveParentName(data.user).split(' ')[0]);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
 	// Hero mascot uses the active cat's chosen avatar; falls back to the orange mascot.
@@ -126,8 +131,6 @@
 	// The orange face overlay only matches the orange mascot art.
 	let showExpression = $derived(!data.activeCat || data.activeCat.avatarId === 'orange');
 	let selectedCatAvatar = $derived(data.user ? getCatAvatar(data.preferences.avatarChoice) : null);
-	let avatarUrl = $derived(selectedCatAvatar?.src ?? data.user?.avatarUrl ?? null);
-	let canRenderAvatar = $derived(!avatarFailed && isRenderableAvatarUrl(avatarUrl));
 	let catState = $derived(
 		deriveCatState({ completed: data.completedTasks, required: tasks.map((task) => task.id) })
 	);
@@ -191,18 +194,77 @@
 			<h1>{allDone ? `${catName} is settled in` : `${catName} needs care`}</h1>
 		</div>
 		<a class="avatar" href={resolve('/profile')} aria-label="Profile and settings">
-			{#if canRenderAvatar && avatarUrl}
-				<img
-					class={selectedCatAvatar ? 'cat-avatar-img' : undefined}
-					src={avatarUrl}
-					alt=""
-					onerror={() => (avatarFailed = true)}
-				/>
+			{#if selectedCatAvatar}
+				<img class="cat-avatar-img" src={selectedCatAvatar.src} alt="" />
 			{:else}
 				<span>{profileInitial}</span>
 			{/if}
 		</a>
 	</header>
+
+	{#if data.user && data.activeCat}
+		<div class="switcher">
+			<button
+				type="button"
+				class="switcher-current"
+				aria-haspopup="true"
+				aria-expanded={switcherOpen}
+				onclick={() => (switcherOpen = !switcherOpen)}
+			>
+				<span class="switcher-avatar" aria-hidden="true">
+					{#if activeCatAvatar}<img src={activeCatAvatar.src} alt="" />{/if}
+				</span>
+				<span class="switcher-copy">
+					<small>Caring for</small>
+					<strong>{data.activeCat.name}</strong>
+				</span>
+				{#if canSwitch}
+					<ChevronDown size={18} strokeWidth={2.3} aria-hidden="true" />
+				{/if}
+			</button>
+		</div>
+
+		{#if switcherOpen && canSwitch}
+			<button
+				type="button"
+				class="sheet-backdrop"
+				aria-label="Close cat picker"
+				onclick={() => (switcherOpen = false)}
+			></button>
+			<div class="sheet" role="dialog" aria-label="Choose a cat">
+				<p class="sheet-title">Choose a cat</p>
+				<ul class="sheet-list">
+					{#each cats as cat (cat.id)}
+						{@const avatar = getCatAvatar(cat.avatarId)}
+						{@const isActive = cat.id === data.activeCat.id}
+						<li>
+							<form
+								method="POST"
+								action="?/select"
+								use:enhance={() => {
+									return async ({ update }) => {
+										await update();
+										switcherOpen = false;
+									};
+								}}
+							>
+								<input type="hidden" name="catId" value={cat.id} />
+								<button type="submit" class={['sheet-row', isActive && 'active']}>
+									<span class="sheet-avatar" aria-hidden="true">
+										{#if avatar}<img src={avatar.src} alt="" />{/if}
+									</span>
+									<span class="sheet-name">{cat.name}</span>
+									{#if isActive}
+										<Check size={17} strokeWidth={3} aria-hidden="true" />
+									{/if}
+								</button>
+							</form>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+	{/if}
 
 	<section
 		id="care-proof"
@@ -343,6 +405,150 @@
 	.avatar img.cat-avatar-img {
 		padding: 7px;
 		object-fit: contain;
+	}
+
+	.switcher {
+		margin-top: -6px;
+	}
+
+	.switcher-current {
+		display: flex;
+		width: 100%;
+		align-items: center;
+		gap: 12px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-2);
+		padding: 8px 14px 8px 8px;
+		color: var(--color-charcoal);
+		cursor: pointer;
+		box-shadow: var(--shadow-card);
+	}
+
+	.switcher-avatar {
+		display: grid;
+		width: 42px;
+		height: 42px;
+		flex: none;
+		place-items: center;
+		overflow: hidden;
+		border-radius: 14px;
+		background: var(--color-peach-soft);
+	}
+
+	.switcher-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		padding: 4px;
+	}
+
+	.switcher-copy {
+		display: grid;
+		flex: 1;
+		min-width: 0;
+		text-align: left;
+	}
+
+	.switcher-copy small {
+		color: var(--color-muted);
+		font-size: 0.72rem;
+		font-weight: 800;
+	}
+
+	.switcher-copy strong {
+		overflow: hidden;
+		color: var(--color-ink);
+		font-size: 1rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sheet-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 60;
+		border: 0;
+		background: color-mix(in srgb, var(--color-charcoal) 32%, transparent);
+		cursor: pointer;
+	}
+
+	.sheet {
+		position: fixed;
+		left: 50%;
+		bottom: 0;
+		z-index: 61;
+		width: min(100%, 430px);
+		transform: translateX(-50%);
+		border-radius: 28px 28px 0 0;
+		background: var(--color-paper-2);
+		padding: 16px 18px calc(20px + env(safe-area-inset-bottom));
+		box-shadow: 0 -14px 40px color-mix(in srgb, var(--color-charcoal) 16%, transparent);
+	}
+
+	.sheet-title {
+		margin: 4px 0 12px;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-align: center;
+	}
+
+	.sheet-list {
+		display: grid;
+		gap: 8px;
+		margin: 0;
+		padding: 0;
+		max-height: 52vh;
+		overflow-y: auto;
+		list-style: none;
+	}
+
+	.sheet-row {
+		display: flex;
+		width: 100%;
+		align-items: center;
+		gap: 12px;
+		border: 1px solid var(--color-line);
+		border-radius: 18px;
+		background: var(--color-paper);
+		padding: 10px 12px;
+		color: var(--color-charcoal);
+		font-size: 0.95rem;
+		font-weight: 800;
+		cursor: pointer;
+	}
+
+	.sheet-row.active {
+		background: var(--color-sage-soft);
+		color: var(--color-success-text);
+		border-color: color-mix(in srgb, var(--color-success-text) 24%, var(--color-line));
+	}
+
+	.sheet-avatar {
+		display: grid;
+		width: 40px;
+		height: 40px;
+		flex: none;
+		place-items: center;
+		overflow: hidden;
+		border-radius: 13px;
+		background: var(--color-peach-soft);
+	}
+
+	.sheet-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		padding: 4px;
+	}
+
+	.sheet-name {
+		flex: 1;
+		overflow: hidden;
+		text-align: left;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.hero {
