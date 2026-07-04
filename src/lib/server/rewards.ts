@@ -15,30 +15,30 @@ export type RewardItem = {
 export const REWARDS: RewardItem[] = [
 	{
 		id: 'vet_discount',
-		title: 'Vet Consultation Discount',
+		title: 'Vet Visit Discount',
 		cost: 100,
-		desc: 'Get 25% off your next physical vet visit.',
+		desc: '25% off a vet visit.',
 		category: 'vet'
 	},
 	{
 		id: 'cat_treats',
-		title: 'Premium Tuna Treats',
+		title: 'Tuna Treats',
 		cost: 150,
-		desc: 'All-natural freeze-dried tuna bites.',
+		desc: 'Freeze-dried tuna bites.',
 		category: 'treat'
 	},
 	{
 		id: 'feather_wand',
-		title: 'Rainbow Feather Wand',
+		title: 'Feather Wand',
 		cost: 200,
-		desc: 'Interactive toy with a comfortable wooden handle.',
+		desc: 'A soft play wand.',
 		category: 'toy'
 	},
 	{
 		id: 'shelter_don',
-		title: 'Feed a Shelter Kitty',
+		title: 'Shelter Meal',
 		cost: 100,
-		desc: 'Donate daily meals to cat rescue shelters.',
+		desc: 'Donate one cat meal.',
 		category: 'shelter'
 	}
 ];

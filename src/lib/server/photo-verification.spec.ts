@@ -3,7 +3,8 @@ import {
 	buildGeminiVerificationRequest,
 	parseGeminiVerification,
 	utcDayStart,
-	verifyCarePhoto
+	verifyCarePhoto,
+	verifySandboxCarePhoto
 } from './photo-verification';
 
 type CountSelect = () => { from: () => { where: () => Promise<{ value: number }[]> } };
@@ -61,16 +62,17 @@ describe('photo verification', () => {
 		expect(utcDayStart(Date.UTC(2026, 5, 29, 18))).toBe(Date.UTC(2026, 5, 29));
 	});
 
-	it('builds inline Gemini image request', () => {
+	it('builds inline Gemini generateContent image request', () => {
 		const request = buildGeminiVerificationRequest({
 			imageBytes: new Uint8Array([1, 2, 3]),
 			mime: 'image/png',
-			taskType: 'feeding',
-			model: 'gemini-3.5-flash'
+			taskType: 'feeding'
 		});
 
-		expect(request.model).toBe('gemini-3.5-flash');
-		expect(request.input[1]).toEqual({ type: 'image', data: 'AQID', mime_type: 'image/png' });
+		expect(request.contents[0].parts[1]).toEqual({
+			inlineData: { mimeType: 'image/png', data: 'AQID' }
+		});
+		expect(request.generationConfig.responseMimeType).toBe('application/json');
 	});
 
 	it('parses valid Gemini JSON output', () => {
@@ -96,6 +98,7 @@ describe('photo verification', () => {
 		formData.set('taskType', 'feeding');
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData,
 			database: createDatabase([], []),
 			fetcher: fetch,
@@ -109,6 +112,7 @@ describe('photo verification', () => {
 	it('returns rate limit before Gemini call', async () => {
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData: createValidFormData(),
 			database: createDatabase([20], []),
 			fetcher: fetch,
@@ -128,6 +132,7 @@ describe('photo verification', () => {
 
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData: createValidFormData(),
 			database: createDatabase([0, 0], inserts, [0, 0], updates),
 			fetcher,
@@ -142,6 +147,7 @@ describe('photo verification', () => {
 		expect(inserts).toEqual([
 			{
 				userId: 'user-1',
+				catId: 'cat-1',
 				taskType: 'feeding',
 				verified: 1,
 				pointsAwarded: 10,
@@ -150,7 +156,24 @@ describe('photo verification', () => {
 				createdAt: now
 			}
 		]);
-		expect(updates).toHaveLength(1);
+		// Dual-counter award: users.purrpoints and cats.purrpoints both updated.
+		expect(updates).toHaveLength(2);
+	});
+
+	it('awards sandbox points without calling Gemini or writing real points', async () => {
+		const result = await verifySandboxCarePhoto({
+			formData: createValidFormData('play')
+		});
+
+		expect(result).toMatchObject({
+			status: 200,
+			taskType: 'play',
+			body: {
+				verified: true,
+				reason: 'Sandbox proof accepted.',
+				pointsAwarded: 1000
+			}
+		});
 	});
 
 	it('rechecks task caps inside the transaction', async () => {
@@ -161,6 +184,7 @@ describe('photo verification', () => {
 
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData: createValidFormData(),
 			database: createDatabase([0, 0], inserts, [0, 6], updates),
 			fetcher,
@@ -182,6 +206,7 @@ describe('photo verification', () => {
 
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData,
 			database: createDatabase([], inserts),
 			fetcher: fetch,
@@ -200,6 +225,7 @@ describe('photo verification', () => {
 
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData: createValidFormData(),
 			database: createDatabase([0, 0], inserts, [0], updates),
 			fetcher,
@@ -212,6 +238,7 @@ describe('photo verification', () => {
 		expect(inserts).toEqual([
 			{
 				userId: 'user-1',
+				catId: 'cat-1',
 				taskType: 'feeding',
 				verified: 0,
 				pointsAwarded: 0,
@@ -230,6 +257,7 @@ describe('photo verification', () => {
 
 		const result = await verifyCarePhoto({
 			userId: 'user-1',
+			catId: 'cat-1',
 			formData: createValidFormData(),
 			database: createDatabase([0, 0], inserts, [0], updates),
 			fetcher,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { authFailure, handleGoogleCallback } from './google-oauth';
+import {
+	authFailure,
+	clearOAuthStateCookie,
+	createOAuthStateCookie,
+	getOAuthStartRedirect,
+	handleGoogleCallback
+} from './google-oauth';
 
 function createDatabase(inserts: unknown[]) {
 	return {
@@ -29,6 +35,29 @@ describe('google oauth callback', () => {
 		expect(await response.text()).toBe('Authentication failed.');
 	});
 
+	it('uses Lax for oauth state cookies so Google redirects keep state', () => {
+		expect(createOAuthStateCookie('state-1', false)).toBe(
+			'oauth_state=state-1; HttpOnly; SameSite=Lax; Path=/auth; Max-Age=600'
+		);
+		expect(clearOAuthStateCookie(false)).toContain('SameSite=Lax');
+	});
+
+	it('keeps oauth state cookie and callback on the same local origin', () => {
+		expect(
+			getOAuthStartRedirect(
+				new URL('http://127.0.0.1:5173/auth/google'),
+				'http://localhost:5173/auth/callback'
+			)
+		).toBe('http://localhost:5173/auth/google');
+
+		expect(
+			getOAuthStartRedirect(
+				new URL('http://localhost:5173/auth/google'),
+				'http://localhost:5173/auth/callback'
+			)
+		).toBeNull();
+	});
+
 	it('creates user and session from valid Google responses', async () => {
 		const inserts: unknown[] = [];
 		let calls = 0;
@@ -39,6 +68,7 @@ describe('google oauth callback', () => {
 				JSON.stringify({
 					sub: 'google-1',
 					email: 'cat@example.com',
+					email_verified: true,
 					name: 'Cat Parent',
 					picture: 'https://example.com/avatar.png'
 				})

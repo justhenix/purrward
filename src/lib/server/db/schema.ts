@@ -10,26 +10,93 @@ export const task = sqliteTable('task', {
 
 export const users = sqliteTable('users', {
 	id: text('id').primaryKey(),
-	googleSub: text('google_sub').unique().notNull(),
-	email: text('email').notNull(),
+	googleSub: text('google_sub').unique(),
+	email: text('email').unique().notNull(),
 	displayName: text('display_name'),
 	avatarUrl: text('avatar_url'),
 	purrpoints: integer('purrpoints').default(0),
+	// Active_Cat pointer — server-owned, persists across sessions (nullable self/cat reference).
+	activeCatId: text('active_cat_id'),
 	createdAt: integer('created_at').notNull()
 });
+
+// Cat_Profile: one cat (owned or community) cared for by a user; owns habit completions.
+export const cats = sqliteTable(
+	'cats',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		name: text('name').notNull(),
+		careMode: text('care_mode').notNull(), // 'owned' | 'community'
+		avatarId: text('avatar_id').notNull(),
+		purrpoints: integer('purrpoints').notNull().default(0), // per-cat attribution
+		createdAt: integer('created_at').notNull()
+	},
+	(table) => [
+		index('cats_user_idx').on(table.userId),
+		index('cats_user_created_idx').on(table.userId, table.createdAt)
+	]
+);
 
 export const sessions = sqliteTable('sessions', {
 	id: text('id').primaryKey(), // 32-byte hex secure token
 	userId: text('user_id')
 		.notNull()
 		.references(() => users.id),
-	googleSub: text('google_sub').notNull(),
+	googleSub: text('google_sub'),
 	email: text('email').notNull(),
+	authMethod: text('auth_method').notNull().default('google'),
 	displayName: text('display_name'),
 	avatarUrl: text('avatar_url'),
 	createdAt: integer('created_at').notNull(),
 	expiresAt: integer('expires_at').notNull()
 });
+
+export const emailCredentials = sqliteTable('email_credentials', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => users.id),
+	passwordHash: text('password_hash').notNull(),
+	passwordSalt: text('password_salt').notNull(),
+	iterations: integer('iterations').notNull(),
+	createdAt: integer('created_at').notNull(),
+	updatedAt: integer('updated_at').notNull()
+});
+
+export const passwordResetTokens = sqliteTable(
+	'password_reset_tokens',
+	{
+		tokenHash: text('token_hash').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		email: text('email').notNull(),
+		createdAt: integer('created_at').notNull(),
+		expiresAt: integer('expires_at').notNull(),
+		usedAt: integer('used_at')
+	},
+	(table) => [
+		index('password_reset_tokens_user_idx').on(table.userId),
+		index('password_reset_tokens_expires_idx').on(table.expiresAt)
+	]
+);
+
+export const authRateLimits = sqliteTable(
+	'auth_rate_limits',
+	{
+		id: text('id').primaryKey(),
+		scope: text('scope').notNull(),
+		keyHash: text('key_hash').notNull(),
+		attempts: integer('attempts').notNull(),
+		resetAt: integer('reset_at').notNull(),
+		updatedAt: integer('updated_at').notNull()
+	},
+	(table) => [index('auth_rate_limits_reset_idx').on(table.resetAt)]
+);
 
 export const habitCompletions = sqliteTable(
 	'habit_completions',
@@ -40,6 +107,8 @@ export const habitCompletions = sqliteTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => users.id),
+		// Nullable for a safe migration of pre-cat rows; application writes always set it.
+		catId: text('cat_id').references(() => cats.id),
 		taskType: text('task_type').notNull(),
 		verified: integer('verified').notNull(),
 		pointsAwarded: integer('points_awarded').notNull().default(0),
@@ -55,6 +124,27 @@ export const habitCompletions = sqliteTable(
 			table.createdAt
 		),
 		index('habit_completions_user_day_idx').on(table.userId, table.dayStart),
-		index('habit_completions_user_task_day_idx').on(table.userId, table.taskType, table.dayStart)
+		index('habit_completions_user_task_day_idx').on(table.userId, table.taskType, table.dayStart),
+		index('habit_completions_cat_created_idx').on(table.catId, table.createdAt),
+		index('habit_completions_user_cat_task_day_idx').on(
+			table.userId,
+			table.catId,
+			table.taskType,
+			table.dayStart
+		)
 	]
+);
+
+// SECURITY: app-level rate limit counters keyed by hashed IP/user + action window.
+export const rateLimits = sqliteTable(
+	'rate_limits',
+	{
+		id: text('id').primaryKey(),
+		key: text('key').notNull(),
+		action: text('action').notNull(),
+		windowStart: integer('window_start').notNull(),
+		count: integer('count').notNull(),
+		updatedAt: integer('updated_at').notNull()
+	},
+	(table) => [index('rate_limits_action_window_idx').on(table.action, table.windowStart)]
 );

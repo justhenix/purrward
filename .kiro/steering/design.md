@@ -14,16 +14,16 @@ Purrward is a cozy mobile-first cat wellness app. Clean modern card UI wrapped i
 
 ### Core
 
-| Token           | Value     | Use                                    |
-| --------------- | --------- | -------------------------------------- |
-| `paper`         | `#FDF8EF` | Main app background                    |
-| `paper-2`       | `#FFFDF8` | Raised cards                           |
-| `paper-3`       | `#F6EEDB` | Secondary warm surface                 |
-| `charcoal`      | `#242626` | Primary text, primary button           |
-| `charcoal-soft` | `#343837` | Softer dark UI / nav background        |
-| `ink`           | `#171A19` | Highest contrast text                  |
-| `muted`         | `#7A746B` | Secondary text                         |
-| `line`          | `#E8DECB` | Borders and dividers                   |
+| Token           | Value     | Use                             |
+| --------------- | --------- | ------------------------------- |
+| `paper`         | `#FDF8EF` | Main app background             |
+| `paper-2`       | `#FFFDF8` | Raised cards                    |
+| `paper-3`       | `#F6EEDB` | Secondary warm surface          |
+| `charcoal`      | `#242626` | Primary text, primary button    |
+| `charcoal-soft` | `#343837` | Softer dark UI / nav background |
+| `ink`           | `#171A19` | Highest contrast text           |
+| `muted`         | `#7A746B` | Secondary text                  |
+| `line`          | `#E8DECB` | Borders and dividers            |
 
 ### Accents (watercolor pigment feel)
 
@@ -69,15 +69,15 @@ Two fonts only:
 
 **Never monospace.**
 
-| Role          | Size      | Weight  | Font       |
-| ------------- | --------- | ------- | ---------- |
-| Hero title    | 28–34px   | 700     | Quicksand  |
-| Screen title  | 22–26px   | 700     | Quicksand  |
-| Section title | 18–22px   | 700     | Quicksand  |
-| Card title    | 16–18px   | 700     | Either     |
-| Body          | 14–16px   | 400–500 | Inter      |
-| Caption       | 12–13px   | 500     | Inter      |
-| Button        | 14–16px   | 700     | Inter      |
+| Role          | Size    | Weight  | Font      |
+| ------------- | ------- | ------- | --------- |
+| Hero title    | 28–34px | 700     | Quicksand |
+| Screen title  | 22–26px | 700     | Quicksand |
+| Section title | 18–22px | 700     | Quicksand |
+| Card title    | 16–18px | 700     | Either    |
+| Body          | 14–16px | 400–500 | Inter     |
+| Caption       | 12–13px | 500     | Inter     |
+| Button        | 14–16px | 700     | Inter     |
 
 ## Layout
 
@@ -111,12 +111,13 @@ Two fonts only:
 ## Cards
 
 Base card CSS:
+
 ```css
 .card {
-  background: var(--color-paper-2);
-  border: 1px solid var(--color-line);
-  border-radius: 28px;
-  box-shadow: 0 14px 40px rgba(36, 38, 38, 0.08);
+	background: var(--color-paper-2);
+	border: 1px solid var(--color-line);
+	border-radius: 28px;
+	box-shadow: 0 14px 40px rgba(36, 38, 38, 0.08);
 }
 ```
 

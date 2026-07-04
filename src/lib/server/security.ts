@@ -1,4 +1,15 @@
 // SECURITY: input sanitization, rate limiting, security utilities
+import {
+	COMMUNITY_TASK_TYPES,
+	OWNED_TASK_TYPES,
+	habitSetFor,
+	isTaskType,
+	type CareMode,
+	type TaskType
+} from '$lib/tasks';
+
+export { COMMUNITY_TASK_TYPES, OWNED_TASK_TYPES, habitSetFor };
+export type { CareMode, TaskType };
 
 /** SECURITY: strip HTML tags to prevent XSS */
 export function sanitize(input: string): string {
@@ -6,15 +17,12 @@ export function sanitize(input: string): string {
 }
 
 /** SECURITY: validate MIME type for photo uploads */
-const ALLOWED_MIMES = ['image/jpeg', 'image/png'] as const;
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
-const TASK_TYPES = ['feeding', 'water', 'litter', 'play', 'grooming', 'meds'] as const;
-
-export type TaskType = (typeof TASK_TYPES)[number];
 
 export function validateUpload(file: File): { ok: boolean; error?: string } {
 	if (!ALLOWED_MIMES.includes(file.type as (typeof ALLOWED_MIMES)[number])) {
-		return { ok: false, error: 'Invalid file type. Use JPEG or PNG.' };
+		return { ok: false, error: 'Invalid file type. Use JPEG, PNG, or WebP.' };
 	}
 	if (file.size > MAX_UPLOAD_BYTES) {
 		return { ok: false, error: 'File too large. Maximum 5MB.' };
@@ -22,15 +30,60 @@ export function validateUpload(file: File): { ok: boolean; error?: string } {
 	return { ok: true };
 }
 
-export function validateTaskType(value: FormDataEntryValue | null): TaskType | null {
+// careMode restricts the accepted set; omit it to accept any known task type.
+export function validateTaskType(
+	value: FormDataEntryValue | null,
+	careMode?: CareMode
+): TaskType | null {
 	if (typeof value !== 'string') return null;
-	return TASK_TYPES.includes(value as TaskType) ? (value as TaskType) : null;
+	if (careMode) {
+		const allowed: readonly string[] = habitSetFor(careMode);
+		return allowed.includes(value) ? (value as TaskType) : null;
+	}
+	return isTaskType(value) ? value : null;
 }
 
 export function stripImageMetadata(bytes: Uint8Array, mime: string): Uint8Array {
 	if (mime === 'image/jpeg') return stripJpegExif(bytes);
 	if (mime === 'image/png') return stripPngMetadata(bytes);
+	if (mime === 'image/webp') return stripWebpMetadata(bytes);
 	return bytes;
+}
+
+// SECURITY: drop EXIF/XMP chunks from a RIFF/WEBP container before the image reaches Gemini.
+export function stripWebpMetadata(bytes: Uint8Array): Uint8Array {
+	// RIFF header: 'RIFF' <u32 size> 'WEBP'. Fail safe (return original) if malformed.
+	if (bytes.length < 12) return bytes;
+	const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+	const webp = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+	if (riff !== 'RIFF' || webp !== 'WEBP') return bytes;
+
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	const skipped = new Set(['EXIF', 'XMP ']);
+	const kept: Uint8Array[] = [];
+	let offset = 12;
+	while (offset + 8 <= bytes.length) {
+		const fourcc = String.fromCharCode(
+			bytes[offset],
+			bytes[offset + 1],
+			bytes[offset + 2],
+			bytes[offset + 3]
+		);
+		const size = view.getUint32(offset + 4, true);
+		const padded = size + (size % 2); // chunks are padded to even size
+		const chunkEnd = offset + 8 + padded;
+		if (padded < 0 || chunkEnd > bytes.length) return bytes; // malformed → fail safe
+		if (!skipped.has(fourcc)) kept.push(bytes.slice(offset, chunkEnd));
+		offset = chunkEnd;
+	}
+
+	const payload = concatBytes(kept);
+	const output = new Uint8Array(12 + payload.length);
+	output.set(bytes.slice(0, 12));
+	output.set(payload, 12);
+	// Recompute RIFF size = 'WEBP' fourcc (4) + payload bytes.
+	new DataView(output.buffer).setUint32(4, 4 + payload.length, true);
+	return output;
 }
 
 function stripJpegExif(bytes: Uint8Array): Uint8Array {

@@ -27,6 +27,7 @@ Format: `type(scope): short summary`
 Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 
 Rules:
+
 - Lowercase type
 - Scope optional but encouraged
 - Imperative mood summary, ≤50 chars, no trailing period
@@ -38,6 +39,7 @@ Rules:
 ## Verification
 
 Run before handoff:
+
 - `bun run check`
 - `bun test`
 - `bun run lint`

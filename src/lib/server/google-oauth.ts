@@ -1,7 +1,7 @@
 // SECURITY: Google OAuth callback core with injectable side effects for tests.
 import { eq } from 'drizzle-orm';
-import { createSessionCookie, generateSessionId } from './auth';
-import { sessions, users } from './db/schema';
+import { createSession, createSessionCookie, normalizeEmail } from './auth';
+import { users } from './db/schema';
 
 type Database = typeof import('./db').db;
 type Fetcher = typeof fetch;
@@ -19,12 +19,53 @@ type GoogleTokenResponse = {
 type GoogleUserInfo = {
 	sub?: string;
 	email?: string;
+	email_verified?: boolean;
 	name?: string;
 	picture?: string;
 };
 
 export function authFailure(): Response {
 	return new Response('Authentication failed.', { status: 400 });
+}
+
+export function createOAuthStateCookie(state: string, secureCookie: boolean): string {
+	return [
+		`oauth_state=${state}`,
+		'HttpOnly',
+		secureCookie ? 'Secure' : '',
+		// SECURITY: Lax lets the state cookie survive Google's cross-site top-level redirect.
+		'SameSite=Lax',
+		'Path=/auth',
+		'Max-Age=600'
+	]
+		.filter(Boolean)
+		.join('; ');
+}
+
+export function clearOAuthStateCookie(secureCookie: boolean): string {
+	return [
+		'oauth_state=',
+		'HttpOnly',
+		secureCookie ? 'Secure' : '',
+		'SameSite=Lax',
+		'Path=/auth',
+		'Max-Age=0',
+		'Expires=Thu, 01 Jan 1970 00:00:00 GMT'
+	]
+		.filter(Boolean)
+		.join('; ');
+}
+
+export function getOAuthStartRedirect(
+	requestUrl: URL,
+	configuredRedirectUri: string
+): string | null {
+	const redirectUri = new URL(configuredRedirectUri);
+	if (requestUrl.origin === redirectUri.origin) return null;
+
+	const canonicalStart = new URL('/auth/google', redirectUri.origin);
+	canonicalStart.search = requestUrl.search;
+	return canonicalStart.toString();
 }
 
 export async function handleGoogleCallback(input: {
@@ -56,28 +97,36 @@ export async function handleGoogleCallback(input: {
 	if (!userResponse.ok) return authFailure();
 
 	const profile = (await userResponse.json()) as GoogleUserInfo;
-	if (!profile.sub || !profile.email) return authFailure();
+	const email = profile.email ? normalizeEmail(profile.email) : null;
+	if (!profile.sub || !email || profile.email_verified !== true) return authFailure();
 
 	const now = Date.now();
-	const existing = await input.database
+	const existingByGoogle = await input.database
 		.select()
 		.from(users)
 		.where(eq(users.googleSub, profile.sub))
 		.limit(1);
-	const userId = existing[0]?.id ?? crypto.randomUUID();
+	const existingByEmail = existingByGoogle[0]
+		? []
+		: await input.database.select().from(users).where(eq(users.email, email)).limit(1);
+	const existing = existingByGoogle[0] ?? existingByEmail[0] ?? null;
+	if (existing?.googleSub && existing.googleSub !== profile.sub) return authFailure();
+
+	const userId = existing?.id ?? crypto.randomUUID();
 	const userValues = {
 		id: userId,
 		googleSub: profile.sub,
-		email: profile.email,
+		email,
 		displayName: profile.name ?? null,
 		avatarUrl: profile.picture ?? null,
-		createdAt: existing[0]?.createdAt ?? now
+		createdAt: existing?.createdAt ?? now
 	};
 
-	if (existing[0]) {
+	if (existing) {
 		await input.database
 			.update(users)
 			.set({
+				googleSub: userValues.googleSub,
 				email: userValues.email,
 				displayName: userValues.displayName,
 				avatarUrl: userValues.avatarUrl
@@ -87,36 +136,19 @@ export async function handleGoogleCallback(input: {
 		await input.database.insert(users).values(userValues);
 	}
 
-	// SECURITY: new login invalidates prior sessions for this user.
-	await input.database.delete(sessions).where(eq(sessions.userId, userId));
-
-	const sessionId = generateSessionId();
-	await input.database.insert(sessions).values({
-		id: sessionId,
+	const sessionId = await createSession({
+		database: input.database,
 		userId,
 		googleSub: profile.sub,
-		email: profile.email,
+		email,
+		authMethod: 'google',
 		displayName: profile.name ?? null,
 		avatarUrl: profile.picture ?? null,
-		createdAt: now,
-		expiresAt: now + 7 * 24 * 60 * 60 * 1000
+		now
 	});
 
 	const headers = new Headers({ Location: '/' });
 	headers.append('Set-Cookie', createSessionCookie(sessionId, input.secureCookie));
-	headers.append(
-		'Set-Cookie',
-		[
-			'oauth_state=',
-			'HttpOnly',
-			input.secureCookie ? 'Secure' : '',
-			'SameSite=Strict',
-			'Path=/auth',
-			'Max-Age=0',
-			'Expires=Thu, 01 Jan 1970 00:00:00 GMT'
-		]
-			.filter(Boolean)
-			.join('; ')
-	);
+	headers.append('Set-Cookie', clearOAuthStateCookie(input.secureCookie));
 	return new Response(null, { status: 302, headers });
 }

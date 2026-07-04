@@ -1,7 +1,14 @@
 // SECURITY: verifies care photos and records server-owned points.
 import { and, count, eq, sql } from 'drizzle-orm';
-import { habitCompletions, users } from './db/schema';
-import { stripImageMetadata, validateTaskType, validateUpload, type TaskType } from './security';
+import { cats, habitCompletions, users } from './db/schema';
+import { SANDBOX_POINTS_PER_PROOF } from './sandbox';
+import {
+	stripImageMetadata,
+	validateTaskType,
+	validateUpload,
+	type CareMode,
+	type TaskType
+} from './security';
 
 type Database = typeof import('./db').db;
 type Fetcher = typeof fetch;
@@ -102,7 +109,6 @@ export function buildGeminiVerificationRequest(input: {
 	imageBytes: Uint8Array;
 	mime: string;
 	taskType: TaskType;
-	model?: string;
 }) {
 	const taskLabels: Record<TaskType, string> = {
 		feeding: 'feeding or food bowl care',
@@ -110,28 +116,33 @@ export function buildGeminiVerificationRequest(input: {
 		litter: 'litter box care',
 		play: 'play or enrichment activity',
 		grooming: 'grooming care',
-		meds: 'medication care'
+		meds: 'medication care',
+		street_feeding: 'street or community cat feeding',
+		shelter_care: 'outdoor shelter or community cat shelter care'
 	};
 
+	// SECURITY: server-owned prompt; user input is limited to the validated task label.
 	return {
-		model: input.model ?? DEFAULT_GEMINI_MODEL,
-		input: [
+		contents: [
 			{
-				type: 'text',
-				text:
-					'You verify cat wellness care photos for Purrward. Return only compact JSON with keys verified and reason. Verify only if the image plausibly shows a cat-related care task matching this requested task. Reject non-cats, screenshots, unrelated images, stock-looking images, or low-confidence matches. Requested task: ' +
-					taskLabels[input.taskType]
-			},
-			{
-				type: 'image',
-				data: bytesToBase64(input.imageBytes),
-				mime_type: input.mime
+				parts: [
+					{
+						text:
+							'You verify cat wellness care photos for Purrward. Return only compact JSON with keys verified and reason. Verify only if the image plausibly shows a cat-related care task matching this requested task. Reject non-cats, screenshots, unrelated images, stock-looking images, or low-confidence matches. Requested task: ' +
+							taskLabels[input.taskType]
+					},
+					{
+						inlineData: {
+							mimeType: input.mime,
+							data: bytesToBase64(input.imageBytes)
+						}
+					}
+				]
 			}
 		],
-		response_format: {
-			type: 'text',
-			mime_type: 'application/json',
-			schema: {
+		generationConfig: {
+			responseMimeType: 'application/json',
+			responseSchema: {
 				type: 'object',
 				properties: {
 					verified: { type: 'boolean' },
@@ -151,8 +162,9 @@ async function callGemini(input: {
 	taskType: TaskType;
 	model?: string;
 }): Promise<GeminiVerification | null> {
+	const model = input.model ?? DEFAULT_GEMINI_MODEL;
 	const response = await input.fetcher(
-		'https://generativelanguage.googleapis.com/v1beta/interactions',
+		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 		{
 			method: 'POST',
 			headers: {
@@ -163,8 +175,7 @@ async function callGemini(input: {
 				buildGeminiVerificationRequest({
 					imageBytes: input.imageBytes,
 					mime: input.mime,
-					taskType: input.taskType,
-					model: input.model
+					taskType: input.taskType
 				})
 			)
 		}
@@ -176,11 +187,13 @@ async function callGemini(input: {
 async function checkLimits(input: {
 	database: Database;
 	userId: string;
+	catId: string;
 	taskType: TaskType;
 	now: number;
 }): Promise<VerificationResponse | null> {
 	// simplify: UTC day boundary; switch to user timezone if streak UX needs it.
 	const dayStart = utcDayStart(input.now);
+	// Upload cap stays per user (Req: 20/day per user).
 	const uploadRows = await input.database
 		.select({ value: count() })
 		.from(habitCompletions)
@@ -189,12 +202,14 @@ async function checkLimits(input: {
 		return { status: 429, body: { error: 'Daily upload limit reached.' } };
 	}
 
+	// SECURITY: verified-task cap is per-cat so caps stay independent across a user's cats.
 	const taskRows = await input.database
 		.select({ value: count() })
 		.from(habitCompletions)
 		.where(
 			and(
 				eq(habitCompletions.userId, input.userId),
+				eq(habitCompletions.catId, input.catId),
 				eq(habitCompletions.taskType, input.taskType),
 				eq(habitCompletions.verified, 1),
 				eq(habitCompletions.dayStart, dayStart)
@@ -210,6 +225,7 @@ async function checkLimits(input: {
 async function recordVerification(input: {
 	database: Database;
 	userId: string;
+	catId: string;
 	taskType: TaskType;
 	result: GeminiVerification;
 	now: number;
@@ -234,6 +250,7 @@ async function recordVerification(input: {
 				.where(
 					and(
 						eq(habitCompletions.userId, input.userId),
+						eq(habitCompletions.catId, input.catId),
 						eq(habitCompletions.taskType, input.taskType),
 						eq(habitCompletions.verified, 1),
 						eq(habitCompletions.dayStart, dayStart)
@@ -246,6 +263,7 @@ async function recordVerification(input: {
 
 		await tx.insert(habitCompletions).values({
 			userId: input.userId,
+			catId: input.catId,
 			taskType: input.taskType,
 			verified: input.result.verified ? 1 : 0,
 			pointsAwarded,
@@ -254,10 +272,15 @@ async function recordVerification(input: {
 			createdAt: input.now
 		});
 		if (pointsAwarded > 0) {
+			// SECURITY: server-owned points; user balance and per-cat attribution move atomically.
 			await tx
 				.update(users)
 				.set({ purrpoints: sql`${users.purrpoints} + ${pointsAwarded}` })
 				.where(eq(users.id, input.userId));
+			await tx
+				.update(cats)
+				.set({ purrpoints: sql`${cats.purrpoints} + ${pointsAwarded}` })
+				.where(and(eq(cats.id, input.catId), eq(cats.userId, input.userId)));
 		}
 	});
 	return pointsAwarded;
@@ -265,15 +288,17 @@ async function recordVerification(input: {
 
 export async function verifyCarePhoto(input: {
 	userId: string;
+	catId: string; // SECURITY: an already ownership-authorized active cat id, resolved server-side
 	formData: FormData;
 	database: Database;
 	fetcher: Fetcher;
 	apiKey: string;
 	model?: string;
+	careMode?: CareMode;
 	now?: number;
 }): Promise<VerificationResponse> {
 	const photo = input.formData.get('photo');
-	const taskType = validateTaskType(input.formData.get('taskType'));
+	const taskType = validateTaskType(input.formData.get('taskType'), input.careMode);
 	if (!(photo instanceof File)) return { status: 400, body: { error: 'Photo is required.' } };
 	if (!taskType) return { status: 400, body: { error: 'Choose a valid care task.' } };
 
@@ -284,6 +309,7 @@ export async function verifyCarePhoto(input: {
 	const limit = await checkLimits({
 		database: input.database,
 		userId: input.userId,
+		catId: input.catId,
 		taskType,
 		now
 	});
@@ -303,6 +329,7 @@ export async function verifyCarePhoto(input: {
 			await recordVerification({
 				database: input.database,
 				userId: input.userId,
+				catId: input.catId,
 				taskType,
 				result: { verified: false, reason: 'Verification failed. Please try again.' },
 				now
@@ -318,6 +345,7 @@ export async function verifyCarePhoto(input: {
 		const pointsAwarded = await recordVerification({
 			database: input.database,
 			userId: input.userId,
+			catId: input.catId,
 			taskType,
 			result,
 			now
@@ -327,4 +355,27 @@ export async function verifyCarePhoto(input: {
 		if (error instanceof LimitExceededError) return error.response;
 		throw error;
 	}
+}
+
+export async function verifySandboxCarePhoto(input: {
+	formData: FormData;
+}): Promise<VerificationResponse & { taskType?: TaskType }> {
+	const photo = input.formData.get('photo');
+	const taskType = validateTaskType(input.formData.get('taskType'));
+	if (!(photo instanceof File)) return { status: 400, body: { error: 'Photo is required.' } };
+	if (!taskType) return { status: 400, body: { error: 'Choose a valid care task.' } };
+
+	const upload = validateUpload(photo);
+	if (!upload.ok) return { status: 400, body: { error: upload.error } };
+
+	stripImageMetadata(new Uint8Array(await photo.arrayBuffer()), photo.type);
+	return {
+		status: 200,
+		taskType,
+		body: {
+			verified: true,
+			reason: 'Sandbox proof accepted.',
+			pointsAwarded: SANDBOX_POINTS_PER_PROOF
+		}
+	};
 }

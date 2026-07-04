@@ -19,16 +19,16 @@ MVP first. Do not build Good-to-Have items unless explicitly asked. Scope: `.kir
 
 ## Source of Truth
 
-| Topic                 | File                          | When to read              |
-| --------------------- | ----------------------------- | ------------------------- |
-| Product / stack / scope | `.kiro/steering/product.md`   | always                    |
-| Code style / commits  | `.kiro/steering/code-style.md`| always                    |
-| Security (full spec)  | `.kiro/steering/security.md`  | auth, API, uploads, DB, AI|
-| Design system         | `.kiro/steering/design.md`    | any UI / visual work      |
-| Repo structure        | `.kiro/steering/structure.md` | navigating `src/**`       |
-| Assets                | `.kiro/steering/assets.md`    | avatar / art work         |
-| Demo / submission     | `.kiro/steering/demo.md`      | demo prep, final submit   |
-| MVP spec              | `.kiro/specs/core-platform/`  | implementing MVP features |
+| Topic                   | File                           | When to read               |
+| ----------------------- | ------------------------------ | -------------------------- |
+| Product / stack / scope | `.kiro/steering/product.md`    | always                     |
+| Code style / commits    | `.kiro/steering/code-style.md` | always                     |
+| Security (full spec)    | `.kiro/steering/security.md`   | auth, API, uploads, DB, AI |
+| Design system           | `.kiro/steering/design.md`     | any UI / visual work       |
+| Repo structure          | `.kiro/steering/structure.md`  | navigating `src/**`        |
+| Assets                  | `.kiro/steering/assets.md`     | avatar / art work          |
+| Demo / submission       | `.kiro/steering/demo.md`       | demo prep, final submit    |
+| MVP spec                | `.kiro/specs/core-platform/`   | implementing MVP features  |
 
 ## Non-Negotiables
 

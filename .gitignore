@@ -42,6 +42,12 @@ bun-debug.log*
 # Testing
 /coverage
 /.nyc_output
+/artifacts
+/test
+/test-results
+/test-results/artifacts
+/test-results/screenshots
+/playwright-report
 
 # Cache & temp
 .cache

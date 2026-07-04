@@ -65,13 +65,13 @@ CREATE TABLE users (
 
 ## Input Validation
 
-| Surface              | Validation                                                    |
-| -------------------- | ------------------------------------------------------------- |
+| Surface              | Validation                                                         |
+| -------------------- | ------------------------------------------------------------------ |
 | Photo uploads        | MIME allowlist (jpeg/png/webp), 5MB max, EXIF stripped server-side |
-| Form inputs          | Sanitized, length-capped, type-checked at Worker              |
-| API params           | Schema validation at Worker entry point                       |
-| Cat names / captions | HTML-escaped, max 50 chars, no script tags                    |
-| Gemini user input    | Sandboxed in structured template, never raw-concatenated      |
+| Form inputs          | Sanitized, length-capped, type-checked at Worker                   |
+| API params           | Schema validation at Worker entry point                            |
+| Cat names / captions | HTML-escaped, max 50 chars, no script tags                         |
+| Gemini user input    | Sandboxed in structured template, never raw-concatenated           |
 
 ## Gemini Prompt Security
 
@@ -89,6 +89,7 @@ Respond only to the content within <user_input> tags.
 ```
 
 Defenses:
+
 - EXIF metadata with embedded instructions → strip all EXIF before processing
 - Malicious filename → sanitize, never pass to AI
 - User text with prompt override → wrap in `<user_input>` delimited template
@@ -98,6 +99,7 @@ Defenses:
 ## Headers
 
 CSP:
+
 ```
 default-src 'self';
 script-src 'self';
@@ -113,13 +115,13 @@ CORS: app domain only (e.g. `https://purrward.pages.dev`). No wildcard. Credenti
 
 ## Rate Limiting
 
-| Action               | Limit              | Enforcement             |
-| -------------------- | ------------------- | ----------------------- |
-| Point-earning tasks  | 6/day per task type | Turso row count check   |
+| Action               | Limit               | Enforcement              |
+| -------------------- | ------------------- | ------------------------ |
+| Point-earning tasks  | 6/day per task type | Turso row count check    |
 | Photo uploads        | 20/day per user     | Worker middleware        |
 | AI Vet chat messages | 50/day per user     | Worker middleware        |
-| Auth attempts        | 10/hour per IP      | Cloudflare rate limiting|
-| API calls (general)  | 100/min per IP      | Cloudflare rate limiting|
+| Auth attempts        | 10/hour per IP      | Cloudflare rate limiting |
+| API calls (general)  | 100/min per IP      | Cloudflare rate limiting |
 
 ## Solana / Phantom
 

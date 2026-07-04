@@ -41,6 +41,7 @@ Do not use these in Purrward UI:
 ## Page Review Checklist
 
 Before finalizing any screen:
+
 1. Does this feel like cozy cat care, not generic AI SaaS?
 2. Does every visual choice support a real pet-care moment?
 3. Is the cat/avatar/emotional layer present where useful?

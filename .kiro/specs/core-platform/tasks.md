@@ -1,6 +1,7 @@
 # Purrward — Core Platform Tasks
 
 ## Phase 0: Setup (Done)
+
 - [x] Initialize SvelteKit + Bun
 - [x] Configure TailwindCSS v4
 - [x] Configure `@sveltejs/adapter-cloudflare`
@@ -11,6 +12,7 @@
 - [x] Configure base design system in `layout.css`
 
 ## Phase 1: Core MVP
+
 - [x] Google OAuth full flow (Worker endpoints + Turso session table)
 - [x] Habit tracker UI (daily checklists)
 - [x] Verification engine (Gemini API endpoint)
@@ -19,14 +21,17 @@
 - [x] Points ledger (parameterized queries)
 
 ## Phase 2: Gamification
+
 - [ ] Base cat avatar with dynamic states (happy, hungry, sleeping)
 - [ ] Customizer UI for layering assets (hats, collars)
 
 ## Phase 3: Vet Telehealth
+
 - [ ] AI vet chat interface connected to Gemini
 - [ ] Simulated booking UI (spend points, mock Temporal workflows)
 
 ## Phase 5: Finalization
+
 - [ ] Run `docs/security.md` pre-deploy checklist
 - [ ] Complete `docs/submission.md` checklist
 - [ ] Cloudflare Pages deployment

@@ -14,11 +14,13 @@ Resolution: 1024x1024 PNG (or SVG), transparent background, sitting pose.
 Aligned anchor points for accessories overlay.
 
 ### Base Cat Bodies (3)
+
 - `cat_orange_tabby.png`
 - `cat_tuxedo.png` (black & white)
 - `cat_grey.png` (solid grey)
 
 ### Face/State Overlays (3)
+
 - `face_happy.png` (closed eyes, smiling curve)
 - `face_sad.png` (droopy eyes, slight tongue blep)
 - `face_sleepy.png` (closed line eyes, Zzz doodles)
@@ -42,17 +44,23 @@ Resolution: 1125x2436 PNG (19.5:9 mobile).
 ## UI Elements (5)
 
 ### Watercolor Splotches (3)
+
 Resolution: 256x256 PNG or SVG.
+
 - `ui_splotch_pink.png`
 - `ui_splotch_yellow.png`
 - `ui_splotch_green.png`
 
 ### Polaroid Frame (1)
+
 Resolution: 1200x1600 PNG or SVG (3:4 or 4:5).
+
 - `ui_polaroid.png`
 
 ### Gacha Jar (1)
+
 Resolution: 512x512 PNG or SVG.
+
 - `ui_gacha_jar.png`
 
 ## Missing Asset Rule

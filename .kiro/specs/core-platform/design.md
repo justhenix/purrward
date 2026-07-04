@@ -30,9 +30,11 @@ habit → photo upload → server validation (MIME/size) → EXIF strip → Gemi
 ## Data Model
 
 ### users
+
 `id` TEXT PK, `google_sub` TEXT UNIQUE, `email` TEXT, `display_name` TEXT, `avatar_url` TEXT, `purrpoints` INTEGER DEFAULT 0, `created_at` INTEGER.
 
 ### sessions
+
 `id` TEXT PK (32 bytes hex random), `user_id` TEXT FK, `google_sub` TEXT, `email` TEXT, `display_name` TEXT, `avatar_url` TEXT, `created_at` INTEGER, `expires_at` INTEGER.
 
 ## Key Technical Decisions

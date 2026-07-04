@@ -4,26 +4,26 @@
 	let { data }: PageProps = $props();
 </script>
 
-<!-- Developer Mode technical appendix for security posture, traces, and scheduler config. -->
+<!-- Sandbox compatibility page for security posture and verification traces. -->
 
 <svelte:head>
-	<title>Purrward Dev Mode</title>
+	<title>Purrward | Sandbox</title>
 </svelte:head>
 
 <div class="dev-mode-page">
 	<section class="dev-hero card bg-butter/20">
 		<div class="watercolor-splotch-bg watercolor-blob-butter"></div>
 		<div class="dev-hero-content">
-			<span class="dev-badge">Technical Appendix</span>
-			<h2>Developer Mode</h2>
-			<p>{data.verificationRows} photo verification events recorded in the care ledger.</p>
+			<span class="dev-badge">Dev · Sandbox</span>
+			<h2>Dev Mode · Technical Evidence</h2>
+			<p>{data.verificationRows} verification events recorded.</p>
 		</div>
 	</section>
 
 	<!-- Security Posture Checklist -->
 	<section class="security-card card">
-		<h3>Security Review Notes</h3>
-		<p class="card-desc">Implementation evidence for the Cloudflare Worker boundary.</p>
+		<h3>Security checks</h3>
+		<p class="card-desc">Self-reported worker-boundary checks (not third-party audited).</p>
 		<div class="checklist">
 			{#each data.securityChecklist as item (item.id)}
 				<div class="checklist-item">
@@ -39,23 +39,21 @@
 	<!-- Demo-only security review note -->
 	<section class="review-card card bg-sage-soft/30">
 		<div class="review-header">
-			<span class="badge">Demo note</span>
+			<span class="badge">Mock evidence</span>
 			<h3>Security Scan Evidence</h3>
 		</div>
 		<div class="review-summary">
 			<div>
 				<h4>Real scan report not attached</h4>
-				<p>
-					This panel is a demo reminder. Attach real scan evidence before claiming scan results.
-				</p>
+				<p>Demo reminder. Attach real scan evidence.</p>
 			</div>
 		</div>
 	</section>
 
 	<!-- Edge Trace Details -->
 	<section class="trace-card card">
-		<h3>Verification Workflow Trace</h3>
-		<p class="card-desc">Step-by-step telemetry for photo care validations.</p>
+		<h3>Verification trace</h3>
+		<p class="card-desc">Illustrative pipeline trace (sample steps).</p>
 		<div class="trace-timeline">
 			{#each data.traceLogs as log (log.step)}
 				<div class="trace-step">
@@ -117,10 +115,13 @@
 	}
 
 	.dev-hero p {
+		overflow: hidden;
 		font-size: 0.82rem;
 		color: var(--color-muted);
 		line-height: 1.45;
 		margin: 0;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	h3 {
@@ -131,9 +132,12 @@
 	}
 
 	.card-desc {
+		overflow: hidden;
 		font-size: 0.78rem;
 		color: var(--color-muted);
 		margin: 0 0 16px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.checklist {
@@ -209,10 +213,13 @@
 	}
 
 	.review-summary p {
+		overflow: hidden;
 		margin: 0;
 		font-size: 0.75rem;
 		color: var(--color-muted);
 		line-height: 1.35;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.trace-timeline {

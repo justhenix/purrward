@@ -23,6 +23,7 @@ Pattern: `[thing] [action] [reason]. [next step].`
 ## Auto-Clarity
 
 Drop caveman mode for:
+
 - Security warnings
 - Irreversible action confirmations
 - Multi-step sequences where fragment order or omitted conjunctions risk misread

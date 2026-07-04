@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "src/**"
+fileMatchPattern: 'src/**'
 name: structure
 description: Repo structure and key file locations for Purrward.
 ---

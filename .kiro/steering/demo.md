@@ -31,6 +31,7 @@ Call out: `event.locals.user` owns the request. Client never submits user ID or 
 ## 2:45–3:45 Security
 
 Show security rules and mention:
+
 - HttpOnly Google OAuth session cookie
 - Upload MIME and size validation
 - EXIF stripping before AI

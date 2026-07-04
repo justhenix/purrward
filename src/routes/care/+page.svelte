@@ -1,12 +1,19 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import Brush from '@lucide/svelte/icons/brush';
+	import Droplet from '@lucide/svelte/icons/droplet';
+	import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
+	import Pill from '@lucide/svelte/icons/pill';
+	import Toilet from '@lucide/svelte/icons/toilet';
+	import Utensils from '@lucide/svelte/icons/utensils';
+	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
+	import House from '@lucide/svelte/icons/house';
+	import { habitSetFor, type TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
-
-	type TaskType = 'feeding' | 'water' | 'litter' | 'play' | 'grooming' | 'meds';
 
 	let { data }: PageProps = $props();
 
-	const careItems: {
+	const allCareItems: {
 		id: TaskType;
 		title: string;
 		text: string;
@@ -16,54 +23,91 @@
 		{
 			id: 'feeding',
 			title: 'Feeding',
-			text: 'Meal proof and notes',
-			proof: 'Upload a bowl or meal photo after feeding.',
+			text: 'Meal proof',
+			proof: 'Show meal bowl.',
 			points: '+10'
 		},
 		{
 			id: 'water',
 			title: 'Water',
-			text: 'Fresh bowl or fountain',
-			proof: 'Show fresh water in the bowl or fountain.',
+			text: 'Fresh water',
+			proof: 'Show fresh water.',
 			points: '+10'
 		},
 		{
 			id: 'litter',
 			title: 'Litter',
 			text: 'Clean box check',
-			proof: 'Show a cleaned litter box area.',
+			proof: 'Show clean litter.',
 			points: '+10'
 		},
 		{
 			id: 'play',
 			title: 'Play',
-			text: 'Movement and enrichment',
-			proof: 'Show a toy or enrichment moment.',
+			text: 'Toy time',
+			proof: 'Show toy time.',
 			points: '+10'
 		},
 		{
 			id: 'grooming',
 			title: 'Grooming',
-			text: 'Gentle brush care',
-			proof: 'Show brush care or grooming tools.',
+			text: 'Brush care',
+			proof: 'Show brush tools.',
 			points: '+10'
 		},
 		{
 			id: 'meds',
 			title: 'Medication',
-			text: 'Medicine or supplement log',
-			proof: 'Show medication care setup, never private vet paperwork.',
+			text: 'Meds log',
+			proof: 'Show meds setup.',
+			points: '+10'
+		},
+		{
+			id: 'street_feeding',
+			title: 'Street Feeding',
+			text: 'Community meal',
+			proof: 'Show street feeding.',
+			points: '+10'
+		},
+		{
+			id: 'shelter_care',
+			title: 'Shelter Care',
+			text: 'Outdoor shelter',
+			proof: 'Show shelter care.',
 			points: '+10'
 		}
 	];
 
+	let habitSet = $derived(habitSetFor(data.activeCat?.careMode ?? 'owned'));
+	let careItems = $derived(allCareItems.filter((item) => habitSet.includes(item.id)));
 	let selectedTask = $state<TaskType>('feeding');
 	let completed = $derived(new Set(data.completedTasks));
 	let selectedItem = $derived(careItems.find((item) => item.id === selectedTask) ?? careItems[0]);
 	let completedCount = $derived(careItems.filter((item) => completed.has(item.id)).length);
+	let sandboxReward = $derived(data.preferences.sandboxMode ? '+1000' : null);
 </script>
 
 <!-- Care task list screen for daily routines. -->
+
+{#snippet careIcon(taskId: TaskType)}
+	{#if taskId === 'feeding'}
+		<Utensils size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'water'}
+		<Droplet size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'litter'}
+		<Toilet size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'play'}
+		<Gamepad2 size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'grooming'}
+		<Brush size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'meds'}
+		<Pill size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else if taskId === 'street_feeding'}
+		<HeartHandshake size={22} strokeWidth={2.25} aria-hidden="true" />
+	{:else}
+		<House size={22} strokeWidth={2.25} aria-hidden="true" />
+	{/if}
+{/snippet}
 
 <svelte:head>
 	<title>Purrward | Care</title>
@@ -78,11 +122,9 @@
 	<section class="care-hero">
 		<div>
 			<span>Today</span>
-			<h2>{completedCount} of {careItems.length} routines verified</h2>
+			<h2>{completedCount} of {careItems.length} verified</h2>
 			<p>
-				{data.user
-					? 'Choose a routine, then upload proof from Home.'
-					: 'Sign in to save verified care.'}
+				{data.user ? 'Tap a routine below, then add proof.' : 'Sign in to save care.'}
 			</p>
 		</div>
 	</section>
@@ -93,8 +135,8 @@
 			<h2 id="care-detail-title">{selectedItem.title}</h2>
 			<p>{selectedItem.proof}</p>
 		</div>
-		<a href={resolve(`/?task=${selectedItem.id}`)}>
-			{completed.has(selectedItem.id) ? 'Upload again' : 'Upload proof'}
+		<a href={resolve(`/care-proof?task=${selectedItem.id}`)}>
+			{completed.has(selectedItem.id) ? 'Retake proof' : 'Open camera'}
 		</a>
 	</section>
 
@@ -107,17 +149,13 @@
 				onclick={() => (selectedTask = item.id)}
 			>
 				<div class="care-icon" aria-hidden="true">
-					<svg viewBox="0 0 24 24">
-						<path d="M7 12h10" />
-						<path d="m10 15 2 2 4-5" />
-						<circle cx="12" cy="12" r="9" />
-					</svg>
+					{@render careIcon(item.id)}
 				</div>
 				<div>
 					<h2>{item.title}</h2>
 					<p>{item.text}</p>
 				</div>
-				<strong>{completed.has(item.id) ? 'Done' : item.points}</strong>
+				<strong>{completed.has(item.id) ? 'Done' : (sandboxReward ?? item.points)}</strong>
 			</button>
 		{/each}
 	</section>
@@ -133,10 +171,13 @@
 	.care-hero span,
 	.care-hero p,
 	.care-item p {
+		overflow: hidden;
 		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.86rem;
 		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.care-header h1,
@@ -200,11 +241,14 @@
 	}
 
 	.care-detail p {
+		overflow: hidden;
 		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.82rem;
 		font-weight: 600;
 		line-height: 1.35;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.care-detail a {
@@ -244,14 +288,9 @@
 		background: var(--color-sage-soft);
 	}
 
-	.care-icon svg {
-		width: 22px;
-		height: 22px;
-		fill: none;
-		stroke: var(--color-charcoal);
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		stroke-width: 2;
+	.care-icon :global(svg) {
+		display: block;
+		color: var(--color-charcoal);
 	}
 
 	.care-item h2 {

@@ -12,7 +12,8 @@
 	};
 
 	let redeemedBalance = $state<number | null>(null);
-	let balance = $derived(redeemedBalance ?? data.user?.purrpoints ?? 0);
+	let sandboxMode = $derived(data.preferences.sandboxMode);
+	let balance = $derived(redeemedBalance ?? (sandboxMode ? 999999 : (data.user?.purrpoints ?? 0)));
 	let redeeming = $state<string | null>(null);
 	let message = $state('');
 	let messageOk = $state(false);
@@ -52,16 +53,21 @@
 	<section class="store-hero card bg-peach-soft/30">
 		<div class="watercolor-splotch-bg watercolor-blob-peach"></div>
 		<div class="store-hero-content">
-			<span class="store-badge">Care Rewards</span>
+			<span class="store-badge">{sandboxMode ? 'Sandbox Rewards' : 'Care Rewards'}</span>
 			<h2>Rewards Store</h2>
-			<p>Spend your hard-earned Purrpoints on vet discounts, treats, or donations.</p>
+			<p>
+				{sandboxMode ? 'Redeem freely with test points.' : 'Vet help, treats, toys, donations.'}
+			</p>
 		</div>
 	</section>
 
 	<div class="points-summary card">
 		<div class="points-info">
-			<span>Available Balance</span>
+			<span>Balance</span>
 			<h2>{balance} Purrpoints</h2>
+			{#if sandboxMode}
+				<p>Sandbox test balance</p>
+			{/if}
 		</div>
 	</div>
 
@@ -86,12 +92,12 @@
 					onclick={() => redeemReward(reward.id)}
 				>
 					{!data.user
-						? 'Sign in to Redeem'
+						? 'Sign in'
 						: balance < reward.cost
-							? 'Need More Points'
+							? 'Need points'
 							: redeeming === reward.id
 								? 'Redeeming'
-								: 'Redeem Reward'}
+								: 'Redeem'}
 				</button>
 			</div>
 		{/each}
@@ -144,10 +150,13 @@
 	}
 
 	.store-hero p {
+		overflow: hidden;
 		font-size: 0.82rem;
 		color: var(--color-muted);
 		line-height: 1.45;
 		margin: 0;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.points-summary {
@@ -168,6 +177,13 @@
 		font-weight: 700;
 		color: var(--color-ink);
 		margin: 4px 0 0;
+	}
+
+	.points-info p {
+		margin: 3px 0 0;
+		color: var(--color-muted);
+		font-size: 0.8rem;
+		font-weight: 700;
 	}
 
 	.redeem-message {
@@ -256,10 +272,13 @@
 	}
 
 	.reward-body p {
+		overflow: hidden;
 		margin: 0;
 		font-size: 0.78rem;
 		color: var(--color-muted);
 		line-height: 1.4;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.redeem-btn {

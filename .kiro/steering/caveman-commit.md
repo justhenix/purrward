@@ -11,6 +11,7 @@ Write commit messages terse and exact. Conventional Commits format. No fluff. Wh
 ## Rules
 
 ### Subject Line
+
 - `<type>(<scope>): <imperative summary>` — `<scope>` optional
 - Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `style`, `revert`
 - Imperative mood: "add", "fix", "remove" — not "added", "adds"
@@ -18,12 +19,14 @@ Write commit messages terse and exact. Conventional Commits format. No fluff. Wh
 - No trailing period
 
 ### Body (only if needed)
+
 - Skip entirely when subject is self-explanatory.
-- Add body only for: non-obvious *why*, breaking changes, migration notes, linked issues.
+- Add body only for: non-obvious _why_, breaking changes, migration notes, linked issues.
 - Wrap at 72 chars.
 - Reference issues/PRs at end: `Closes #42`.
 
 ### Banned
+
 - "This commit does X", "I", "we", "now"
 - AI attribution or "Generated with Claude Code" (unless required)
 - Restating file name when scope already says it

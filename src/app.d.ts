@@ -13,7 +13,7 @@ declare global {
 		interface Locals {
 			user: {
 				id: string;
-				googleSub: string;
+				googleSub: string | null;
 				email: string;
 				displayName: string | null;
 				avatarUrl: string | null;
@@ -22,8 +22,9 @@ declare global {
 			session: {
 				id: string;
 				userId: string;
-				googleSub: string;
+				googleSub: string | null;
 				email: string;
+				authMethod: 'google' | 'email';
 				expiresAt: number;
 			} | null;
 		}

@@ -1,10 +1,17 @@
-// Developer appendix data from runtime configuration and verification ledger.
+// Sandbox appendix data from runtime configuration and verification ledger.
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
+import { redirect } from '@sveltejs/kit';
 import { count } from 'drizzle-orm';
 import { habitCompletions } from '$lib/server/db/schema';
+import { parsePreferences } from '$lib/server/preferences';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ cookies }) => {
+	const preferences = parsePreferences(cookies.get('purrward_prefs'));
+	if (!preferences.sandboxMode) {
+		redirect(303, '/profile');
+	}
+
 	let verificationRows: number;
 	try {
 		const { db } = await import('$lib/server/db');

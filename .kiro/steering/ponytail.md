@@ -11,6 +11,7 @@ Enforce the laziest solution that actually works: simplest, shortest, most minim
 ## The Ladder
 
 Stop at the first rung that holds:
+
 1. **Does this need to exist at all?** Speculative need = skip it. (YAGNI)
 2. **Stdlib does it?** Use it.
 3. **Native platform feature covers it?** `<input type="date">` over picker, CSS over JS, DB constraint over app code.

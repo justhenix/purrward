@@ -60,6 +60,7 @@ describe('validateSession', () => {
 									userId: 'user-1',
 									googleSub: 'google-1',
 									email: 'cat@example.com',
+									authMethod: 'google',
 									expiresAt: Date.now() - 1,
 									displayName: null,
 									avatarUrl: null,
