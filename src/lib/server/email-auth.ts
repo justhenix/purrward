@@ -126,7 +126,10 @@ export async function registerEmailUser(input: {
 			createdAt: now,
 			updatedAt: now
 		});
-	} catch {
+	} catch (error) {
+		// SECURITY/observability: a swallowed insert here previously masked a schema
+		// drift (users.google_sub NOT NULL) as a generic "email taken" failure.
+		console.error('registerEmailUser: insert failed', error);
 		await input.database.delete(users).where(eq(users.id, userId));
 		return null;
 	}

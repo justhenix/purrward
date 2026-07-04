@@ -101,3 +101,5 @@ vite.config.ts.timestamp-*
 .antigravity
 .antigravity-ide
 .cagent
+_tmp
+docs
