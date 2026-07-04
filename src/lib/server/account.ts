@@ -13,6 +13,21 @@ import { hashRateKey } from './rate-limit';
 
 type Database = typeof import('./db').db;
 
+export const PARENT_NAME_MAX = 40;
+
+// Updates the account display (parent) name. Returns null when the name is invalid.
+export async function updateParentName(
+	database: Database,
+	userId: string,
+	value: unknown
+): Promise<string | null> {
+	if (typeof value !== 'string') return null;
+	const name = value.trim();
+	if (name.length < 1 || name.length > PARENT_NAME_MAX) return null;
+	await database.update(users).set({ displayName: name }).where(eq(users.id, userId));
+	return name;
+}
+
 // Deletes every row scoped to userId. Order respects FKs (children before parents).
 export async function deleteAccount(database: Database, userId: string): Promise<void> {
 	const vetLimitId = `vet_triage:${await hashRateKey(userId)}`;

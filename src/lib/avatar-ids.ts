@@ -10,13 +10,15 @@ export const CAT_AVATAR_IDS = [
 ] as const;
 
 export type CatAvatarId = (typeof CAT_AVATAR_IDS)[number];
-export type AvatarChoice = 'google' | CatAvatarId;
+// 'initial' renders a generic letter avatar; auth providers are never used as the avatar.
+export type AvatarChoice = 'initial' | CatAvatarId;
 
 export function isCatAvatarId(value: string): value is CatAvatarId {
 	return (CAT_AVATAR_IDS as readonly string[]).includes(value);
 }
 
 export function validateAvatarChoice(value: string | null | undefined): AvatarChoice {
-	if (value === 'google' || (value && isCatAvatarId(value))) return value;
-	return 'google';
+	if (value === 'initial') return 'initial';
+	if (value && isCatAvatarId(value)) return value;
+	return 'initial';
 }
