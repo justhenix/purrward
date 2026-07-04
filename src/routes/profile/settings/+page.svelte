@@ -17,6 +17,10 @@
 	let avatarChoice = $derived(data.preferences.avatarChoice);
 	// Google accounts default to their own photo; other accounts default to a letter.
 	let photoUrl = $derived(isRenderableAvatarUrl(data.user?.avatarUrl) ? data.user.avatarUrl : null);
+
+	let editingAvatar = $state(false);
+	let selectedCat = $derived(CAT_AVATARS.find((avatar) => avatar.id === avatarChoice) ?? null);
+	let currentLabel = $derived(selectedCat ? selectedCat.label : photoUrl ? 'Photo' : 'Letter');
 </script>
 
 <svelte:head>
@@ -46,35 +50,51 @@
 
 	<form class="panel" method="POST" action="?/avatar">
 		<div class="panel-heading"><h2>Profile picture</h2></div>
-		<div class="avatar-options">
-			<button
-				class={['avatar-choice', avatarChoice === 'initial' && 'active']}
-				type="submit"
-				name="avatarChoice"
-				value="initial"
-				aria-pressed={avatarChoice === 'initial'}
-			>
-				{#if photoUrl}
-					<span class="avatar-preview photo"><img src={photoUrl} alt="" /></span>
-					<span>Photo</span>
-				{:else}
-					<span class="avatar-preview letter">{initial}</span>
-					<span>Letter</span>
-				{/if}
-			</button>
-			{#each CAT_AVATARS as avatar (avatar.id)}
+		{#if !editingAvatar}
+			<div class="avatar-current">
+				<span class="avatar-preview current">
+					{#if selectedCat}
+						<img class="cat" src={selectedCat.src} alt="" />
+					{:else if photoUrl}
+						<img class="photo" src={photoUrl} alt="" />
+					{:else}
+						<span class="letter-text">{initial}</span>
+					{/if}
+				</span>
+				<span class="avatar-current-label">{currentLabel}</span>
+				<button class="change" type="button" onclick={() => (editingAvatar = true)}>Change</button>
+			</div>
+		{:else}
+			<div class="avatar-options">
 				<button
-					class={['avatar-choice', avatarChoice === avatar.id && 'active']}
+					class={['avatar-choice', avatarChoice === 'initial' && 'active']}
 					type="submit"
 					name="avatarChoice"
-					value={avatar.id}
-					aria-pressed={avatarChoice === avatar.id}
+					value="initial"
+					aria-pressed={avatarChoice === 'initial'}
 				>
-					<span class="avatar-preview cat"><img src={avatar.src} alt="" /></span>
-					<span>{avatar.label}</span>
+					{#if photoUrl}
+						<span class="avatar-preview photo"><img src={photoUrl} alt="" /></span>
+						<span>Photo</span>
+					{:else}
+						<span class="avatar-preview letter">{initial}</span>
+						<span>Letter</span>
+					{/if}
 				</button>
-			{/each}
-		</div>
+				{#each CAT_AVATARS as avatar (avatar.id)}
+					<button
+						class={['avatar-choice', avatarChoice === avatar.id && 'active']}
+						type="submit"
+						name="avatarChoice"
+						value={avatar.id}
+						aria-pressed={avatarChoice === avatar.id}
+					>
+						<span class="avatar-preview cat"><img src={avatar.src} alt="" /></span>
+						<span>{avatar.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</form>
 
 	<section class="panel">
@@ -84,12 +104,15 @@
 		</div>
 	</section>
 
-	<form method="POST" action={resolve('/auth/logout')}>
-		<button class="sign-out" type="submit">
-			<LogOut size={18} strokeWidth={2.2} aria-hidden="true" />
-			Sign out
-		</button>
-	</form>
+	<section class="panel">
+		<div class="panel-heading"><h2>Account</h2></div>
+		<form method="POST" action={resolve('/auth/logout')}>
+			<button class="sign-out" type="submit">
+				<LogOut size={18} strokeWidth={2.2} aria-hidden="true" />
+				Sign out
+			</button>
+		</form>
+	</section>
 </div>
 
 <style>
@@ -183,6 +206,56 @@
 		color: var(--color-paper-2);
 		padding: 0 22px;
 		font-size: 0.9rem;
+		font-weight: 850;
+		cursor: pointer;
+	}
+
+	.avatar-current {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.avatar-preview.current {
+		width: 54px;
+		height: 54px;
+		border-radius: 18px;
+	}
+
+	.avatar-preview.current img.cat {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		padding: 6px;
+	}
+
+	.avatar-preview.current img.photo {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.avatar-preview.current .letter-text {
+		font-size: 1.3rem;
+		font-weight: 900;
+	}
+
+	.avatar-current-label {
+		color: var(--color-ink);
+		font-size: 0.9rem;
+		font-weight: 800;
+	}
+
+	.change {
+		min-height: 40px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper);
+		color: var(--color-charcoal);
+		padding: 0 18px;
+		font: inherit;
+		font-size: 0.84rem;
 		font-weight: 850;
 		cursor: pointer;
 	}
