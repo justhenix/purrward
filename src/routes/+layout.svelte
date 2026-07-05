@@ -1,9 +1,10 @@
 <script lang="ts">
 	import './layout.css';
 	import { onMount } from 'svelte';
-	import { preloadCode, preloadData } from '$app/navigation';
+	import { preloadCode, preloadData, invalidateAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { getOfflineProofs, deleteOfflineProof } from '$lib/offline-db';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Gift from '@lucide/svelte/icons/gift';
 	import Home from '@lucide/svelte/icons/home';
@@ -44,7 +45,14 @@
 	}
 
 	onMount(() => {
-		if (hideChrome) return;
+		void syncOfflineProofs();
+		window.addEventListener('online', syncOfflineProofs);
+
+		if (hideChrome) {
+			return () => {
+				window.removeEventListener('online', syncOfflineProofs);
+			};
+		}
 
 		const timer = window.setTimeout(() => {
 			for (const route of NAV_ROUTES) {
@@ -53,7 +61,10 @@
 			}
 		}, 120);
 
-		return () => window.clearTimeout(timer);
+		return () => {
+			window.clearTimeout(timer);
+			window.removeEventListener('online', syncOfflineProofs);
+		};
 	});
 
 	$effect(() => {
@@ -82,6 +93,60 @@
 			skeletonTimer = null;
 		}
 	});
+
+	let globalToast = $state<string | null>(null);
+	let syncTimer: number | null = null;
+
+	async function syncOfflineProofs() {
+		if (typeof window === 'undefined' || !navigator.onLine) return;
+		try {
+			const proofs = await getOfflineProofs();
+			if (proofs.length === 0) return;
+
+			globalToast = 'Syncing offline care...';
+
+			let successCount = 0;
+			for (const proof of proofs) {
+				const body = new FormData();
+				body.set('taskType', proof.taskType);
+				body.set('photo', proof.photo, `${proof.taskType}-proof.jpg`);
+
+				try {
+					const response = await fetch(`/api/verify?catId=${proof.catId}`, {
+						method: 'POST',
+						body
+					});
+					if (response.ok) {
+						const json = (await response.json()) as { verified?: boolean };
+						if (json.verified) {
+							if (proof.id !== undefined) {
+								await deleteOfflineProof(proof.id);
+								successCount++;
+							}
+						}
+					}
+				} catch (err) {
+					console.error('Failed to sync offline proof:', err);
+				}
+			}
+
+			if (successCount > 0) {
+				globalToast = `Synced ${successCount} offline care tasks!`;
+				await invalidateAll();
+			} else {
+				globalToast = null;
+			}
+
+			if (syncTimer) window.clearTimeout(syncTimer);
+			syncTimer = window.setTimeout(() => {
+				globalToast = null;
+				syncTimer = null;
+			}, 3000);
+		} catch (err) {
+			console.error('Offline sync failed:', err);
+			globalToast = null;
+		}
+	}
 </script>
 
 <!-- Mobile app shell and primary navigation for Purrward. -->
@@ -316,6 +381,12 @@
 			<span>Profile</span>
 		</a>
 	</nav>
+{/if}
+
+{#if globalToast}
+	<div class="toast" role="status" aria-live="polite">
+		{globalToast}
+	</div>
 {/if}
 
 <style>
@@ -931,5 +1002,23 @@
 			border-inline: 1px solid color-mix(in srgb, var(--color-charcoal) 6%, transparent);
 			box-shadow: 0 24px 70px color-mix(in srgb, var(--color-charcoal) 12%, transparent);
 		}
+	}
+
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: calc(96px + env(safe-area-inset-bottom));
+		z-index: 60;
+		max-width: min(88vw, 340px);
+		transform: translateX(-50%);
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 10px 18px;
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-align: center;
+		box-shadow: var(--shadow-card);
 	}
 </style>

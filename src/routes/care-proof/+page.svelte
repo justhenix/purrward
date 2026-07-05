@@ -8,7 +8,7 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Send from '@lucide/svelte/icons/send';
-	import Upload from '@lucide/svelte/icons/upload';
+	import { addOfflineProof } from '$lib/offline-db';
 	import { habitSetFor, type TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
 
@@ -101,7 +101,7 @@
 	let capturedUrl = $state('');
 	let stream = $state<MediaStream | null>(null);
 	let videoElement = $state<HTMLVideoElement | null>(null);
-	let fileInput = $state<HTMLInputElement | null>(null);
+	let isOfflineDraft = $state(false);
 
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
@@ -213,41 +213,33 @@
 		await openCamera();
 	}
 
-	function openFilePicker() {
-		if (submitting || submitted) return;
-		fileInput?.click();
-	}
-
-	// Upload fallback: feeds the same proof state as the camera and submits to /api/verify.
-	function onFileSelected(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const file = input.files?.[0];
-		input.value = '';
-		if (!file) return;
-		if (file.type !== 'image/jpeg' && file.type !== 'image/png' && file.type !== 'image/webp') {
-			result = { error: 'Use a JPEG, PNG, or WebP image.' };
-			return;
-		}
-		if (file.size > 5 * 1024 * 1024) {
-			result = { error: 'Image too large. Maximum 5MB.' };
-			return;
-		}
-
-		stopCamera();
-		cameraOpen = false;
-		cameraError = '';
-		revokeCapturedUrl();
-		capturedPhoto = file;
-		capturedUrl = URL.createObjectURL(file);
-		result = null;
-		submitted = false;
-	}
+	// Upload fallback removed to prevent reward exploit. Live camera capture is required.
 
 	async function submitProof() {
 		if (!capturedPhoto || !data.user || submitting || submitted) return;
 
 		submitting = true;
 		result = null;
+
+		// Check if offline; queue in IndexedDB
+		if (typeof navigator !== 'undefined' && !navigator.onLine) {
+			try {
+				await addOfflineProof({
+					catId: data.activeCat?.id ?? 'default',
+					taskType: active.id,
+					photo: capturedPhoto,
+					timestamp: Date.now()
+				});
+				isOfflineDraft = true;
+				submitted = true;
+				result = { verified: true, reason: 'Saved offline. Will sync when online.' };
+			} catch {
+				result = { error: 'Failed to save offline proof locally.' };
+			} finally {
+				submitting = false;
+			}
+			return;
+		}
 
 		const body = new FormData();
 		body.set('taskType', active.id);
@@ -262,7 +254,20 @@
 				await invalidateAll();
 			}
 		} catch {
-			result = { error: 'Could not reach verification. Try again.' };
+			// Fallback: save to IndexedDB on network fetch errors
+			try {
+				await addOfflineProof({
+					catId: data.activeCat?.id ?? 'default',
+					taskType: active.id,
+					photo: capturedPhoto,
+					timestamp: Date.now()
+				});
+				isOfflineDraft = true;
+				submitted = true;
+				result = { verified: true, reason: 'Saved offline. Will sync when online.' };
+			} catch {
+				result = { error: 'Could not reach verification. Try again.' };
+			}
 		} finally {
 			submitting = false;
 		}
@@ -296,7 +301,7 @@
 			<span>
 				{data.preferences.sandboxMode
 					? 'Sandbox proof auto-passes for +1000 test pts.'
-					: `Capture a photo of ${catName} or upload one as proof.`}
+					: `Capture a live photo of ${catName} as care proof.`}
 			</span>
 		</div>
 	</header>
@@ -318,11 +323,7 @@
 			{:else}
 				<div class="empty-preview">
 					<Camera size={34} strokeWidth={1.9} aria-hidden="true" />
-					<p>No camera preview. You can upload a photo instead.</p>
-					<button class="empty-upload" type="button" onclick={openFilePicker}>
-						<Upload size={16} strokeWidth={2.3} aria-hidden="true" />
-						Upload photo
-					</button>
+					<p>Camera preview unavailable. Please grant camera permissions to log care.</p>
 				</div>
 			{/if}
 		</section>
@@ -335,77 +336,73 @@
 			</p>
 		{/if}
 
-		<input
-			bind:this={fileInput}
-			class="file-input"
-			type="file"
-			accept="image/jpeg,image/png,image/webp"
-			tabindex="-1"
-			aria-hidden="true"
-			onchange={onFileSelected}
-		/>
-
 		{#if submitted && result?.verified}
 			<section class="success-card" aria-label="Proof verified">
 				<span class="success-badge" aria-hidden="true">
 					<Check size={26} strokeWidth={3} />
 				</span>
-				<h2>Proof verified</h2>
-				<p class="success-points">+{result.pointsAwarded ?? active.points} Purrpoints</p>
-				<p class="success-balance">
-					{sandboxMode ? 'Sandbox balance' : 'Balance'}: {balance} pts
-				</p>
+				{#if isOfflineDraft}
+					<h2>Proof saved offline</h2>
+					<p class="success-points">Points pending sync</p>
+					<p class="success-balance">Will auto-sync when internet is restored.</p>
+				{:else}
+					<h2>Proof verified</h2>
+					<p class="success-points">+{result.pointsAwarded ?? active.points} Purrpoints</p>
+					<p class="success-balance">
+						{sandboxMode ? 'Sandbox balance' : 'Balance'}: {balance} pts
+					</p>
+				{/if}
 				<div class="success-actions">
-					<a class="success-primary" href={resolve('/rewards')}>See rewards</a>
-					<a class="success-secondary" href={resolve('/')}>Next care task</a>
+					{#if !isOfflineDraft}
+						<a class="success-primary" href={resolve('/rewards')}>See rewards</a>
+					{/if}
+					<a
+						class="success-secondary"
+						href={resolve('/')}
+						style={isOfflineDraft ? 'grid-column: 1 / -1' : undefined}>Next care task</a
+					>
 				</div>
 			</section>
 		{:else}
 			<section class="proof-actions" aria-label="Photo capture actions">
-				<button
-					class="primary-action"
-					type="button"
-					disabled={!cameraReady || submitting}
-					onclick={takePhoto}
-				>
-					<Camera size={18} strokeWidth={2.3} aria-hidden="true" />
-					Take photo
-				</button>
-				<button
-					class="secondary-action"
-					type="button"
-					disabled={submitting}
-					onclick={openFilePicker}
-				>
-					<Upload size={17} strokeWidth={2.3} aria-hidden="true" />
-					Upload
-				</button>
-				<button
-					class="secondary-action"
-					type="button"
-					disabled={!capturedPhoto || submitting}
-					onclick={retakePhoto}
-				>
-					<RotateCcw size={17} strokeWidth={2.3} aria-hidden="true" />
-					Retake
-				</button>
-				<button
-					class="submit-action"
-					type="button"
-					disabled={!capturedPhoto || submitting}
-					onclick={submitProof}
-					aria-busy={submitting}
-				>
-					{#if submitting}
-						<span class="spin" aria-hidden="true">
-							<LoaderCircle size={17} strokeWidth={2.3} />
-						</span>
-						Checking...
-					{:else}
-						<Send size={17} strokeWidth={2.3} aria-hidden="true" />
-						Submit proof
-					{/if}
-				</button>
+				{#if !capturedPhoto}
+					<button
+						class="primary-action"
+						type="button"
+						disabled={!cameraReady || submitting}
+						onclick={takePhoto}
+					>
+						<Camera size={18} strokeWidth={2.3} aria-hidden="true" />
+						Take photo
+					</button>
+				{:else}
+					<button
+						class="submit-action"
+						type="button"
+						disabled={submitting}
+						onclick={submitProof}
+						aria-busy={submitting}
+					>
+						{#if submitting}
+							<span class="spin" aria-hidden="true">
+								<LoaderCircle size={17} strokeWidth={2.3} />
+							</span>
+							Checking...
+						{:else}
+							<Send size={17} strokeWidth={2.3} aria-hidden="true" />
+							Submit proof
+						{/if}
+					</button>
+					<button
+						class="secondary-action"
+						type="button"
+						disabled={submitting}
+						onclick={retakePhoto}
+					>
+						<RotateCcw size={17} strokeWidth={2.3} aria-hidden="true" />
+						Retake
+					</button>
+				{/if}
 			</section>
 		{/if}
 	</main>
@@ -515,40 +512,9 @@
 		color: var(--color-warning-text);
 	}
 
-	.file-input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
-
-	.empty-upload {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-pill);
-		background: var(--color-paper-2);
-		color: var(--color-charcoal);
-		padding: 10px 16px;
-		font-size: 0.86rem;
-		font-weight: 800;
-		cursor: pointer;
-	}
-
 	.proof-actions {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
 		gap: 10px;
-	}
-
-	.primary-action,
-	.submit-action {
-		grid-column: 1 / -1;
 	}
 
 	.success-card {
@@ -677,9 +643,5 @@
 		}
 	}
 
-	@media (max-width: 360px) {
-		.proof-actions {
-			grid-template-columns: 1fr;
-		}
-	}
+	/* Single column proof action layout is responsive by default */
 </style>
