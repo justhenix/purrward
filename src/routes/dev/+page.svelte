@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -11,6 +13,17 @@
 </svelte:head>
 
 <div class="dev-mode-page">
+	<header class="dev-header">
+		<a
+			class="back-button"
+			href={resolve('/profile/developer')}
+			aria-label="Back to developer tools"
+		>
+			<ChevronLeft size={22} strokeWidth={2.3} aria-hidden="true" />
+		</a>
+		<h1>Dev Mode</h1>
+	</header>
+
 	<section class="dev-hero card bg-butter/20">
 		<div class="watercolor-splotch-bg watercolor-blob-butter"></div>
 		<div class="dev-hero-content">
@@ -73,6 +86,32 @@
 	.dev-mode-page {
 		display: grid;
 		gap: 20px;
+	}
+
+	.dev-header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding-top: 4px;
+	}
+
+	.back-button {
+		display: grid;
+		width: 46px;
+		height: 46px;
+		flex: 0 0 auto;
+		place-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 50%;
+		background: var(--color-paper-2);
+		color: var(--color-charcoal);
+		box-shadow: var(--shadow-card);
+	}
+
+	.dev-header h1 {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: 1.5rem;
 	}
 
 	.card {

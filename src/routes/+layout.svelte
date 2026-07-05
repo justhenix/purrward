@@ -127,7 +127,10 @@
 		data-sveltekit-preload-data="tap"
 	>
 		<a
-			aria-current={page.url.pathname === '/' ? 'page' : undefined}
+			aria-current={page.url.pathname === '/' ||
+			(page.url.pathname.startsWith('/care') && !page.url.pathname.startsWith('/care-proof'))
+				? 'page'
+				: undefined}
 			href={resolve('/')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/'))}
@@ -172,7 +175,10 @@
 			<span>Vet</span>
 		</a>
 		<a
-			aria-current={page.url.pathname.startsWith('/profile') ? 'page' : undefined}
+			aria-current={page.url.pathname.startsWith('/profile') ||
+			page.url.pathname.startsWith('/cats')
+				? 'page'
+				: undefined}
 			href={resolve('/profile')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/profile'))}

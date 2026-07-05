@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Brush from '@lucide/svelte/icons/brush';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Droplet from '@lucide/svelte/icons/droplet';
 	import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
 	import Pill from '@lucide/svelte/icons/pill';
@@ -115,8 +116,13 @@
 
 <div class="care-screen">
 	<header class="care-header">
-		<p>Daily routines</p>
-		<h1>Care</h1>
+		<a class="back-button" href={resolve('/')} aria-label="Back to home">
+			<ChevronLeft size={22} strokeWidth={2.3} aria-hidden="true" />
+		</a>
+		<div>
+			<p>Daily routines</p>
+			<h1>Care</h1>
+		</div>
 	</header>
 
 	<section class="care-hero">
@@ -165,6 +171,26 @@
 	.care-screen {
 		display: grid;
 		gap: 18px;
+	}
+
+	.care-header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding-top: 4px;
+	}
+
+	.back-button {
+		display: grid;
+		width: 46px;
+		height: 46px;
+		flex: 0 0 auto;
+		place-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 50%;
+		background: var(--color-paper-2);
+		color: var(--color-charcoal);
+		box-shadow: var(--shadow-card);
 	}
 
 	.care-header p,
