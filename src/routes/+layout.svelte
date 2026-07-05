@@ -99,22 +99,149 @@
 	</main>
 	{#if showSkeleton}
 		<div class="route-skeleton" aria-hidden="true">
-			<div class="skeleton-top">
-				<span class="skeleton-line short"></span>
-				<span class="skeleton-avatar"></span>
-			</div>
-			<div class="skeleton-hero">
-				<span class="skeleton-cat"></span>
-				<span class="skeleton-line title"></span>
-				<span class="skeleton-line medium"></span>
-				<span class="skeleton-button"></span>
-			</div>
-			<div class="skeleton-list">
-				<span class="skeleton-line medium"></span>
-				<span class="skeleton-row"></span>
-				<span class="skeleton-row"></span>
-				<span class="skeleton-row"></span>
-			</div>
+			{#if pendingPath === '/' || !pendingPath}
+				<div class="skeleton-top">
+					<span class="skeleton-line short"></span>
+					<span class="skeleton-avatar"></span>
+				</div>
+				<div class="skeleton-hero">
+					<span class="skeleton-cat"></span>
+					<span class="skeleton-line title"></span>
+					<span class="skeleton-line medium"></span>
+					<span class="skeleton-button"></span>
+				</div>
+				<div class="skeleton-list">
+					<span class="skeleton-line medium"></span>
+					<span class="skeleton-row"></span>
+					<span class="skeleton-row"></span>
+					<span class="skeleton-row"></span>
+				</div>
+			{:else if pendingPath.startsWith('/rewards')}
+				<div class="skeleton-store-head">
+					<span class="skeleton-line short"></span>
+					<span class="skeleton-line title"></span>
+				</div>
+				<div class="skeleton-chips">
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+				</div>
+				<div class="skeleton-rewards-grid">
+					{#each [0, 1, 2, 3] as i (i)}
+						<div class="skeleton-reward-card">
+							<span class="skeleton-icon-square"></span>
+							<div class="skeleton-card-body">
+								<span class="skeleton-line medium"></span>
+								<span class="skeleton-line short"></span>
+								<span class="skeleton-line tiny"></span>
+							</div>
+							<span class="skeleton-button-small"></span>
+						</div>
+					{/each}
+				</div>
+			{:else if pendingPath.startsWith('/vet')}
+				<div class="skeleton-vet-header">
+					<div class="skeleton-title-block">
+						<span class="skeleton-line title"></span>
+						<span class="skeleton-line short"></span>
+					</div>
+					<div class="skeleton-vet-actions">
+						<span class="skeleton-btn-circle"></span>
+						<span class="skeleton-btn-circle"></span>
+						<span class="skeleton-btn-circle"></span>
+					</div>
+				</div>
+				<div class="skeleton-mode-switch">
+					<span class="skeleton-switch-tab"></span>
+					<span class="skeleton-switch-tab"></span>
+				</div>
+				<div class="skeleton-vet-conversation">
+					<div class="skeleton-vet-onboarding">
+						<span class="skeleton-onboarding-mark"></span>
+						<span class="skeleton-line title"></span>
+						<span class="skeleton-line medium"></span>
+					</div>
+				</div>
+				<div class="skeleton-vet-suggestions">
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+					<span class="skeleton-chip"></span>
+				</div>
+				<div class="skeleton-vet-composer"></div>
+			{:else if pendingPath.startsWith('/profile')}
+				<div class="skeleton-profile-header">
+					<span class="skeleton-line title"></span>
+					<span class="skeleton-avatar"></span>
+				</div>
+				<div class="skeleton-profile-cat-card">
+					<span class="skeleton-avatar-large"></span>
+					<div class="skeleton-card-body">
+						<span class="skeleton-line short"></span>
+						<span class="skeleton-line medium"></span>
+					</div>
+				</div>
+				<div class="skeleton-profile-section-label"></div>
+				<div class="skeleton-profile-manage">
+					<span class="skeleton-profile-row"></span>
+					<span class="skeleton-profile-row"></span>
+					<span class="skeleton-profile-row"></span>
+					<span class="skeleton-profile-row"></span>
+					<span class="skeleton-profile-row"></span>
+				</div>
+			{:else if pendingPath.startsWith('/care-proof')}
+				<div class="skeleton-proof-top">
+					<span class="skeleton-btn-circle"></span>
+					<div class="skeleton-proof-title">
+						<span class="skeleton-line short"></span>
+						<span class="skeleton-line title"></span>
+						<span class="skeleton-line medium"></span>
+					</div>
+				</div>
+				<div class="skeleton-proof-preview"></div>
+				<div class="skeleton-proof-status"></div>
+				<div class="skeleton-proof-actions">
+					<span class="skeleton-button"></span>
+					<span class="skeleton-button"></span>
+				</div>
+			{:else if pendingPath.startsWith('/care') || pendingPath.startsWith('/cats')}
+				<div class="skeleton-care-header">
+					<span class="skeleton-btn-circle"></span>
+					<div class="skeleton-care-title">
+						<span class="skeleton-line short"></span>
+						<span class="skeleton-line title"></span>
+					</div>
+				</div>
+				<div class="skeleton-care-hero">
+					<span class="skeleton-line short"></span>
+					<span class="skeleton-line title"></span>
+					<span class="skeleton-line medium"></span>
+				</div>
+				<div class="skeleton-care-detail"></div>
+				<div class="skeleton-care-list">
+					<span class="skeleton-care-row"></span>
+					<span class="skeleton-care-row"></span>
+					<span class="skeleton-care-row"></span>
+					<span class="skeleton-care-row"></span>
+					<span class="skeleton-care-row"></span>
+				</div>
+			{:else}
+				<div class="skeleton-top">
+					<span class="skeleton-line short"></span>
+					<span class="skeleton-avatar"></span>
+				</div>
+				<div class="skeleton-hero">
+					<span class="skeleton-line title"></span>
+					<span class="skeleton-line medium"></span>
+				</div>
+				<div class="skeleton-list">
+					<span class="skeleton-row"></span>
+					<span class="skeleton-row"></span>
+					<span class="skeleton-row"></span>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -278,7 +405,17 @@
 	.skeleton-avatar,
 	.skeleton-cat,
 	.skeleton-button,
-	.skeleton-row {
+	.skeleton-row,
+	.skeleton-chip,
+	.skeleton-icon-square,
+	.skeleton-btn-circle,
+	.skeleton-avatar-large,
+	.skeleton-profile-row,
+	.skeleton-care-row,
+	.skeleton-proof-preview,
+	.skeleton-proof-status,
+	.skeleton-onboarding-mark,
+	.skeleton-button-small {
 		position: relative;
 		overflow: hidden;
 		background: color-mix(in srgb, var(--color-line) 58%, var(--color-paper-2));
@@ -288,7 +425,17 @@
 	.skeleton-avatar::after,
 	.skeleton-cat::after,
 	.skeleton-button::after,
-	.skeleton-row::after {
+	.skeleton-row::after,
+	.skeleton-chip::after,
+	.skeleton-icon-square::after,
+	.skeleton-btn-circle::after,
+	.skeleton-avatar-large::after,
+	.skeleton-profile-row::after,
+	.skeleton-care-row::after,
+	.skeleton-proof-preview::after,
+	.skeleton-proof-status::after,
+	.skeleton-onboarding-mark::after,
+	.skeleton-button-small::after {
 		position: absolute;
 		inset: 0;
 		background: linear-gradient(
@@ -323,6 +470,11 @@
 		width: 54%;
 	}
 
+	.skeleton-line.tiny {
+		width: 34%;
+		height: 10px;
+	}
+
 	.skeleton-avatar {
 		width: 50px;
 		height: 50px;
@@ -348,6 +500,264 @@
 	.skeleton-row {
 		height: 48px;
 		border-radius: 18px;
+	}
+
+	/* Store (Rewards) Skeleton */
+	.skeleton-store-head {
+		display: grid;
+		gap: 6px;
+		padding-top: 4px;
+	}
+
+	.skeleton-chips {
+		display: flex;
+		gap: 8px;
+		overflow-x: hidden;
+		padding-bottom: 2px;
+	}
+
+	.skeleton-chip {
+		flex: none;
+		width: 68px;
+		height: 34px;
+		border-radius: var(--radius-pill);
+	}
+
+	.skeleton-rewards-grid {
+		display: grid;
+		gap: 12px;
+	}
+
+	.skeleton-reward-card {
+		display: grid;
+		grid-template-columns: 48px 1fr auto;
+		gap: 14px;
+		align-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 24px;
+		background: var(--color-paper-2);
+		padding: 16px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-icon-square {
+		width: 48px;
+		height: 48px;
+		border-radius: 16px;
+	}
+
+	.skeleton-card-body {
+		display: grid;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	.skeleton-button-small {
+		width: 82px;
+		height: 36px;
+		border-radius: var(--radius-pill);
+	}
+
+	/* Vet Skeleton */
+	.skeleton-vet-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 12px;
+		padding-top: 4px;
+	}
+
+	.skeleton-title-block {
+		display: grid;
+		gap: 4px;
+		width: 180px;
+	}
+
+	.skeleton-vet-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.skeleton-btn-circle {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+	}
+
+	.skeleton-mode-switch {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+		border: 1px solid rgba(36, 38, 38, 0.08);
+		border-radius: 24px;
+		background: var(--color-paper-3);
+		padding: 5px;
+	}
+
+	.skeleton-switch-tab {
+		height: 36px;
+		border-radius: 19px;
+	}
+
+	.skeleton-vet-conversation {
+		flex: 1;
+		min-height: 280px;
+		display: grid;
+		place-items: center;
+	}
+
+	.skeleton-vet-onboarding {
+		display: grid;
+		justify-items: center;
+		gap: 12px;
+		text-align: center;
+	}
+
+	.skeleton-onboarding-mark {
+		width: 64px;
+		height: 64px;
+		border-radius: 24px;
+	}
+
+	.skeleton-vet-suggestions {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.skeleton-vet-composer {
+		height: 48px;
+		border-radius: var(--radius-pill);
+		background: color-mix(in srgb, var(--color-charcoal) 6%, var(--color-paper-2));
+		border: 1px solid var(--color-line);
+	}
+
+	/* Profile Skeleton */
+	.skeleton-profile-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding-top: 4px;
+	}
+
+	.skeleton-profile-cat-card {
+		display: grid;
+		grid-template-columns: 52px 1fr auto;
+		gap: 12px;
+		align-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 22px;
+		background: var(--color-paper-2);
+		padding: 16px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-avatar-large {
+		width: 52px;
+		height: 52px;
+		border-radius: 16px;
+	}
+
+	.skeleton-profile-section-label {
+		width: 64px;
+		height: 12px;
+		margin: 6px 0 -4px 4px;
+		border-radius: var(--radius-pill);
+	}
+
+	.skeleton-profile-manage {
+		display: grid;
+		border: 1px solid var(--color-line);
+		border-radius: 24px;
+		background: var(--color-paper-2);
+		overflow: hidden;
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-profile-row {
+		height: 54px;
+		border-bottom: 1px solid var(--color-line);
+	}
+
+	.skeleton-profile-row:last-child {
+		border-bottom: 0;
+	}
+
+	/* Care List Skeleton */
+	.skeleton-care-header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding-top: 4px;
+	}
+
+	.skeleton-care-title {
+		display: grid;
+		gap: 4px;
+		width: 160px;
+	}
+
+	.skeleton-care-hero {
+		border: 1px solid var(--color-line);
+		border-radius: 32px;
+		background: var(--color-paper-2);
+		padding: 22px;
+		display: grid;
+		gap: 8px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-care-detail {
+		height: 82px;
+		border: 1px solid var(--color-line);
+		border-radius: 28px;
+		background: var(--color-paper-2);
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-care-list {
+		display: grid;
+		gap: 10px;
+	}
+
+	.skeleton-care-row {
+		height: 76px;
+		border-radius: 24px;
+		border: 1px solid var(--color-line);
+	}
+
+	/* Care Proof Skeleton */
+	.skeleton-proof-top {
+		display: grid;
+		grid-template-columns: 42px 1fr;
+		gap: 12px;
+		align-items: start;
+	}
+
+	.skeleton-proof-title {
+		display: grid;
+		gap: 4px;
+	}
+
+	.skeleton-proof-preview {
+		width: 100%;
+		aspect-ratio: 3 / 4;
+		max-height: 440px;
+		border: 1px solid var(--color-line);
+		border-radius: 32px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.skeleton-proof-status {
+		height: 46px;
+		border-radius: 20px;
+	}
+
+	.skeleton-proof-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
 	}
 
 	.bottom-nav {
