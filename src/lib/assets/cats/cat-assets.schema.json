@@ -1,0 +1,67 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "Purrward cat asset manifest",
+	"type": "object",
+	"required": [
+		"version",
+		"generatedAt",
+		"sourceDir",
+		"supportedPoses",
+		"layerOrder",
+		"layers",
+		"defaultVariant"
+	],
+	"additionalProperties": false,
+	"properties": {
+		"version": { "const": 1 },
+		"generatedAt": { "type": "string", "format": "date-time" },
+		"sourceDir": { "const": "src/lib/assets/cats" },
+		"supportedPoses": {
+			"type": "array",
+			"items": { "const": "sit" },
+			"minItems": 1,
+			"maxItems": 1
+		},
+		"layerOrder": {
+			"type": "array",
+			"items": { "enum": ["paint_splash", "body", "expression", "accessory", "misc"] },
+			"minItems": 5,
+			"maxItems": 5
+		},
+		"layers": {
+			"type": "object",
+			"required": [
+				"paint_splash",
+				"body",
+				"expression",
+				"accessory",
+				"misc",
+				"fallback",
+				"unclassified"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"paint_splash": { "type": "array" },
+				"body": { "type": "array" },
+				"expression": { "type": "array" },
+				"accessory": { "type": "array" },
+				"misc": { "type": "array" },
+				"fallback": { "type": "array" },
+				"unclassified": { "type": "array" }
+			}
+		},
+		"defaultVariant": {
+			"type": "object",
+			"required": ["pose", "body", "expression", "accessory", "paint_splash", "misc"],
+			"additionalProperties": false,
+			"properties": {
+				"pose": { "const": "sit" },
+				"body": { "type": "string" },
+				"expression": { "type": "string" },
+				"accessory": { "type": ["string", "null"] },
+				"paint_splash": { "type": ["string", "null"] },
+				"misc": { "type": ["string", "null"] }
+			}
+		}
+	}
+}

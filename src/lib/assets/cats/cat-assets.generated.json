@@ -1,0 +1,448 @@
+{
+	"version": 1,
+	"generatedAt": "2026-07-05T23:49:51.818Z",
+	"sourceDir": "src/lib/assets/cats",
+	"supportedPoses": ["sit"],
+	"layerOrder": ["paint_splash", "body", "expression", "accessory", "misc"],
+	"layers": {
+		"body": [
+			{
+				"id": "black_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Black",
+				"filename": "black_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/black_sit.webp",
+				"uiSrcKey": "cats_types/black_sit.webp",
+				"tags": ["black", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "calico_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Calico",
+				"filename": "calico_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/calico_sit.webp",
+				"uiSrcKey": "cats_types/calico_sit.webp",
+				"tags": ["calico", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "grey_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Grey",
+				"filename": "grey_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/grey_sit.webp",
+				"uiSrcKey": "cats_types/grey_sit.webp",
+				"tags": ["grey", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "orange_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Orange",
+				"filename": "orange_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/orange_sit.webp",
+				"uiSrcKey": "cats_types/orange_sit.webp",
+				"tags": ["orange", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "siamese_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Siamese",
+				"filename": "siamese_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/siamese_sit.webp",
+				"uiSrcKey": "cats_types/siamese_sit.webp",
+				"tags": ["siamese", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "tabby_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Tabby",
+				"filename": "tabby_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/tabby_sit.webp",
+				"uiSrcKey": "cats_types/tabby_sit.webp",
+				"tags": ["tabby", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "tuxedo_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "Tuxedo",
+				"filename": "tuxedo_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/tuxedo_sit.webp",
+				"uiSrcKey": "cats_types/tuxedo_sit.webp",
+				"tags": ["tuxedo", "sit", "body"],
+				"zIndex": 20
+			},
+			{
+				"id": "white_sit",
+				"kind": "body",
+				"pose": "sit",
+				"name": "White",
+				"filename": "white_sit.webp",
+				"path": "src/lib/assets/cats/cats_types/white_sit.webp",
+				"uiSrcKey": "cats_types/white_sit.webp",
+				"tags": ["white", "sit", "body"],
+				"zIndex": 20
+			}
+		],
+		"expression": [
+			{
+				"id": "happy",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Happy",
+				"filename": "happy.webp",
+				"path": "src/lib/assets/cats/expressions/happy.webp",
+				"uiSrcKey": "expressions/happy.webp",
+				"tags": ["happy", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "normal_blue",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Normal Blue",
+				"filename": "normal_blue.webp",
+				"path": "src/lib/assets/cats/expressions/normal_blue.webp",
+				"uiSrcKey": "expressions/normal_blue.webp",
+				"tags": ["normal", "blue", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "normal_green",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Normal Green",
+				"filename": "normal_green.webp",
+				"path": "src/lib/assets/cats/expressions/normal_green.webp",
+				"uiSrcKey": "expressions/normal_green.webp",
+				"tags": ["normal", "green", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "normal_orange",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Normal Orange",
+				"filename": "normal_orange.webp",
+				"path": "src/lib/assets/cats/expressions/normal_orange.webp",
+				"uiSrcKey": "expressions/normal_orange.webp",
+				"tags": ["normal", "orange", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "sad_blue",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Sad Blue",
+				"filename": "sad_blue.webp",
+				"path": "src/lib/assets/cats/expressions/sad_blue.webp",
+				"uiSrcKey": "expressions/sad_blue.webp",
+				"tags": ["sad", "blue", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "sad_green",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Sad Green",
+				"filename": "sad_green.webp",
+				"path": "src/lib/assets/cats/expressions/sad_green.webp",
+				"uiSrcKey": "expressions/sad_green.webp",
+				"tags": ["sad", "green", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "sad_orange",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Sad Orange",
+				"filename": "sad_orange.webp",
+				"path": "src/lib/assets/cats/expressions/sad_orange.webp",
+				"uiSrcKey": "expressions/sad_orange.webp",
+				"tags": ["sad", "orange", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "sleep",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Sleep",
+				"filename": "sleep.webp",
+				"path": "src/lib/assets/cats/expressions/sleep.webp",
+				"uiSrcKey": "expressions/sleep.webp",
+				"tags": ["sleep", "expression"],
+				"zIndex": 30
+			}
+		],
+		"accessory": [
+			{
+				"id": "bandana",
+				"kind": "accessory",
+				"pose": "sit",
+				"name": "Bandana",
+				"filename": "bandana.webp",
+				"path": "src/lib/assets/cats/accessories/bandana.webp",
+				"uiSrcKey": "accessories/bandana.webp",
+				"tags": ["bandana", "accessory"],
+				"zIndex": 40
+			},
+			{
+				"id": "bucket_hat",
+				"kind": "accessory",
+				"pose": "sit",
+				"name": "Bucket Hat",
+				"filename": "bucket_hat.webp",
+				"path": "src/lib/assets/cats/accessories/bucket_hat.webp",
+				"uiSrcKey": "accessories/bucket_hat.webp",
+				"tags": ["bucket", "hat", "accessory"],
+				"zIndex": 40
+			},
+			{
+				"id": "flower_corn",
+				"kind": "accessory",
+				"pose": "sit",
+				"name": "Flower Corn",
+				"filename": "flower_corn.webp",
+				"path": "src/lib/assets/cats/accessories/flower_corn.webp",
+				"uiSrcKey": "accessories/flower_corn.webp",
+				"tags": ["flower", "corn", "accessory", "possible-typo"],
+				"zIndex": 40
+			},
+			{
+				"id": "nerd_glasses",
+				"kind": "accessory",
+				"pose": "sit",
+				"name": "Nerd Glasses",
+				"filename": "nerd_glasses.webp",
+				"path": "src/lib/assets/cats/accessories/nerd_glasses.webp",
+				"uiSrcKey": "accessories/nerd_glasses.webp",
+				"tags": ["nerd", "glasses", "accessory"],
+				"zIndex": 40
+			},
+			{
+				"id": "sun_glasses",
+				"kind": "accessory",
+				"pose": "sit",
+				"name": "Sun Glasses",
+				"filename": "sun_glasses.webp",
+				"path": "src/lib/assets/cats/accessories/sun_glasses.webp",
+				"uiSrcKey": "accessories/sun_glasses.webp",
+				"tags": ["sun", "glasses", "accessory"],
+				"zIndex": 40
+			}
+		],
+		"paint_splash": [
+			{
+				"id": "blue_splash",
+				"kind": "paint_splash",
+				"pose": "sit",
+				"name": "Blue Splash",
+				"filename": "blue_splash.webp",
+				"path": "src/lib/assets/cats/paint_splash/blue_splash.webp",
+				"uiSrcKey": "paint_splash/blue_splash.webp",
+				"tags": ["blue", "splash", "paint_splash"],
+				"zIndex": 0
+			},
+			{
+				"id": "pink_splash",
+				"kind": "paint_splash",
+				"pose": "sit",
+				"name": "Pink Splash",
+				"filename": "pink_splash.webp",
+				"path": "src/lib/assets/cats/paint_splash/pink_splash.webp",
+				"uiSrcKey": "paint_splash/pink_splash.webp",
+				"tags": ["pink", "splash", "paint_splash"],
+				"zIndex": 0
+			},
+			{
+				"id": "yellow_splash",
+				"kind": "paint_splash",
+				"pose": "sit",
+				"name": "Yellow Splash",
+				"filename": "yellow_splash.webp",
+				"path": "src/lib/assets/cats/paint_splash/yellow_splash.webp",
+				"uiSrcKey": "paint_splash/yellow_splash.webp",
+				"tags": ["yellow", "splash", "paint_splash"],
+				"zIndex": 0
+			}
+		],
+		"misc": [
+			{
+				"id": "gacha_jar",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Gacha Jar",
+				"filename": "gacha_jar.webp",
+				"path": "src/lib/assets/cats/misc/gacha_jar.webp",
+				"uiSrcKey": "misc/gacha_jar.webp",
+				"tags": ["gacha", "jar", "misc"],
+				"zIndex": 50
+			},
+			{
+				"id": "guide_happy",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Guide Happy",
+				"filename": "guide_happy.webp",
+				"path": "src/lib/assets/cats/zzz_guide/guide_happy.webp",
+				"uiSrcKey": "zzz_guide/guide_happy.webp",
+				"tags": ["guide", "happy", "misc"],
+				"zIndex": 50
+			},
+			{
+				"id": "guide_normal",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Guide Normal",
+				"filename": "guide_normal.webp",
+				"path": "src/lib/assets/cats/zzz_guide/guide_normal.webp",
+				"uiSrcKey": "zzz_guide/guide_normal.webp",
+				"tags": ["guide", "normal", "misc"],
+				"zIndex": 50
+			},
+			{
+				"id": "guide_sad",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Guide Sad",
+				"filename": "guide_sad.webp",
+				"path": "src/lib/assets/cats/zzz_guide/guide_sad.webp",
+				"uiSrcKey": "zzz_guide/guide_sad.webp",
+				"tags": ["guide", "sad", "misc"],
+				"zIndex": 50
+			},
+			{
+				"id": "guide_sleepy",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Guide Sleepy",
+				"filename": "guide_sleepy.webp",
+				"path": "src/lib/assets/cats/zzz_guide/guide_sleepy.webp",
+				"uiSrcKey": "zzz_guide/guide_sleepy.webp",
+				"tags": ["guide", "sleepy", "misc"],
+				"zIndex": 50
+			},
+			{
+				"id": "polaroid",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Polaroid",
+				"filename": "polaroid.webp",
+				"path": "src/lib/assets/cats/misc/polaroid.webp",
+				"uiSrcKey": "misc/polaroid.webp",
+				"tags": ["polaroid", "misc"],
+				"zIndex": 50
+			}
+		],
+		"fallback": [
+			{
+				"id": "fallback_black_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Black",
+				"filename": "black_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/black_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/black_sit.webp",
+				"tags": ["black", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_calico_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Calico",
+				"filename": "calico_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/calico_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/calico_sit.webp",
+				"tags": ["calico", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_grey_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Grey",
+				"filename": "grey_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/grey_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/grey_sit.webp",
+				"tags": ["grey", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_orange_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Orange",
+				"filename": "orange_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/orange_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/orange_sit.webp",
+				"tags": ["orange", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_siamese_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Siamese",
+				"filename": "siamese_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/siamese_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/siamese_sit.webp",
+				"tags": ["siamese", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_tabby_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Tabby",
+				"filename": "tabby_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/tabby_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/tabby_sit.webp",
+				"tags": ["tabby", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_tuxedo_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback Tuxedo",
+				"filename": "tuxedo_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/tuxedo_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/tuxedo_sit.webp",
+				"tags": ["tuxedo", "sit", "fallback"],
+				"zIndex": 100
+			},
+			{
+				"id": "fallback_white_sit",
+				"kind": "fallback",
+				"pose": "sit",
+				"name": "Fallback White",
+				"filename": "white_sit.webp",
+				"path": "src/lib/assets/cats/sit_pfp_or_fallback/white_sit.webp",
+				"uiSrcKey": "sit_pfp_or_fallback/white_sit.webp",
+				"tags": ["white", "sit", "fallback"],
+				"zIndex": 100
+			}
+		],
+		"unclassified": []
+	},
+	"defaultVariant": {
+		"pose": "sit",
+		"body": "orange_sit",
+		"expression": "normal_orange",
+		"accessory": null,
+		"paint_splash": null,
+		"misc": null
+	}
+}

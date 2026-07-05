@@ -1,11 +1,11 @@
 // Maps local avatar ids to selector previews and display artwork.
-import calicoCat from '$lib/assets/cats/sit/calico_sit.webp';
-import greyCat from '$lib/assets/cats/sit/grey_sit.webp';
-import orangeCat from '$lib/assets/cats/sit/orange_sit.webp';
-import siameseCat from '$lib/assets/cats/sit/siamese_sit.webp';
-import tabbyCat from '$lib/assets/cats/sit/tabby_sit.webp';
-import tuxedoCat from '$lib/assets/cats/sit/tuxedo_sit.webp';
-import whiteCat from '$lib/assets/cats/sit/white_sit.webp';
+import calicoCat from '$lib/assets/cats/sit_pfp_or_fallback/calico_sit.webp';
+import greyCat from '$lib/assets/cats/sit_pfp_or_fallback/grey_sit.webp';
+import orangeCat from '$lib/assets/cats/sit_pfp_or_fallback/orange_sit.webp';
+import siameseCat from '$lib/assets/cats/sit_pfp_or_fallback/siamese_sit.webp';
+import tabbyCat from '$lib/assets/cats/sit_pfp_or_fallback/tabby_sit.webp';
+import tuxedoCat from '$lib/assets/cats/sit_pfp_or_fallback/tuxedo_sit.webp';
+import whiteCat from '$lib/assets/cats/sit_pfp_or_fallback/white_sit.webp';
 import type { CatAvatarId } from '$lib/avatar-ids';
 import { isCatAvatarId } from '$lib/avatar-ids';
 
