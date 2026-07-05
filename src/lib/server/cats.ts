@@ -28,6 +28,13 @@ export type CatResult<T> =
 	| { ok: true; value: T }
 	| { ok: false; status: number; error: string; field?: CatField };
 
+// Per-cat equip state (T4). Null accessory = none; null background reads as the default at render time.
+export type EquipState = {
+	catId: string;
+	equippedAccessoryId: string | null;
+	backgroundId: string | null;
+};
+
 function isCareMode(value: unknown): value is CareMode {
 	return value === 'owned' || value === 'community';
 }
@@ -225,6 +232,31 @@ export async function setActiveCat(
 	if (!owned) return { ok: false, status: 403, error: 'This cat is not available.' };
 	await database.update(users).set({ activeCatId: catId }).where(eq(users.id, userId));
 	return { ok: true, value: { activeCatId: catId } };
+}
+
+// SECURITY: owner-scoped equip write (T4). The userId predicate means a foreign cat is never updated.
+export async function applyCatEquip(
+	database: Database,
+	userId: string,
+	catId: string,
+	patch: { equippedAccessoryId?: string | null; backgroundId?: string | null }
+): Promise<EquipState> {
+	await database
+		.update(cats)
+		.set(patch)
+		.where(and(eq(cats.id, catId), eq(cats.userId, userId)));
+
+	const rows = await database
+		.select({ equippedAccessoryId: cats.equippedAccessoryId, backgroundId: cats.backgroundId })
+		.from(cats)
+		.where(and(eq(cats.id, catId), eq(cats.userId, userId)))
+		.limit(1);
+
+	return {
+		catId,
+		equippedAccessoryId: rows[0]?.equippedAccessoryId ?? null,
+		backgroundId: rows[0]?.backgroundId ?? null
+	};
 }
 
 export async function getActiveCat(database: Database, userId: string): Promise<CatProfile | null> {
