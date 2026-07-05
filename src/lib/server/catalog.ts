@@ -114,3 +114,8 @@ export function isBackgroundId(id: unknown): boolean {
 export function isGachaEligible(id: unknown): boolean {
 	return findItem(id)?.gacha === true;
 }
+
+// Redeemable kinds produce a code and a reward_redemptions row (T2), never an owned item.
+export function isRedeemableKind(kind: ItemKind): boolean {
+	return kind === 'coupon' || kind === 'vet' || kind === 'donation';
+}
