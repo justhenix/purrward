@@ -119,3 +119,6 @@ export function isGachaEligible(id: unknown): boolean {
 export function isRedeemableKind(kind: ItemKind): boolean {
 	return kind === 'coupon' || kind === 'vet' || kind === 'donation';
 }
+
+// The gacha pull pool (T3): every gacha-eligible catalog item.
+export const GACHA_POOL: CatalogItem[] = CATALOG.filter((item) => item.gacha === true);
