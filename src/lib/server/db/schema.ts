@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const task = sqliteTable('task', {
 	id: text('id')
@@ -34,12 +34,65 @@ export const cats = sqliteTable(
 		careMode: text('care_mode').notNull(), // 'owned' | 'community'
 		avatarId: text('avatar_id').notNull(),
 		purrpoints: integer('purrpoints').notNull().default(0), // per-cat attribution
+		// Per-cat equip pointers. Null accessory = none; null background reads as 'bg_home'.
+		equippedAccessoryId: text('equipped_accessory_id'),
+		backgroundId: text('background_id'),
 		createdAt: integer('created_at').notNull()
 	},
 	(table) => [
 		index('cats_user_idx').on(table.userId),
 		index('cats_user_created_idx').on(table.userId, table.createdAt)
 	]
+);
+
+// ---------------------------------------------------------------------------
+// Reward-economy roadmap tickets (shorthand used across the economy code):
+//   T1 — economy schema + unified catalog + allowlists.  ← DONE (tables below + catalog.ts)
+//   T2 — persist redemptions to reward_redemptions + rate-limit the redeem endpoint.
+//   T3 — gacha pull endpoint: spend points, grant an unowned item into user_inventory.
+//   T4 — inventory + equip endpoint: equip an owned item onto a specific cat.
+// The two tables below plus the cats equip fields are the T1 foundation T2–T4 build on.
+// ---------------------------------------------------------------------------
+
+// Account-wide item ownership: a user owns each catalog item id at most once.
+export const userInventory = sqliteTable(
+	'user_inventory',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		itemId: text('item_id').notNull(), // allowlisted catalog id (accessory/background)
+		kind: text('kind').notNull(), // 'accessory' | 'background'
+		source: text('source').notNull(), // 'gacha' | 'purchase'
+		acquiredAt: integer('acquired_at').notNull()
+	},
+	(table) => [
+		// SECURITY: enforces single ownership per item and doubles as the duplicate-gacha guard.
+		uniqueIndex('user_inventory_user_item_idx').on(table.userId, table.itemId),
+		index('user_inventory_user_idx').on(table.userId)
+	]
+);
+
+// Redeemed coupons/vet/donations that produce a server-owned code (not owned items).
+export const rewardRedemptions = sqliteTable(
+	'reward_redemptions',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		rewardId: text('reward_id').notNull(), // allowlisted catalog id
+		code: text('code').notNull().unique(), // SECURITY: server-generated, unpredictable
+		cost: integer('cost').notNull(), // point cost captured at redemption time
+		status: text('status').notNull().default('active'), // room for P1 expiry/used states
+		createdAt: integer('created_at').notNull()
+	},
+	(table) => [index('reward_redemptions_user_idx').on(table.userId)]
 );
 
 export const sessions = sqliteTable('sessions', {

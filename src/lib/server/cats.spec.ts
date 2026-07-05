@@ -57,6 +57,8 @@ beforeEach(async () => {
 				care_mode text NOT NULL,
 				avatar_id text NOT NULL,
 				purrpoints integer DEFAULT 0 NOT NULL,
+				equipped_accessory_id text,
+				background_id text,
 				created_at integer NOT NULL
 			)`,
 			`CREATE TABLE habit_completions (
