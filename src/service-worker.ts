@@ -43,7 +43,14 @@ sw.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// Network-first for navigations/pages, falling back to cache when offline.
+	// SECURITY: never intercept page navigations. Re-issuing fetch(event.request) from the
+	// service worker drops the just-set SameSite=Strict `session` cookie on the post-login
+	// redirect, so the landing page renders as a guest until a manual refresh. Page HTML is
+	// also per-user and auth-dependent, so it must never be cached. Let the browser handle
+	// navigations natively so the session cookie is sent correctly.
+	if (request.mode === 'navigate') return;
+
+	// Network-first for other same-origin GET assets, falling back to cache when offline.
 	event.respondWith(
 		fetch(request)
 			.then((response) => {
