@@ -52,11 +52,21 @@ export type CatAssetManifest = {
 	defaultVariant: CatVariant;
 };
 
-const assetModules = import.meta.glob<string>('./**/*.{webp,png,svg,jpg,jpeg}', {
-	eager: true,
-	query: '?url',
-	import: 'default'
-});
+// Vite resolves these at build time; the try/catch keeps the module loadable under
+// non-Vite runners (e.g. Bun's native test runner) where import.meta.glob is absent.
+function loadAssetModules(): Record<string, string> {
+	try {
+		return import.meta.glob<string>('./**/*.{webp,png,svg,jpg,jpeg}', {
+			eager: true,
+			query: '?url',
+			import: 'default'
+		});
+	} catch {
+		return {};
+	}
+}
+
+const assetModules = loadAssetModules();
 
 export const catAssetManifest = generatedManifest as unknown as CatAssetManifest;
 export const layerOrder = catAssetManifest.layerOrder;
@@ -74,8 +84,11 @@ export function getAssetById(id: string): CatAsset | null {
 
 export function resolveCatAssetUrl(uiSrcKey: string): string {
 	const src = assetModules[`./${uiSrcKey}`];
-	if (!src) throw new Error(`Missing cat asset URL: ${uiSrcKey}`);
-	return src;
+	if (src) return src;
+	// Outside a Vite build the glob map is empty; fall back to the source-relative
+	// key so pure rendering/resolution logic stays testable without asset hashing.
+	if (Object.keys(assetModules).length === 0) return uiSrcKey;
+	throw new Error(`Missing cat asset URL: ${uiSrcKey}`);
 }
 
 function requireAsset(id: string, kind: DynamicCatLayerKind): CatAsset {

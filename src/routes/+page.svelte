@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Brush from '@lucide/svelte/icons/brush';
 	import Camera from '@lucide/svelte/icons/camera';
@@ -16,22 +15,33 @@
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import { deriveCatState } from '$lib/cat-state';
+	import CatAvatar from '$lib/cat/CatAvatar.svelte';
+	import {
+		resolveHomepageCatAvatar,
+		type CatCoat,
+		type CatMood,
+		type CatPose
+	} from '$lib/cat/homepage-avatar';
 	import { habitSetFor } from '$lib/tasks';
 	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
 	import House from '@lucide/svelte/icons/house';
-	import orangeCat from '$lib/assets/cats/cats_types/orange_sit.webp';
-	import happyFace from '$lib/assets/cats/expressions/happy.webp';
-	import normalFace from '$lib/assets/cats/expressions/normal_orange.webp';
-	import sadFace from '$lib/assets/cats/expressions/sad_orange.webp';
-	import sleepFace from '$lib/assets/cats/expressions/sleep.webp';
 	import type { TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
+
+	// Map a care task to the body pose that best represents doing it.
+	function poseForTask(taskId: TaskType): CatPose {
+		if (taskId === 'feeding' || taskId === 'street_feeding') return 'eat';
+		if (taskId === 'water') return 'drink';
+		if (taskId === 'play') return 'play';
+		if (taskId === 'grooming') return 'groom';
+		return 'sit';
+	}
 
 	type TaskMeta = {
 		id: TaskType;
 		label: string;
 		heroTitle: string;
-		log: string;
+		proofLabel: string;
 		reward: number;
 		tone: 'peach' | 'sky' | 'rose' | 'butter' | 'sage';
 	};
@@ -40,8 +50,8 @@
 		{
 			id: 'feeding',
 			label: 'Feed',
-			heroTitle: 'Breakfast',
-			log: 'breakfast',
+			heroTitle: 'Breakfast time',
+			proofLabel: 'breakfast',
 			reward: 10,
 			tone: 'peach'
 		},
@@ -49,26 +59,47 @@
 			id: 'water',
 			label: 'Water',
 			heroTitle: 'Fresh water',
-			log: 'water',
+			proofLabel: 'water',
 			reward: 10,
 			tone: 'sky'
 		},
-		{ id: 'litter', label: 'Litter', heroTitle: 'Litter', log: 'litter', reward: 10, tone: 'rose' },
-		{ id: 'play', label: 'Play', heroTitle: 'Playtime', log: 'play', reward: 10, tone: 'butter' },
+		{
+			id: 'litter',
+			label: 'Litter',
+			heroTitle: 'Litter',
+			proofLabel: 'litter',
+			reward: 10,
+			tone: 'rose'
+		},
+		{
+			id: 'play',
+			label: 'Play',
+			heroTitle: 'Playtime',
+			proofLabel: 'play',
+			reward: 10,
+			tone: 'butter'
+		},
 		{
 			id: 'grooming',
 			label: 'Groom',
 			heroTitle: 'Grooming',
-			log: 'grooming',
+			proofLabel: 'grooming',
 			reward: 10,
 			tone: 'sage'
 		},
-		{ id: 'meds', label: 'Meds', heroTitle: 'Medicine', log: 'meds', reward: 10, tone: 'peach' },
+		{
+			id: 'meds',
+			label: 'Meds',
+			heroTitle: 'Medicine',
+			proofLabel: 'meds',
+			reward: 10,
+			tone: 'peach'
+		},
 		{
 			id: 'street_feeding',
 			label: 'Street',
 			heroTitle: 'Street feeding',
-			log: 'feeding',
+			proofLabel: 'feeding',
 			reward: 10,
 			tone: 'peach'
 		},
@@ -76,7 +107,7 @@
 			id: 'shelter_care',
 			label: 'Shelter',
 			heroTitle: 'Shelter care',
-			log: 'care',
+			proofLabel: 'care',
 			reward: 10,
 			tone: 'sage'
 		}
@@ -104,30 +135,37 @@
 	let firstName = $derived(deriveParentName(data.user).split(' ')[0]);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
-	// Hero mascot uses the active cat's chosen avatar; falls back to the orange mascot.
-	let heroAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
-	let heroBase = $derived(heroAvatar?.src ?? orangeCat);
-	// The orange face overlay only matches the orange mascot art.
-	let showExpression = $derived(!data.activeCat || data.activeCat.avatarId === 'orange');
 	let catState = $derived(
 		deriveCatState({ completed: data.completedTasks, required: tasks.map((task) => task.id) })
 	);
-	let catFace = $derived(
+	// Coat comes from the active cat; fall back to orange for signed-out visitors.
+	let coat = $derived((data.activeCat?.avatarId ?? 'orange') as CatCoat);
+	let catMood = $derived<CatMood>(
 		catState === 'happy'
-			? happyFace
+			? 'happy'
 			: catState === 'hungry'
-				? sadFace
+				? 'sad'
 				: catState === 'sleeping'
-					? sleepFace
-					: normalFace
+					? 'sleepy'
+					: 'normal'
 	);
+	let preferredPose = $derived<CatPose>(
+		catState === 'sleeping'
+			? 'sleep'
+			: catState === 'hungry'
+				? 'eat'
+				: catState === 'happy'
+					? 'sit'
+					: poseForTask(active.id)
+	);
+	let heroCat = $derived(resolveHomepageCatAvatar({ coat, mood: catMood, preferredPose }));
 	let heroCopy = $derived.by(() => {
 		if (allDone) {
-			return { title: 'All done today', body: `+${doneCount * 10} pts` };
+			return { title: 'All cared for today', body: `+${doneCount * 10} Purrpoints` };
 		}
 		return {
 			title: active.heroTitle,
-			body: `+${sandboxMode ? 1000 : active.reward} pts`
+			body: `+${sandboxMode ? 1000 : active.reward} Purrpoints`
 		};
 	});
 </script>
@@ -165,7 +203,7 @@
 <div class="home">
 	<header class="top">
 		<div class="greeting">
-			<p>Hi {firstName}</p>
+			<p>Hi, {firstName}</p>
 			<h1>Today’s care</h1>
 		</div>
 		<a class="avatar" href={resolve('/profile')} aria-label="Profile and settings">
@@ -217,16 +255,7 @@
 						{@const avatar = getCatAvatar(cat.avatarId)}
 						{@const isActive = cat.id === data.activeCat.id}
 						<li>
-							<form
-								method="POST"
-								action="?/select"
-								use:enhance={() => {
-									return async ({ update }) => {
-										await update();
-										switcherOpen = false;
-									};
-								}}
-							>
+							<form method="POST" action="?/select">
 								<input type="hidden" name="catId" value={cat.id} />
 								<button type="submit" class={['sheet-row', isActive && 'active']}>
 									<span class="sheet-avatar" aria-hidden="true">
@@ -253,10 +282,7 @@
 		<div class="hero-stage" aria-hidden="true">
 			<span class="cat-shadow"></span>
 			<div class="cat">
-				<img class="cat-base" src={heroBase} alt="" width="196" height="196" />
-				{#if showExpression}
-					<img class="cat-face" src={catFace} alt="" width="196" height="196" />
-				{/if}
+				<CatAvatar layers={heroCat.renderStack} warnings={heroCat.warnings} />
 			</div>
 		</div>
 
@@ -270,12 +296,12 @@
 		{:else if data.user}
 			<a class="cta" href={resolve(`/care-proof?task=${active.id}`)}>
 				<Camera size={20} strokeWidth={2.3} aria-hidden="true" />
-				<span>Log {active.log}</span>
+				<span>Prove {active.proofLabel}</span>
 			</a>
 		{:else}
 			<a class="cta" href={resolve('/auth/login')}>
 				<Camera size={20} strokeWidth={2.3} aria-hidden="true" />
-				<span>Sign in to log care</span>
+				<span>Sign in to earn care points</span>
 			</a>
 		{/if}
 	</section>
@@ -283,28 +309,34 @@
 	<section class="today" aria-labelledby="today-title">
 		<div class="section-head">
 			<div>
-				<p>Routines</p>
-				<h2 id="today-title">{doneCount} of {tasks.length} done</h2>
+				<p>Care list</p>
+				<h2 id="today-title">{doneCount} of {tasks.length} cared for</h2>
 			</div>
 			<a href={resolve('/care')} aria-label="Open full care plan">
-				View all <ChevronRight size={15} strokeWidth={2.3} aria-hidden="true" />
+				See all <ChevronRight size={15} strokeWidth={2.3} aria-hidden="true" />
 			</a>
 		</div>
 
-		<ul class="markers" aria-label={`${doneCount} of ${tasks.length} care tasks done today`}>
+		<ul
+			class={['markers', data.activeCat?.careMode === 'community' && 'community']}
+			aria-label={`${doneCount} of ${tasks.length} care tasks cared for today`}
+		>
 			{#each tasks as task (task.id)}
 				{@const isDone = completed.has(task.id)}
 				<li
-					class={['marker', task.tone, active.id === task.id && 'active', isDone && 'done']}
-					aria-label={isDone ? `${task.label} done` : `${task.label} not done yet`}
+					class={[
+						'marker',
+						task.tone,
+						active.id === task.id && !isDone && 'active',
+						isDone && 'done'
+					]}
+					aria-label={isDone ? `${task.label} cared for` : `${task.label} not cared for yet`}
 				>
 					<span class="marker-icon">{@render taskIcon(task.id, 13)}</span>
 					<span>{task.label}</span>
 					<span class="marker-check" aria-hidden="true">
 						{#if isDone}
 							<Check size={14} strokeWidth={3} />
-						{:else if active.id === task.id}
-							<span class="marker-next">Next</span>
 						{/if}
 					</span>
 				</li>
@@ -630,20 +662,6 @@
 		aspect-ratio: 1;
 	}
 
-	.cat img {
-		position: absolute;
-		inset: 0;
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-	}
-
-	.cat-base,
-	.cat-face {
-		mix-blend-mode: multiply;
-	}
-
 	.hero-copy h2 {
 		margin: 0 0 7px;
 		color: var(--color-ink);
@@ -737,13 +755,17 @@
 		list-style: none;
 	}
 
+	.markers.community {
+		grid-template-columns: 1fr;
+	}
+
 	.marker {
 		display: grid;
 		grid-template-columns: 24px 1fr auto;
 		min-height: 44px;
 		align-items: center;
 		gap: 9px;
-		border: 0;
+		border: 1px solid transparent;
 		border-radius: 18px;
 		background: color-mix(in srgb, var(--color-paper-2) 82%, transparent);
 		color: var(--color-charcoal);
@@ -781,18 +803,6 @@
 		background: var(--color-paper-2);
 	}
 
-	.marker-next {
-		font-size: 0.6rem;
-		font-weight: 900;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--color-muted);
-	}
-
-	.marker.active .marker-next {
-		color: var(--color-charcoal);
-	}
-
 	.marker.sky .marker-icon {
 		background: var(--color-sky-soft);
 	}
@@ -811,7 +821,10 @@
 
 	.marker.active {
 		background: var(--color-paper-2);
-		box-shadow: 0 8px 18px color-mix(in srgb, var(--color-charcoal) 6%, transparent);
+		border-color: color-mix(in srgb, var(--color-charcoal) 18%, transparent);
+		box-shadow:
+			0 8px 18px color-mix(in srgb, var(--color-charcoal) 5%, transparent),
+			inset 0 0 0 1px color-mix(in srgb, var(--color-charcoal) 5%, transparent);
 	}
 
 	.marker.done {
