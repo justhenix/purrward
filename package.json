@@ -28,7 +28,6 @@
 		"@libsql/client": "^0.17.3",
 		"@playwright/test": "^1.61.1",
 		"@sveltejs/adapter-cloudflare": "^7.2.8",
-		"@sveltejs/adapter-vercel": "^6.3.4",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.0",

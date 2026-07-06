@@ -1,8 +1,5 @@
-// Selects the SvelteKit deployment adapter for local, Cloudflare, and Vercel builds.
+// Selects the SvelteKit deployment adapter for Cloudflare builds.
 import adapterCloudflare from '@sveltejs/adapter-cloudflare';
-import adapterVercel from '@sveltejs/adapter-vercel';
-
-const isVercelBuild = process.env.VERCEL === '1';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -11,7 +8,7 @@ const config = {
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 	},
 	kit: {
-		adapter: isVercelBuild ? adapterVercel({ runtime: 'nodejs24.x' }) : adapterCloudflare(),
+		adapter: adapterCloudflare(),
 		typescript: {
 			config: (config) => ({
 				...config,
