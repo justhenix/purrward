@@ -7,9 +7,14 @@
 	import History from '@lucide/svelte/icons/history';
 	import ShieldPlus from '@lucide/svelte/icons/shield-plus';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
+	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
+	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
+	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Stethoscope from '@lucide/svelte/icons/stethoscope';
 	import UserRound from '@lucide/svelte/icons/user-round';
+	import X from '@lucide/svelte/icons/x';
 	import { fieldWarning, formInput } from '$lib/form-validation';
+	import { CLINICS, type Clinic } from '$lib/vet-clinics';
 	import type { PageProps } from './$types';
 
 	type ChatMessage = {
@@ -42,8 +47,18 @@
 	let activeHistoryId = $state<string | null>(null);
 	let listEl = $state<HTMLDivElement | null>(null);
 
+	// Mock booking flow state for the Vet visit help (human) mode.
+	type BookingConfirmation = { clinic: Clinic; date: string; time: string };
+	let bookingClinic = $state<Clinic | null>(null);
+	let bookingDate = $state('');
+	let bookingTime = $state('');
+	let confirmedBooking = $state<BookingConfirmation | null>(null);
+	let canConfirmBooking = $derived(
+		bookingClinic !== null && bookingDate.trim().length > 0 && bookingTime.trim().length > 0
+	);
+
 	const historyKey = 'purrward:vet-chat-history';
-	const suggestions = ['Not eating today', 'Throwing up', 'Scratching a lot', 'Sneezing'];
+	const suggestions = ['Not eating today', 'Throwing up', 'Scratching a lot'];
 
 	const emergencySigns = [
 		'Trouble breathing',
@@ -204,6 +219,43 @@
 		emergencyActive = false;
 		activeHistoryId = null;
 	}
+
+	function formatDistance(distanceKm: number): string {
+		return `${distanceKm.toFixed(1)} km away`;
+	}
+
+	function openBooking(clinic: Clinic) {
+		bookingClinic = clinic;
+		bookingDate = '';
+		bookingTime = '';
+		confirmedBooking = null;
+	}
+
+	function closeBooking() {
+		bookingClinic = null;
+	}
+
+	function confirmBooking() {
+		if (!bookingClinic || !bookingDate || !bookingTime) return;
+		confirmedBooking = { clinic: bookingClinic, date: bookingDate, time: bookingTime };
+		bookingClinic = null;
+	}
+
+	function dismissConfirmation() {
+		confirmedBooking = null;
+	}
+
+	function formatBookingWhen(booking: BookingConfirmation): string {
+		const parsed = new Date(`${booking.date}T${booking.time}`);
+		if (Number.isNaN(parsed.getTime())) return `${booking.date} at ${booking.time}`;
+		return parsed.toLocaleString([], {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
 </script>
 
 <svelte:head>
@@ -317,16 +369,59 @@
 
 	<div class="conversation" bind:this={listEl} aria-live="polite">
 		{#if activeMode === 'human'}
-			<div class="human-panel">
-				<div class="human-mark" aria-hidden="true">
-					<UserRound size={28} strokeWidth={1.9} />
-				</div>
-				<h2>See a licensed vet</h2>
-				<p>
-					AI triage is not a diagnosis. For care decisions, urgent symptoms, or treatment plans,
-					book an in-person vet. Redeem Purrpoints toward a vet visit discount.
-				</p>
-				<a class="human-link" href={resolve('/rewards')}>Redeem vet visit help</a>
+			<div class="human-mode">
+				{#if confirmedBooking}
+					<div class="booking-confirm" role="status">
+						<div class="booking-confirm-mark" aria-hidden="true">
+							<CircleCheckBig size={30} strokeWidth={2} />
+						</div>
+						<h2>Booking confirmed</h2>
+						<p>
+							Your visit at <strong>{confirmedBooking.clinic.name}</strong> is set for
+							<strong>{formatBookingWhen(confirmedBooking)}</strong>.
+						</p>
+						<span class="booking-confirm-note">
+							This is a mock booking for the demo. Bring your Purrpoints to redeem a visit discount.
+						</span>
+						<button class="human-link" type="button" onclick={dismissConfirmation}>
+							Book another clinic
+						</button>
+					</div>
+				{:else}
+					<div class="human-intro">
+						<h2>See a licensed vet</h2>
+						<p>
+							AI triage is not a diagnosis. Pick a nearby clinic to book an in-person visit, then
+							redeem Purrpoints toward a visit discount.
+						</p>
+					</div>
+
+					<ul class="clinic-list">
+						{#each CLINICS as clinic (clinic.id)}
+							<li class="clinic-card">
+								<div class="clinic-info">
+									<h3>{clinic.name}</h3>
+									<p class="clinic-specialty">{clinic.specialty}</p>
+									<p class="clinic-distance">
+										<MapPin size={13} strokeWidth={2.2} aria-hidden="true" />
+										<span>{formatDistance(clinic.distanceKm)}</span>
+									</p>
+								</div>
+								<button
+									class="clinic-book"
+									type="button"
+									aria-label={`Book ${clinic.name}`}
+									onclick={() => openBooking(clinic)}
+								>
+									<CalendarCheck size={15} strokeWidth={2.2} aria-hidden="true" />
+									<span>Book</span>
+								</button>
+							</li>
+						{/each}
+					</ul>
+
+					<a class="clinic-redeem" href={resolve('/rewards')}>Redeem vet visit help</a>
+				{/if}
 			</div>
 		{:else if isEmpty}
 			<div class="onboarding">
@@ -418,6 +513,59 @@
 	{:else}
 		<p class="disclaimer human-disclaimer">For emergencies, contact a nearby clinic now.</p>
 	{/if}
+
+	{#if bookingClinic}
+		<div class="booking-overlay">
+			<button
+				class="booking-backdrop"
+				type="button"
+				aria-label="Close booking"
+				onclick={closeBooking}
+			></button>
+			<div
+				class="booking-modal"
+				role="dialog"
+				aria-modal="true"
+				tabindex={-1}
+				aria-label={`Book ${bookingClinic.name}`}
+			>
+				<div class="booking-modal-head">
+					<div>
+						<h2>Book a visit</h2>
+						<p>{bookingClinic.name}</p>
+					</div>
+					<button
+						class="booking-close"
+						type="button"
+						aria-label="Close booking"
+						onclick={closeBooking}
+					>
+						<X size={18} strokeWidth={2.4} aria-hidden="true" />
+					</button>
+				</div>
+
+				<label class="booking-field">
+					<span>Date</span>
+					<input type="date" bind:value={bookingDate} />
+				</label>
+
+				<label class="booking-field">
+					<span>Time</span>
+					<input type="time" bind:value={bookingTime} />
+				</label>
+
+				<button
+					class="booking-confirm-btn"
+					type="button"
+					disabled={!canConfirmBooking}
+					onclick={confirmBooking}
+				>
+					<CalendarCheck size={16} strokeWidth={2.3} aria-hidden="true" />
+					<span>Confirm booking</span>
+				</button>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -469,12 +617,12 @@
 		width: 40px;
 		height: 40px;
 		place-items: center;
-		border: 1px solid rgba(36, 38, 38, 0.08);
+		border: 1px solid var(--color-line);
 		border-radius: 50%;
 		background: var(--color-paper-2);
 		color: var(--color-charcoal);
 		cursor: pointer;
-		box-shadow: 0 8px 20px rgba(36, 38, 38, 0.05);
+		box-shadow: 0 8px 20px color-mix(in srgb, var(--color-charcoal) 6%, transparent);
 		transition:
 			background 140ms ease,
 			color 140ms ease,
@@ -484,7 +632,7 @@
 	.header-button.active {
 		background: var(--color-danger-bg);
 		color: var(--color-danger-text);
-		border-color: rgba(156, 51, 41, 0.18);
+		border-color: color-mix(in srgb, var(--color-danger-text) 24%, transparent);
 	}
 
 	.history-wrap .header-button.active {
@@ -553,7 +701,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 8px;
-		border: 1px solid rgba(36, 38, 38, 0.08);
+		border: 1px solid var(--color-line);
 		border-radius: 24px;
 		background: var(--color-paper-3);
 		padding: 5px;
@@ -582,7 +730,7 @@
 	.mode-switch button.active {
 		background: var(--color-paper-2);
 		color: var(--color-charcoal);
-		box-shadow: 0 8px 18px rgba(36, 38, 38, 0.06);
+		box-shadow: 0 8px 18px color-mix(in srgb, var(--color-charcoal) 7%, transparent);
 	}
 
 	.mode-switch span {
@@ -612,7 +760,7 @@
 
 	/* Lightweight, collapsible safety guidance */
 	.safety-panel {
-		border: 1px solid rgba(156, 51, 41, 0.16);
+		border: 1px solid color-mix(in srgb, var(--color-danger-text) 20%, transparent);
 		border-radius: 20px;
 		background: var(--color-danger-bg);
 		color: var(--color-danger-text);
@@ -646,7 +794,7 @@
 
 	.safety-panel li {
 		border-radius: var(--radius-pill);
-		background: rgba(255, 253, 248, 0.6);
+		background: color-mix(in srgb, var(--color-paper-2) 70%, transparent);
 		padding: 5px 11px;
 		font-size: 0.74rem;
 		font-weight: 700;
@@ -676,14 +824,22 @@
 		width: 64px;
 		height: 64px;
 		place-items: center;
-		border: 1px solid rgba(36, 38, 38, 0.07);
+		border: 1px solid var(--color-line);
 		border-radius: 24px;
 		background:
-			radial-gradient(circle at 34% 24%, rgba(136, 206, 223, 0.34), transparent 48%),
-			radial-gradient(circle at 76% 80%, rgba(244, 191, 168, 0.32), transparent 46%),
+			radial-gradient(
+				circle at 34% 24%,
+				color-mix(in srgb, var(--color-sky) 34%, transparent),
+				transparent 48%
+			),
+			radial-gradient(
+				circle at 76% 80%,
+				color-mix(in srgb, var(--color-peach) 32%, transparent),
+				transparent 46%
+			),
 			var(--color-paper-2);
 		color: var(--color-charcoal);
-		box-shadow: 0 14px 32px rgba(36, 38, 38, 0.08);
+		box-shadow: var(--shadow-card);
 	}
 
 	.onboarding h2 {
@@ -705,41 +861,149 @@
 		white-space: nowrap;
 	}
 
-	.human-panel {
+	/* Vet visit help — clinic directory */
+	.human-mode {
+		display: grid;
+		gap: 14px;
+		padding: 6px 2px 12px;
+	}
+
+	.human-intro {
+		display: grid;
+		gap: 6px;
+	}
+
+	.human-intro h2 {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: 1.24rem;
+		line-height: 1.12;
+	}
+
+	.human-intro p {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.84rem;
+		font-weight: 600;
+		line-height: 1.45;
+	}
+
+	.clinic-list {
+		display: grid;
+		gap: 10px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.clinic-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		border: 1px solid var(--color-line);
+		border-radius: 20px;
+		background: var(--color-paper-2);
+		padding: 13px 15px;
+		box-shadow: 0 8px 20px color-mix(in srgb, var(--color-charcoal) 4%, transparent);
+	}
+
+	.clinic-info {
+		display: grid;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.clinic-info h3 {
+		margin: 0;
+		overflow: hidden;
+		color: var(--color-ink);
+		font-size: 0.94rem;
+		font-weight: 800;
+		line-height: 1.2;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.clinic-specialty {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.78rem;
+		font-weight: 700;
+	}
+
+	.clinic-distance {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin: 1px 0 0;
+		color: var(--color-muted);
+		font-size: 0.74rem;
+		font-weight: 650;
+	}
+
+	.clinic-book {
+		display: inline-flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 6px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 9px 15px;
+		font-size: 0.8rem;
+		font-weight: 800;
+		cursor: pointer;
+		transition: transform 120ms ease;
+	}
+
+	.clinic-book:hover {
+		transform: translateY(-1px);
+	}
+
+	.clinic-redeem {
+		justify-self: center;
+		margin-top: 2px;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 750;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	/* Booking confirmation panel */
+	.booking-confirm {
 		display: grid;
 		justify-items: center;
-		gap: 12px;
-		height: 100%;
-		min-height: 320px;
+		gap: 10px;
 		align-content: center;
+		min-height: 320px;
 		padding: 0 24px;
 		text-align: center;
 	}
 
-	.human-mark {
+	.booking-confirm-mark {
 		display: grid;
 		width: 64px;
 		height: 64px;
 		place-items: center;
-		border: 1px solid rgba(36, 38, 38, 0.07);
+		border: 1px solid color-mix(in srgb, var(--color-success-text) 20%, transparent);
 		border-radius: 24px;
-		background:
-			radial-gradient(circle at 34% 24%, rgba(169, 200, 168, 0.34), transparent 48%),
-			radial-gradient(circle at 76% 80%, rgba(244, 191, 168, 0.32), transparent 46%),
-			var(--color-paper-2);
-		color: var(--color-charcoal);
-		box-shadow: 0 14px 32px rgba(36, 38, 38, 0.08);
+		background: var(--color-success-bg);
+		color: var(--color-success-text);
+		box-shadow: var(--shadow-card);
 	}
 
-	.human-panel h2 {
+	.booking-confirm h2 {
 		margin: 6px 0 0;
 		color: var(--color-ink);
-		font-size: 1.34rem;
+		font-size: 1.3rem;
 		line-height: 1.1;
 	}
 
-	.human-panel p {
-		max-width: 290px;
+	.booking-confirm p {
+		max-width: 300px;
 		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.86rem;
@@ -747,24 +1011,157 @@
 		line-height: 1.45;
 	}
 
+	.booking-confirm strong {
+		color: var(--color-ink);
+		font-weight: 800;
+	}
+
+	.booking-confirm-note {
+		max-width: 300px;
+		color: var(--color-muted);
+		font-size: 0.76rem;
+		font-weight: 600;
+		line-height: 1.4;
+		opacity: 0.9;
+	}
+
 	.human-link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		margin-top: 4px;
+		border: 0;
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
 		padding: 12px 18px;
 		font-size: 0.86rem;
 		font-weight: 800;
+		cursor: pointer;
 		text-decoration: none;
+	}
+
+	/* Mock booking modal */
+	.booking-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		display: grid;
+		place-items: end center;
+		background: color-mix(in srgb, var(--color-charcoal) 42%, transparent);
+		padding: 16px;
+	}
+
+	.booking-backdrop {
+		position: absolute;
+		inset: 0;
+		border: 0;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.booking-modal {
+		position: relative;
+		z-index: 1;
+		display: grid;
+		gap: 12px;
+		width: 100%;
+		max-width: 440px;
+		border: 1px solid var(--color-line);
+		border-radius: 26px;
+		background: var(--color-paper);
+		padding: 18px;
+		box-shadow: var(--shadow-float);
+	}
+
+	.booking-modal-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.booking-modal-head h2 {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: 1.16rem;
+		line-height: 1.1;
+	}
+
+	.booking-modal-head p {
+		margin: 3px 0 0;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
+	.booking-close {
+		display: grid;
+		width: 34px;
+		height: 34px;
+		flex: 0 0 auto;
+		place-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 50%;
+		background: var(--color-paper-2);
+		color: var(--color-charcoal);
+		cursor: pointer;
+	}
+
+	.booking-field {
+		display: grid;
+		gap: 6px;
+	}
+
+	.booking-field span {
+		color: var(--color-muted);
+		font-size: 0.76rem;
+		font-weight: 800;
+	}
+
+	.booking-field input {
+		border: 1px solid var(--color-line);
+		border-radius: 16px;
+		background: var(--color-paper-2);
+		color: var(--color-ink);
+		padding: 11px 13px;
+		font-family: inherit;
+		font-size: 0.9rem;
+		font-weight: 600;
+		outline: none;
+	}
+
+	.booking-field input:focus-visible {
+		border-color: color-mix(in srgb, var(--color-charcoal) 30%, transparent);
+	}
+
+	.booking-confirm-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		margin-top: 2px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 13px 18px;
+		font-size: 0.88rem;
+		font-weight: 800;
+		cursor: pointer;
+		transition: opacity 140ms ease;
+	}
+
+	.booking-confirm-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.message-list {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 4px 2px 8px;
+		gap: 14px;
+		padding: 6px 2px 10px;
 	}
 
 	.message-row {
@@ -783,11 +1180,11 @@
 		height: 28px;
 		flex: 0 0 auto;
 		place-items: center;
-		border: 1px solid rgba(36, 38, 38, 0.07);
+		border: 1px solid var(--color-line);
 		border-radius: 50%;
 		background: var(--color-paper-2);
 		color: var(--color-muted);
-		box-shadow: 0 6px 14px rgba(36, 38, 38, 0.05);
+		box-shadow: 0 6px 14px color-mix(in srgb, var(--color-charcoal) 5%, transparent);
 	}
 
 	.message-bubble {
@@ -798,14 +1195,15 @@
 
 	.message-row.vet .message-bubble {
 		max-width: min(86%, 340px);
-		border: 1px solid rgba(36, 38, 38, 0.07);
+		border: 1px solid var(--color-line);
 		border-bottom-left-radius: 8px;
 		background: var(--color-paper-2);
 		color: var(--color-ink);
-		box-shadow: 0 8px 20px rgba(36, 38, 38, 0.05);
+		box-shadow: 0 8px 20px color-mix(in srgb, var(--color-charcoal) 5%, transparent);
 	}
 
 	.message-row.user .message-bubble {
+		border: 1px solid color-mix(in srgb, var(--color-charcoal) 12%, transparent);
 		border-bottom-right-radius: 8px;
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
@@ -920,7 +1318,7 @@
 	}
 
 	.suggestions button {
-		border: 1px solid rgba(36, 38, 38, 0.08);
+		border: 1px solid var(--color-line);
 		border-radius: var(--radius-pill);
 		background: var(--color-paper-2);
 		color: var(--color-charcoal);
@@ -928,7 +1326,7 @@
 		font-size: 0.8rem;
 		font-weight: 750;
 		cursor: pointer;
-		box-shadow: 0 6px 16px rgba(36, 38, 38, 0.04);
+		box-shadow: 0 6px 16px color-mix(in srgb, var(--color-charcoal) 5%, transparent);
 		transition: transform 120ms ease;
 	}
 
@@ -941,11 +1339,11 @@
 		grid-template-columns: 1fr 40px;
 		gap: 8px;
 		align-items: center;
-		border: 1px solid rgba(36, 38, 38, 0.08);
+		border: 1px solid var(--color-line);
 		border-radius: 26px;
 		background: var(--color-paper-2);
 		padding: 8px 8px 8px 14px;
-		box-shadow: 0 14px 34px rgba(36, 38, 38, 0.1);
+		box-shadow: var(--shadow-float);
 	}
 
 	.composer input {
@@ -983,7 +1381,7 @@
 		border: 0;
 		border-radius: 50%;
 		cursor: pointer;
-		background: rgba(36, 38, 38, 0.18);
+		background: color-mix(in srgb, var(--color-charcoal) 20%, transparent);
 		color: var(--color-paper-2);
 		transition:
 			background 140ms ease,
