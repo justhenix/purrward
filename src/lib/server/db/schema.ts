@@ -90,6 +90,8 @@ export const rewardRedemptions = sqliteTable(
 		code: text('code').notNull().unique(), // SECURITY: server-generated, unpredictable
 		cost: integer('cost').notNull(), // point cost captured at redemption time
 		status: text('status').notNull().default('active'), // room for P1 expiry/used states
+		usedAt: integer('used_at'), // null while active; set when the coupon is traded
+		partnerId: text('partner_id'), // null while active; the redeeming partner id
 		createdAt: integer('created_at').notNull()
 	},
 	(table) => [index('reward_redemptions_user_idx').on(table.userId)]
@@ -200,4 +202,22 @@ export const rateLimits = sqliteTable(
 		updatedAt: integer('updated_at').notNull()
 	},
 	(table) => [index('rate_limits_action_window_idx').on(table.action, table.windowStart)]
+);
+
+// Partner businesses where coupons can be redeemed; rendered on the map mockup.
+export const partners = sqliteTable(
+	'partners',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		name: text('name').notNull(),
+		category: text('category').notNull(), // 'vet' | 'treat' | 'toy' | 'shelter'
+		address: text('address').notNull(),
+		// Normalized coordinates for the stylized map mockup (not real geo).
+		mapX: integer('map_x').notNull(), // stored as 0..1000 to stay integer-safe
+		mapY: integer('map_y').notNull(),
+		createdAt: integer('created_at').notNull()
+	},
+	(table) => [index('partners_category_idx').on(table.category)]
 );

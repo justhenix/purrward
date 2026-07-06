@@ -43,6 +43,13 @@
       "when": 1783257040578,
       "tag": "0005_uneven_cammi",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783312005908,
+      "tag": "0006_nifty_mimic",
+      "breakpoints": true
     }
   ]
 }

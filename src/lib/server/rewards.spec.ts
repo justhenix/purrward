@@ -69,6 +69,8 @@ beforeEach(async () => {
 				code text NOT NULL,
 				cost integer NOT NULL,
 				status text DEFAULT 'active' NOT NULL,
+				used_at integer,
+				partner_id text,
 				created_at integer NOT NULL
 			)`,
 			`CREATE UNIQUE INDEX reward_redemptions_code_unique ON reward_redemptions (code)`,

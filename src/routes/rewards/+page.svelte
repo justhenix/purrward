@@ -1,16 +1,19 @@
-<!-- Rewards store: category chips, one auth blocker, and per-card redeem states. -->
+<!-- Rewards store: compact balance, one featured card, and a calm scannable reward list. -->
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Heart from '@lucide/svelte/icons/heart';
 	import Fish from '@lucide/svelte/icons/fish';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Star from '@lucide/svelte/icons/star';
 	import Stethoscope from '@lucide/svelte/icons/stethoscope';
 	import type { PageProps } from './$types';
 
 	type Category = 'vet' | 'treat' | 'toy' | 'shelter';
 
 	let { data }: PageProps = $props();
+
+	type Reward = (typeof data.rewards)[number];
 
 	type RedeemBody = {
 		reward?: { title: string };
@@ -39,6 +42,13 @@
 		category === 'all'
 			? data.rewards
 			: data.rewards.filter((reward) => reward.category === category)
+	);
+	// One focused featured reward (no carousel); falls back to nothing when unset.
+	let featuredReward = $derived(
+		data.rewards.find((reward) => data.featuredIds.includes(reward.id)) ?? null
+	);
+	let rotationLabel = $derived(
+		`Refreshes in ${data.daysUntilRotation} ${data.daysUntilRotation === 1 ? 'day' : 'days'}`
 	);
 
 	async function redeemReward(rewardId: string) {
@@ -70,24 +80,62 @@
 	<title>Purrward Store</title>
 </svelte:head>
 
-{#snippet categoryIcon(cat: Category)}
+{#snippet categoryIcon(cat: Category, size = 18)}
 	{#if cat === 'vet'}
-		<Stethoscope size={18} strokeWidth={2.2} aria-hidden="true" />
+		<Stethoscope {size} strokeWidth={2.2} aria-hidden="true" />
 	{:else if cat === 'treat'}
-		<Fish size={18} strokeWidth={2.2} aria-hidden="true" />
+		<Fish {size} strokeWidth={2.2} aria-hidden="true" />
 	{:else if cat === 'toy'}
-		<Sparkles size={18} strokeWidth={2.2} aria-hidden="true" />
+		<Sparkles {size} strokeWidth={2.2} aria-hidden="true" />
 	{:else}
-		<Heart size={18} strokeWidth={2.2} aria-hidden="true" />
+		<Heart {size} strokeWidth={2.2} aria-hidden="true" />
 	{/if}
+{/snippet}
+
+<!-- Single reward CTA: one control communicates redeem, locked, or shortfall. -->
+{#snippet rewardCta(reward: Reward)}
+	{#if !data.user}
+		<button class="redeem-btn" type="button" disabled>Locked</button>
+	{:else if balance < reward.cost}
+		<button class="redeem-btn" type="button" disabled>Need {reward.cost} pts</button>
+	{:else}
+		<button
+			class="redeem-btn primary"
+			type="button"
+			disabled={redeeming !== null}
+			onclick={() => redeemReward(reward.id)}
+		>
+			{redeeming === reward.id ? 'Redeeming' : 'Redeem'}
+		</button>
+	{/if}
+{/snippet}
+
+{#snippet rewardCard(reward: Reward)}
+	<article class="reward-card">
+		<span class={['reward-icon', reward.category]}>
+			{@render categoryIcon(reward.category)}
+		</span>
+		<div class="reward-body">
+			<h2>{reward.title}</h2>
+			<p>{reward.desc}</p>
+			<span class="reward-cost">{reward.cost} pts</span>
+		</div>
+		<div class="reward-action">
+			{@render rewardCta(reward)}
+		</div>
+	</article>
 {/snippet}
 
 <div class="rewards-page">
 	<header class="store-head">
-		<div>
+		<span class="balance-icon" aria-hidden="true">
+			<Star size={18} strokeWidth={2.3} />
+		</span>
+		<div class="balance-copy">
 			<p>Balance</p>
-			<h1>{balance} Purrpoints</h1>
+			<strong>{balance} Purrpoints</strong>
 		</div>
+		<a class="history-link" href={resolve('/rewards/history')}>My coupons</a>
 	</header>
 
 	{#if !data.user}
@@ -99,6 +147,28 @@
 
 	{#if message}
 		<p class={['redeem-message', messageOk ? 'ok' : 'warn']}>{message}</p>
+	{/if}
+
+	{#if featuredReward}
+		<section class="featured" aria-label="Featured reward this week">
+			<div class="featured-head">
+				<h2>Featured this week</h2>
+				<span class="featured-countdown">{rotationLabel}</span>
+			</div>
+			<article class="featured-card">
+				<span class={['reward-icon', 'lg', featuredReward.category]}>
+					{@render categoryIcon(featuredReward.category, 22)}
+				</span>
+				<div class="reward-body">
+					<h3>{featuredReward.title}</h3>
+					<p>{featuredReward.desc}</p>
+					<span class="reward-cost">{featuredReward.cost} pts</span>
+				</div>
+				<div class="reward-action">
+					{@render rewardCta(featuredReward)}
+				</div>
+			</article>
+		</section>
 	{/if}
 
 	<div class="chips" role="tablist" aria-label="Reward categories">
@@ -117,34 +187,7 @@
 
 	<section class="rewards-grid">
 		{#each visibleRewards as reward (reward.id)}
-			{@const affordable = balance >= reward.cost}
-			<article class="reward-card">
-				<span class={['reward-icon', reward.category]}>
-					{@render categoryIcon(reward.category)}
-				</span>
-				<div class="reward-body">
-					<h2>{reward.title}</h2>
-					<p>{reward.desc}</p>
-					<span class="reward-cost">{reward.cost} pts</span>
-				</div>
-				<div class="reward-action">
-					{#if !data.user}
-						<button class="redeem-btn" type="button" disabled>Locked</button>
-						<small>Sign in first.</small>
-					{:else if !affordable}
-						<button class="redeem-btn" type="button" disabled>Need points</button>
-					{:else}
-						<button
-							class="redeem-btn primary"
-							type="button"
-							disabled={redeeming !== null}
-							onclick={() => redeemReward(reward.id)}
-						>
-							{redeeming === reward.id ? 'Redeeming' : 'Redeem'}
-						</button>
-					{/if}
-				</div>
-			</article>
+			{@render rewardCard(reward)}
 		{/each}
 	</section>
 </div>
@@ -153,26 +196,121 @@
 	.rewards-page {
 		display: grid;
 		gap: 16px;
+		/* Keep the last card clear of the floating bottom nav. */
+		padding-bottom: 8px;
 	}
 
+	/* Compact balance surface — warm paper in light, soft charcoal surface in dark. */
 	.store-head {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding-top: 4px;
+		gap: 12px;
+		border: 1px solid var(--color-line);
+		border-radius: 22px;
+		background: var(--color-paper-2);
+		padding: 12px 14px;
 	}
 
-	.store-head p {
+	.balance-icon {
+		display: grid;
+		width: 40px;
+		height: 40px;
+		flex: none;
+		place-items: center;
+		border-radius: 50%;
+		background: var(--color-warning-bg);
+		color: var(--color-warning-text);
+	}
+
+	.balance-copy {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.balance-copy p {
 		margin: 0;
 		color: var(--color-muted);
-		font-size: 0.82rem;
+		font-size: 0.74rem;
 		font-weight: 800;
 	}
 
-	.store-head h1 {
-		margin: 2px 0 0;
+	.balance-copy strong {
+		display: block;
+		margin-top: 1px;
 		color: var(--color-ink);
-		font-size: 1.5rem;
+		font-size: 1.16rem;
+		font-weight: 850;
+		line-height: 1.1;
+	}
+
+	.history-link {
+		flex: none;
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper);
+		color: var(--color-charcoal);
+		padding: 0 15px;
+		font-size: 0.8rem;
+		font-weight: 800;
+		text-decoration: none;
+	}
+
+	/* Featured: one focused card, softer than a full butter block. */
+	.featured {
+		display: grid;
+		gap: 10px;
+		border: 1px solid var(--color-line);
+		border-radius: 26px;
+		background: color-mix(in srgb, var(--color-butter) 42%, var(--color-paper-2));
+		padding: 14px;
+	}
+
+	.featured-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.featured-head h2 {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: 1.02rem;
+		font-weight: 850;
+	}
+
+	.featured-countdown {
+		flex: none;
+		color: var(--color-muted);
+		font-size: 0.74rem;
+		font-weight: 800;
+	}
+
+	.featured-card {
+		display: grid;
+		grid-template-columns: 56px 1fr auto;
+		gap: 14px;
+		align-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 20px;
+		background: var(--color-paper-2);
+		padding: 14px 16px;
+	}
+
+	.featured-card h3 {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		margin: 0;
+		overflow: hidden;
+		color: var(--color-ink);
+		font-size: 1.02rem;
+		font-weight: 800;
+		line-height: 1.22;
 	}
 
 	.auth-blocker {
@@ -181,25 +319,27 @@
 		justify-content: space-between;
 		gap: 12px;
 		border: 1px solid var(--color-line);
-		border-radius: 22px;
+		border-radius: 20px;
 		background: var(--color-sky-soft);
-		padding: 14px 16px;
-		box-shadow: var(--shadow-card);
+		padding: 13px 15px;
 	}
 
 	.auth-blocker p {
 		margin: 0;
 		color: var(--color-ink);
-		font-size: 0.92rem;
+		font-size: 0.9rem;
 		font-weight: 700;
 	}
 
 	.auth-btn {
 		flex: none;
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
-		padding: 10px 18px;
+		padding: 0 18px;
 		font-size: 0.82rem;
 		font-weight: 850;
 		text-decoration: none;
@@ -207,8 +347,8 @@
 
 	.redeem-message {
 		margin: 0;
-		border-radius: 18px;
-		padding: 12px 14px;
+		border-radius: 16px;
+		padding: 11px 14px;
 		font-size: 0.82rem;
 		font-weight: 700;
 		line-height: 1.35;
@@ -224,6 +364,7 @@
 		color: var(--color-warning-text);
 	}
 
+	/* Lighter, compact category chips. */
 	.chips {
 		display: flex;
 		gap: 8px;
@@ -238,13 +379,14 @@
 
 	.chip {
 		flex: none;
+		min-height: 36px;
 		border: 1px solid var(--color-line);
 		border-radius: var(--radius-pill);
-		background: var(--color-paper-2);
+		background: transparent;
 		color: var(--color-muted);
-		padding: 8px 16px;
-		font-size: 0.82rem;
-		font-weight: 800;
+		padding: 0 14px;
+		font-size: 0.8rem;
+		font-weight: 750;
 		cursor: pointer;
 		transition:
 			background 140ms ease,
@@ -252,35 +394,44 @@
 	}
 
 	.chip.active {
-		background: var(--color-charcoal);
-		color: var(--color-paper-2);
-		border-color: var(--color-charcoal);
+		background: color-mix(in srgb, var(--color-charcoal) 12%, transparent);
+		border-color: color-mix(in srgb, var(--color-charcoal) 32%, transparent);
+		color: var(--color-ink);
+		font-weight: 850;
 	}
 
 	.rewards-grid {
 		display: grid;
-		gap: 12px;
+		gap: 11px;
 	}
 
+	/* Calm reward card: soft border, gentle shadow, cozy radius. */
 	.reward-card {
 		display: grid;
 		grid-template-columns: 48px 1fr auto;
-		gap: 14px;
+		gap: 12px;
 		align-items: center;
 		border: 1px solid var(--color-line);
 		border-radius: 24px;
 		background: var(--color-paper-2);
-		padding: 16px;
-		box-shadow: var(--shadow-card);
+		padding: 14px 16px;
+		box-shadow: 0 4px 14px color-mix(in srgb, var(--color-charcoal) 4%, transparent);
 	}
 
 	.reward-icon {
 		display: grid;
 		width: 48px;
 		height: 48px;
+		flex: none;
 		place-items: center;
-		border-radius: 16px;
+		border-radius: 15px;
 		color: var(--color-charcoal);
+	}
+
+	.reward-icon.lg {
+		width: 56px;
+		height: 56px;
+		border-radius: 17px;
 	}
 
 	.reward-icon.vet {
@@ -308,8 +459,9 @@
 		margin: 0;
 		overflow: hidden;
 		color: var(--color-ink);
-		font-size: 1rem;
+		font-size: 0.98rem;
 		font-weight: 800;
+		line-height: 1.22;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
@@ -325,31 +477,29 @@
 	}
 
 	.reward-cost {
-		display: inline-block;
-		margin-top: 6px;
-		color: var(--color-charcoal);
-		font-size: 0.82rem;
+		display: inline-flex;
+		align-items: center;
+		margin-top: 7px;
+		border-radius: var(--radius-pill);
+		background: color-mix(in srgb, var(--color-butter) 62%, var(--color-paper-2));
+		color: var(--color-ink);
+		padding: 3px 10px;
+		font-size: 0.78rem;
 		font-weight: 850;
 	}
 
 	.reward-action {
 		display: grid;
-		justify-items: center;
-		gap: 3px;
-	}
-
-	.reward-action small {
-		color: var(--color-muted);
-		font-size: 0.68rem;
-		font-weight: 700;
+		place-items: center;
 	}
 
 	.redeem-btn {
+		min-height: 44px;
 		border: 1px solid var(--color-line);
 		border-radius: var(--radius-pill);
 		background: var(--color-paper-3);
 		color: var(--color-muted);
-		padding: 9px 16px;
+		padding: 0 15px;
 		font-size: 0.8rem;
 		font-weight: 850;
 		cursor: not-allowed;

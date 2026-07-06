@@ -95,6 +95,20 @@ export const CATALOG: CatalogItem[] = [
 		cost: 80,
 		desc: 'A sunny day out.',
 		kind: 'background'
+	},
+	{
+		id: 'bg_window',
+		title: 'Sunny Windowsill',
+		cost: 80,
+		desc: 'A warm perch by the glass.',
+		kind: 'background'
+	},
+	{
+		id: 'bg_garden',
+		title: 'Garden Nook',
+		cost: 100,
+		desc: 'Green and breezy.',
+		kind: 'background'
 	}
 ];
 
