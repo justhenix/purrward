@@ -2,6 +2,8 @@
 import type { Handle } from '@sveltejs/kit';
 import { validateSession } from '$lib/server/auth';
 import { checkRateLimit, hashRateKey } from '$lib/server/rate-limit';
+import { parsePreferences } from '$lib/server/preferences';
+import type { ThemePreference } from '$lib/theme';
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -73,6 +75,12 @@ function addScriptNonce(html: string, nonce: string): string {
 	return html.replace(/<script(?![^>]*\bnonce=)([^>]*)>/g, `<script nonce="${nonce}"$1>`);
 }
 
+// Stamps the resolved theme on <html> during SSR so colors are correct before first paint (no inline script).
+// theme is one of the fixed ThemePreference literals, so it is safe to interpolate into the attribute.
+function addThemeAttr(html: string, theme: ThemePreference): string {
+	return html.replace(/<html\b([^>]*)>/, `<html$1 data-theme="${theme}">`);
+}
+
 function shouldSetHsts(url: URL): boolean {
 	const host = url.hostname.toLowerCase();
 	return url.protocol === 'https:' || (host !== 'localhost' && host !== '127.0.0.1');
@@ -88,9 +96,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = result?.user ?? null;
 	event.locals.session = result?.session ?? null;
 
+	// SECURITY: read the persisted theme from the HttpOnly purrward_prefs cookie server-side.
+	const { theme } = parsePreferences(event.cookies.get('purrward_prefs'));
+
 	const scriptNonce = createScriptNonce();
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => addScriptNonce(html, scriptNonce)
+		transformPageChunk: ({ html }) => addThemeAttr(addScriptNonce(html, scriptNonce), theme)
 	});
 	for (const [name, value] of Object.entries(createSecurityHeaders(scriptNonce))) {
 		response.headers.set(name, value);

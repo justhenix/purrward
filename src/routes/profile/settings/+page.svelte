@@ -4,6 +4,7 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { CAT_AVATARS } from '$lib/cat-avatars';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { untrack } from 'svelte';
 	import { avatarInitial, deriveParentName } from '$lib/account-identity';
 	import { isRenderableAvatarUrl } from '$lib/avatar-url';
@@ -35,17 +36,25 @@
 		<h1>Profile settings</h1>
 	</header>
 
-	<form class="panel" method="POST" action="?/name">
-		<label class="field">
-			<span>Parent name</span>
-			<input name="parentName" bind:value={parentName} maxlength="40" autocomplete="off" />
-		</label>
+	<section class="panel">
+		<div class="panel-heading"><h2>Appearance</h2></div>
+		<p class="panel-note">Choose a light, dark, or system-matched look.</p>
+		<ThemeToggle theme={data.preferences.theme} />
+	</section>
+
+	<form class="panel name-panel" method="POST" action="?/name">
+		<div class="name-row">
+			<label class="field">
+				<span>Parent name</span>
+				<input name="parentName" bind:value={parentName} maxlength="40" autocomplete="off" />
+			</label>
+			<button class="save" type="submit">Save</button>
+		</div>
 		{#if form?.field === 'name'}
 			<p class="field-error">{form.message}</p>
 		{:else if form?.savedName}
 			<p class="field-ok">Saved.</p>
 		{/if}
-		<button class="save" type="submit">Save</button>
 	</form>
 
 	<form class="panel" method="POST" action="?/avatar">
@@ -163,9 +172,23 @@
 		font-size: 1.14rem;
 	}
 
+	.panel-note {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
 	.field {
 		display: grid;
 		gap: 6px;
+	}
+
+	.name-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: end;
+		gap: 10px;
 	}
 
 	.field span {
@@ -198,8 +221,8 @@
 	}
 
 	.save {
-		justify-self: start;
-		min-height: 44px;
+		min-width: 76px;
+		min-height: 48px;
 		border: 0;
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
@@ -208,6 +231,16 @@
 		font-size: 0.9rem;
 		font-weight: 850;
 		cursor: pointer;
+	}
+
+	@media (max-width: 360px) {
+		.name-row {
+			grid-template-columns: 1fr;
+		}
+
+		.save {
+			justify-self: start;
+		}
 	}
 
 	.avatar-current {

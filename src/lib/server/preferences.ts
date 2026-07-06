@@ -1,5 +1,6 @@
 // Server helpers for local Purrward preferences stored in a cookie.
 import { validateAvatarChoice, type AvatarChoice } from '$lib/avatar-ids';
+import { normalizeTheme, type ThemePreference } from '$lib/theme';
 
 export const DEFAULT_REMINDER_TIME = '08:00';
 
@@ -8,6 +9,7 @@ export type Preferences = {
 	sandboxMode: boolean;
 	avatarChoice: AvatarChoice;
 	reminderTime: string;
+	theme: ThemePreference;
 };
 
 // Reminder time is stored as compact HHMM digits so it never clashes with the ':' delimiter.
@@ -25,16 +27,17 @@ export function normalizeReminderTime(value: unknown): string {
 }
 
 export function parsePreferences(value: string | undefined): Preferences {
-	const [careReminders, sandboxMode, avatarChoice, reminderTime] = value?.split(':') ?? [];
+	const [careReminders, sandboxMode, avatarChoice, reminderTime, theme] = value?.split(':') ?? [];
 	return {
 		careReminders: careReminders !== '0',
 		sandboxMode: sandboxMode === '1',
 		avatarChoice: validateAvatarChoice(avatarChoice),
-		reminderTime: parseReminderTime(reminderTime)
+		reminderTime: parseReminderTime(reminderTime),
+		theme: normalizeTheme(theme)
 	};
 }
 
 export function serializePreferences(input: Preferences): string {
 	const time = input.reminderTime.replace(':', '');
-	return `${input.careReminders ? '1' : '0'}:${input.sandboxMode ? '1' : '0'}:${input.avatarChoice}:${time}`;
+	return `${input.careReminders ? '1' : '0'}:${input.sandboxMode ? '1' : '0'}:${input.avatarChoice}:${time}:${input.theme}`;
 }

@@ -28,6 +28,29 @@
 	--color-danger-text: #9c3329;
 	--color-info-bg: #ddf3f7;
 	--color-info-text: #2f6470;
+	/* Dark-mode tokens (soft charcoal, not pure black). See design.md "Dark Mode". */
+	--color-dark-bg: #1f2322;
+	--color-dark-surface: #2a2f2e;
+	--color-dark-surface-2: #333938;
+	--color-dark-text: #f8f1e6;
+	--color-dark-muted: #c7bfb2;
+	--color-dark-line: #444b49;
+	/* Dark-mode semantic + soft-accent variants: backgrounds darken and text lightens
+	 * so the light/dark pairings used across the app stay legible on dark surfaces. */
+	--color-dark-sage-soft: #33473a;
+	--color-dark-sky-soft: #274048;
+	--color-dark-peach-soft: #45332b;
+	--color-dark-butter: #4a3c1a;
+	--color-dark-success-bg: #26382b;
+	--color-dark-success-text: #93cf99;
+	--color-dark-warning-bg: #3d3318;
+	--color-dark-warning-text: #e8c579;
+	--color-dark-danger-bg: #3d2723;
+	--color-dark-danger-text: #eba99f;
+	--color-dark-info-bg: #23404a;
+	--color-dark-info-text: #9ad7e4;
+	--shadow-dark-card: 0 14px 40px rgba(0, 0, 0, 0.5);
+	--shadow-dark-float: 0 18px 50px rgba(0, 0, 0, 0.62);
 	--radius-card: 28px;
 	--radius-card-lg: 36px;
 	--radius-pill: 999px;
@@ -37,7 +60,101 @@
 	--ease-bounce: cubic-bezier(0.18, 1.28, 0.42, 1);
 }
 
+/*
+ * Dark theme remap: components reference base --color-* tokens, so remapping the
+ * tokens here themes the whole app. Charcoal (buttons, nav, icon glyphs) lightens
+ * for contrast on dark; because charcoal glyphs sit on pale *-soft chips and the
+ * app pairs semantic *-bg with *-text, the soft/semantic backgrounds darken and
+ * the semantic text lightens together so every pairing stays legible. Shadows
+ * deepen so elevation still reads against the dark surface.
+ */
+:root[data-theme='dark'] {
+	--color-paper: var(--color-dark-bg);
+	--color-paper-2: var(--color-dark-surface);
+	--color-paper-3: var(--color-dark-surface-2);
+	--color-ink: var(--color-dark-text);
+	--color-muted: var(--color-dark-muted);
+	--color-line: var(--color-dark-line);
+	--color-charcoal: var(--color-dark-text);
+	--color-charcoal-soft: var(--color-dark-muted);
+	--color-sage-soft: var(--color-dark-sage-soft);
+	--color-sky-soft: var(--color-dark-sky-soft);
+	--color-peach-soft: var(--color-dark-peach-soft);
+	--color-butter: var(--color-dark-butter);
+	--color-success-bg: var(--color-dark-success-bg);
+	--color-success-text: var(--color-dark-success-text);
+	--color-warning-bg: var(--color-dark-warning-bg);
+	--color-warning-text: var(--color-dark-warning-text);
+	--color-danger-bg: var(--color-dark-danger-bg);
+	--color-danger-text: var(--color-dark-danger-text);
+	--color-info-bg: var(--color-dark-info-bg);
+	--color-info-text: var(--color-dark-info-text);
+	--shadow-card: var(--shadow-dark-card);
+	--shadow-float: var(--shadow-dark-float);
+	--nav-surface: var(--color-dark-surface-2);
+	--nav-text: var(--color-dark-text);
+	--nav-active-chip: var(--color-dark-text);
+	--nav-active-glyph: var(--color-dark-bg);
+}
+
+/* System preference follows the OS, evaluated by the browser before paint. */
+@media (prefers-color-scheme: dark) {
+	:root[data-theme='system'] {
+		--color-paper: var(--color-dark-bg);
+		--color-paper-2: var(--color-dark-surface);
+		--color-paper-3: var(--color-dark-surface-2);
+		--color-ink: var(--color-dark-text);
+		--color-muted: var(--color-dark-muted);
+		--color-line: var(--color-dark-line);
+		--color-charcoal: var(--color-dark-text);
+		--color-charcoal-soft: var(--color-dark-muted);
+		--color-sage-soft: var(--color-dark-sage-soft);
+		--color-sky-soft: var(--color-dark-sky-soft);
+		--color-peach-soft: var(--color-dark-peach-soft);
+		--color-butter: var(--color-dark-butter);
+		--color-success-bg: var(--color-dark-success-bg);
+		--color-success-text: var(--color-dark-success-text);
+		--color-warning-bg: var(--color-dark-warning-bg);
+		--color-warning-text: var(--color-dark-warning-text);
+		--color-danger-bg: var(--color-dark-danger-bg);
+		--color-danger-text: var(--color-dark-danger-text);
+		--color-info-bg: var(--color-dark-info-bg);
+		--color-info-text: var(--color-dark-info-text);
+		--shadow-card: var(--shadow-dark-card);
+		--shadow-float: var(--shadow-dark-float);
+		--nav-surface: var(--color-dark-surface-2);
+		--nav-text: var(--color-dark-text);
+		--nav-active-chip: var(--color-dark-text);
+		--nav-active-glyph: var(--color-dark-bg);
+	}
+}
+
+/*
+ * Semantic aliases over the core palette. Because they reference the base
+ * --color-* tokens (which are remapped for dark mode above), these adapt to the
+ * active theme automatically. Prefer these names in new/edited component CSS.
+ */
 :root {
+	--app-bg: var(--color-paper);
+	--surface: var(--color-paper-2);
+	--surface-raised: var(--color-paper-2);
+	--surface-muted: var(--color-paper-3);
+	--text-main: var(--color-ink);
+	--text-muted: var(--color-muted);
+	--border-soft: var(--color-line);
+	--accent-primary: var(--color-charcoal);
+	--accent-success: var(--color-success-text);
+	--accent-info: var(--color-info-text);
+	--accent-warning: var(--color-warning-text);
+	/* --shadow-card / --shadow-float defined in @theme (dark-aware). */
+
+	/* Bottom nav stays a warm dark bar in both themes (overridden in dark scopes
+	 * below so it does not invert to a light bar). Scan CTA uses the active chip. */
+	--nav-surface: var(--color-charcoal);
+	--nav-text: var(--color-paper-2);
+	--nav-active-chip: var(--color-paper-2);
+	--nav-active-glyph: var(--color-charcoal);
+
 	font-family: var(--font-sans);
 	color: var(--color-ink);
 	background: var(--color-paper);
