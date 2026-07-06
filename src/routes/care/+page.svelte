@@ -229,8 +229,16 @@
 		border-radius: 32px;
 		padding: 22px;
 		background:
-			radial-gradient(circle at 92% 10%, rgba(169, 217, 232, 0.24), transparent 32%),
-			radial-gradient(circle at 8% 88%, rgba(244, 191, 168, 0.22), transparent 34%),
+			radial-gradient(
+				circle at 92% 10%,
+				color-mix(in srgb, var(--color-sky) 24%, transparent),
+				transparent 32%
+			),
+			radial-gradient(
+				circle at 8% 88%,
+				color-mix(in srgb, var(--color-peach) 22%, transparent),
+				transparent 34%
+			),
 			var(--color-paper-2);
 	}
 
@@ -301,7 +309,7 @@
 	}
 
 	.care-item.selected {
-		border-color: rgba(36, 38, 38, 0.22);
+		border-color: color-mix(in srgb, var(--color-charcoal) 22%, transparent);
 		background: var(--color-paper);
 	}
 
