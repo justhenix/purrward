@@ -32,56 +32,56 @@
 			id: 'feeding',
 			title: 'Breakfast',
 			need: 'Breakfast time',
-			success: 'Breakfast proof submitted',
+			success: 'Breakfast proof accepted',
 			points: 10
 		},
 		{
 			id: 'water',
 			title: 'Water',
 			need: 'Fresh water time',
-			success: 'Water proof submitted',
+			success: 'Water proof accepted',
 			points: 10
 		},
 		{
 			id: 'litter',
 			title: 'Litter',
 			need: 'Clean litter time',
-			success: 'Litter proof submitted',
+			success: 'Litter proof accepted',
 			points: 10
 		},
 		{
 			id: 'play',
 			title: 'Play',
 			need: 'Play time',
-			success: 'Play proof submitted',
+			success: 'Play proof accepted',
 			points: 10
 		},
 		{
 			id: 'grooming',
 			title: 'Grooming',
 			need: 'Brush time',
-			success: 'Grooming proof submitted',
+			success: 'Grooming proof accepted',
 			points: 10
 		},
 		{
 			id: 'meds',
 			title: 'Medicine',
 			need: 'Medicine time',
-			success: 'Medicine proof submitted',
+			success: 'Medicine proof accepted',
 			points: 10
 		},
 		{
 			id: 'street_feeding',
 			title: 'Street Feeding',
 			need: 'Street feeding time',
-			success: 'Street feeding proof submitted',
+			success: 'Street feeding proof accepted',
 			points: 10
 		},
 		{
 			id: 'shelter_care',
 			title: 'Shelter Care',
 			need: 'Shelter care time',
-			success: 'Shelter care proof submitted',
+			success: 'Shelter care proof accepted',
 			points: 10
 		}
 	];
@@ -116,10 +116,10 @@
 				? 'Accepting sandbox proof...'
 				: `Checking ${catName}'s proof...`;
 		if (result?.verified)
-			return `${active.success}. +${result.pointsAwarded ?? active.points} pts.`;
+			return `${active.success}. +${result.pointsAwarded ?? active.points} Purrpoints.`;
 		if (result?.reason) return result.reason;
 		if (result?.error) return result.error;
-		if (capturedPhoto) return 'Photo ready to submit';
+		if (capturedPhoto) return 'Photo ready';
 		return 'No photo captured yet';
 	});
 
@@ -300,7 +300,7 @@
 			<h1>Care Proof</h1>
 			<span>
 				{data.preferences.sandboxMode
-					? 'Sandbox proof auto-passes for +1000 test pts.'
+					? 'Sandbox proof auto-passes for +1000 Purrpoints.'
 					: `Capture a live photo of ${catName} as care proof.`}
 			</span>
 		</div>
@@ -323,7 +323,7 @@
 			{:else}
 				<div class="empty-preview">
 					<Camera size={34} strokeWidth={1.9} aria-hidden="true" />
-					<p>Camera preview unavailable. Please grant camera permissions to log care.</p>
+					<p>Camera preview unavailable. Please grant camera access to earn care points.</p>
 				</div>
 			{/if}
 		</section>
@@ -349,7 +349,7 @@
 					<h2>Proof verified</h2>
 					<p class="success-points">+{result.pointsAwarded ?? active.points} Purrpoints</p>
 					<p class="success-balance">
-						{sandboxMode ? 'Sandbox balance' : 'Balance'}: {balance} pts
+						{sandboxMode ? 'Sandbox balance' : 'Balance'}: {balance} Purrpoints
 					</p>
 				{/if}
 				<div class="success-actions">
@@ -390,7 +390,7 @@
 							Checking...
 						{:else}
 							<Send size={17} strokeWidth={2.3} aria-hidden="true" />
-							Submit proof
+							Send proof
 						{/if}
 					</button>
 					<button

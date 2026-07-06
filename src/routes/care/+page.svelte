@@ -59,7 +59,7 @@
 		{
 			id: 'meds',
 			title: 'Medication',
-			text: 'Meds log',
+			text: 'Meds setup',
 			proof: 'Show meds setup.',
 			points: '+10'
 		},
