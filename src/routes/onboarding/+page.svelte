@@ -1,10 +1,10 @@
-<!-- First-run welcome: a 3-step intro to pick a care type, name a cat, and start caring. -->
+<!-- First-run onboarding: a warm 3-step flow to pick a care path, build a cat profile, and start caring. -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Cat from '@lucide/svelte/icons/cat';
 	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
 	import Check from '@lucide/svelte/icons/check';
-	import Bell from '@lucide/svelte/icons/bell';
+	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Star from '@lucide/svelte/icons/star';
 	import logo from '$lib/assets/logo/logo.svg';
@@ -20,17 +20,31 @@
 	let multipleCats = $state(false);
 	let submitting = $state(false);
 
-	let action = $derived(mode === 'owned' ? '?/owned' : '?/community');
-	let nameLabel = $derived(mode === 'owned' ? 'Cat name' : 'Name');
-	let namePlaceholder = $derived(mode === 'owned' ? 'Mochi, Luna, Orange...' : 'Optional');
-	let multiLabel = $derived(
-		mode === 'owned' ? 'I care for more than one cat' : 'I care for more than one community cat'
+	const isCommunity = $derived(mode === 'community');
+	const action = $derived(isCommunity ? '?/community' : '?/owned');
+	const stepLabel = $derived(`Step ${step} of 3`);
+
+	// Step 2 copy adapts to the chosen care path.
+	const profileTitle = $derived(isCommunity ? 'Care profile' : 'Name and look');
+	const profileSubtitle = $derived(
+		isCommunity ? 'Name the cat or group you care for.' : "Create your cat's profile."
 	);
-	let finalCta = $derived(mode === 'owned' ? 'Start caring' : 'Start helping cats');
-	let careTypeLabel = $derived(mode === 'owned' ? 'My cat' : 'Community cats');
-	let previewName = $derived(name.trim() || 'Unnamed cat');
-	let previewAvatar = $derived(getCatAvatar(selectedAvatar));
-	let canContinue = $derived(mode === 'community' || name.trim().length > 0);
+	const nameLabel = $derived(isCommunity ? 'Care name' : 'Cat name');
+	const namePlaceholder = $derived(
+		isCommunity ? 'Campus Cats, Shelter A, Orange...' : 'Mochi, Luna, Orange...'
+	);
+
+	// Preview + summary state.
+	const trimmedName = $derived(name.trim());
+	const placeholderName = $derived(isCommunity ? 'Care group' : 'Your cat');
+	const previewName = $derived(trimmedName || placeholderName);
+	const careTypeLabel = $derived(isCommunity ? 'Community cats' : 'My cat');
+	const previewAvatar = $derived(getCatAvatar(selectedAvatar));
+	const canContinue = $derived(trimmedName.length > 0);
+
+	// Step 3 benefit labels shift with the care path (routine vs logs, check vs proof).
+	const routineLabel = $derived(isCommunity ? 'Care logs' : 'Daily routine');
+	const photoLabel = $derived(isCommunity ? 'Photo proof' : 'Photo check');
 
 	function next() {
 		step = Math.min(3, step + 1);
@@ -46,18 +60,22 @@
 </svelte:head>
 
 <div class="onboard">
-	<header class="welcome">
-		<span class="welcome-mark">
+	<header class="ob-header">
+		<span class="ob-mark">
 			<img src={logo} alt="Purrward" width="56" height="56" />
 		</span>
-		<ol class="steps" aria-label="Step {step} of 3">
-			<li class:active={step >= 1}></li>
-			<li class:active={step >= 2}></li>
-			<li class:active={step >= 3}></li>
-		</ol>
+		<div class="progress" aria-hidden="true">
+			<div class="bars">
+				<span class="bar" class:filled={step > 1} class:current={step === 1}></span>
+				<span class="bar" class:filled={step > 2} class:current={step === 2}></span>
+				<span class="bar" class:current={step === 3}></span>
+			</div>
+			<span class="progress-label">{stepLabel}</span>
+		</div>
 	</header>
 
 	<form
+		class="ob-form"
 		method="POST"
 		{action}
 		use:enhance={() => {
@@ -68,51 +86,64 @@
 			};
 		}}
 	>
-		<input type="hidden" name="name" value={name} />
+		<input type="hidden" name="name" value={trimmedName} />
 		<input type="hidden" name="avatarId" value={selectedAvatar} />
 
 		{#if step === 1}
-			<section class="step">
-				<div class="step-head">
-					<p class="eyebrow">Hey there!</p>
-					<h1>Who do you care for?</h1>
-					<p class="lede">Pick one.</p>
-				</div>
+			<section class="step" aria-label={stepLabel}>
+				<div class="step-content">
+					<div class="step-head">
+						<p class="eyebrow">Let's set up care</p>
+						<h1>Who are you caring for?</h1>
+						<p class="subtitle">Choose your care path.</p>
+					</div>
 
-				<div class="choice-grid" role="radiogroup" aria-label="Care type">
-					<button
-						type="button"
-						class={['choice', mode === 'owned' && 'active']}
-						role="radio"
-						aria-checked={mode === 'owned'}
-						onclick={() => (mode = 'owned')}
-					>
-						<span class="choice-icon"><Cat size={22} strokeWidth={2.1} aria-hidden="true" /></span>
-						<span class="choice-title">My cat</span>
-						<span class="choice-sub">Track food, water, and health.</span>
-					</button>
-					<button
-						type="button"
-						class={['choice', mode === 'community' && 'active']}
-						role="radio"
-						aria-checked={mode === 'community'}
-						onclick={() => (mode = 'community')}
-					>
-						<span class="choice-icon">
-							<HeartHandshake size={22} strokeWidth={2.1} aria-hidden="true" />
+					<div class="path-grid" role="radiogroup" aria-label="Care path">
+						<button
+							type="button"
+							class={['path-card', !isCommunity && 'active']}
+							role="radio"
+							aria-checked={!isCommunity}
+							onclick={() => (mode = 'owned')}
+						>
+							<span class="path-icon"><Cat size={24} strokeWidth={2.1} aria-hidden="true" /></span>
+							<span class="path-text">
+								<span class="path-title">My cat</span>
+								<span class="path-body">Daily care for your own cat.</span>
+							</span>
+							<span class="path-check" aria-hidden="true">
+								{#if !isCommunity}<Check size={15} strokeWidth={3} />{/if}
+							</span>
+						</button>
+
+						<button
+							type="button"
+							class={['path-card', isCommunity && 'active']}
+							role="radio"
+							aria-checked={isCommunity}
+							onclick={() => (mode = 'community')}
+						>
+							<span class="path-icon">
+								<HeartHandshake size={24} strokeWidth={2.1} aria-hidden="true" />
+							</span>
+							<span class="path-text">
+								<span class="path-title">Community cats</span>
+								<span class="path-body">Care logs for street, shelter, or shared cats.</span>
+							</span>
+							<span class="path-check" aria-hidden="true">
+								{#if isCommunity}<Check size={15} strokeWidth={3} />{/if}
+							</span>
+						</button>
+					</div>
+
+					<label class={['multi-toggle', multipleCats && 'active']}>
+						<input type="checkbox" bind:checked={multipleCats} />
+						<span class="multi-box" aria-hidden="true">
+							{#if multipleCats}<Check size={13} strokeWidth={3} />{/if}
 						</span>
-						<span class="choice-title">Community cats</span>
-						<span class="choice-sub">Help street and shelter cats.</span>
-					</button>
+						<span class="multi-label">I care for more than one cat</span>
+					</label>
 				</div>
-
-				<label class={['multi-chip', multipleCats && 'active']}>
-					<input type="checkbox" bind:checked={multipleCats} />
-					<span class="multi-check" aria-hidden="true">
-						{#if multipleCats}<Check size={14} strokeWidth={3} />{/if}
-					</span>
-					<span class="multi-label">{multiLabel}</span>
-				</label>
 
 				<div class="actions">
 					<button class="btn btn-primary" type="button" onclick={next}>Next</button>
@@ -121,95 +152,116 @@
 		{/if}
 
 		{#if step === 2}
-			<section class="step">
-				<div class="step-head">
-					<h1>Name and look</h1>
+			<section class="step" aria-label={stepLabel}>
+				<div class="step-content">
+					<div class="step-head">
+						<h1>{profileTitle}</h1>
+						<p class="subtitle">{profileSubtitle}</p>
+					</div>
+
+					<div class="preview-box">
+						<span class="preview-portrait" aria-hidden="true">
+							{#if previewAvatar}<img src={previewAvatar.src} alt="" />{/if}
+						</span>
+						<span class="preview-name" class:muted={!trimmedName}>{previewName}</span>
+						<span class="preview-path">{careTypeLabel}</span>
+					</div>
+
+					<label class="field">
+						<span class="field-label">{nameLabel}</span>
+						<input
+							bind:value={name}
+							placeholder={namePlaceholder}
+							maxlength="40"
+							autocomplete="off"
+							aria-invalid={form?.field === 'name' ? true : undefined}
+						/>
+					</label>
+
+					<fieldset class="avatar-grid">
+						<legend>Pick a look</legend>
+						{#each data.avatars as avatar (avatar.id)}
+							<label class={['avatar-choice', selectedAvatar === avatar.id && 'active']}>
+								<input
+									type="radio"
+									value={avatar.id}
+									checked={selectedAvatar === avatar.id}
+									onchange={() => (selectedAvatar = avatar.id)}
+								/>
+								<img src={avatar.src} alt={avatar.label} />
+								<span>{avatar.label}</span>
+							</label>
+						{/each}
+					</fieldset>
 				</div>
 
-				<label class="field">
-					<span>{nameLabel}</span>
-					<input
-						bind:value={name}
-						placeholder={namePlaceholder}
-						maxlength="40"
-						autocomplete="off"
-					/>
-				</label>
-				{#if form?.field === 'name'}
-					<p class="field-error">{form.message}</p>
-				{/if}
-
-				<fieldset class="avatar-grid">
-					<legend>Choose an avatar</legend>
-					{#each data.avatars as avatar (avatar.id)}
-						<label class={['avatar-choice', selectedAvatar === avatar.id && 'active']}>
-							<input
-								type="radio"
-								value={avatar.id}
-								checked={selectedAvatar === avatar.id}
-								onchange={() => (selectedAvatar = avatar.id)}
-							/>
-							<img src={avatar.src} alt={avatar.label} />
-							<span>{avatar.label}</span>
-						</label>
-					{/each}
-				</fieldset>
-
-				<div class="actions">
-					<button class="btn btn-ghost" type="button" onclick={previous}>Previous</button>
-					<button class="btn btn-primary" type="button" onclick={next} disabled={!canContinue}>
-						Next
-					</button>
+				<div class="actions actions-stacked">
+					{#if !canContinue}
+						<p class="helper">Enter a name to continue.</p>
+					{:else if form?.field === 'name'}
+						<p class="helper error">{form.message}</p>
+					{/if}
+					<div class="actions-row">
+						<button class="btn btn-ghost" type="button" onclick={previous}>Previous</button>
+						<button class="btn btn-primary" type="button" onclick={next} disabled={!canContinue}>
+							Next
+						</button>
+					</div>
 				</div>
 			</section>
 		{/if}
 
 		{#if step === 3}
-			<section class="step">
-				<div class="step-head">
-					<h1>Ready to care?</h1>
-				</div>
-
-				<div class="preview">
-					<span class="preview-avatar" aria-hidden="true">
-						{#if previewAvatar}<img src={previewAvatar.src} alt="" />{/if}
-					</span>
-					<div class="preview-copy">
-						<strong>{previewName}</strong>
-						<span>{careTypeLabel}</span>
-						{#if multipleCats}<span class="preview-tag">More than one</span>{/if}
+			<section class="step" aria-label={stepLabel}>
+				<div class="step-content">
+					<div class="step-head">
+						<h1>Ready to care?</h1>
+						<p class="subtitle">Here's your care profile.</p>
 					</div>
+
+					<div class="summary-card">
+						<span class="summary-portrait" aria-hidden="true">
+							{#if previewAvatar}<img src={previewAvatar.src} alt="" />{/if}
+						</span>
+						<div class="summary-copy">
+							<strong>{previewName}</strong>
+							<span class="summary-path">{careTypeLabel}</span>
+							{#if multipleCats}<span class="summary-tag">More than one cat</span>{/if}
+						</div>
+					</div>
+
+					<ul class="benefits">
+						<li>
+							<span class="benefit-icon">
+								<CalendarCheck size={18} strokeWidth={2.1} aria-hidden="true" />
+							</span>
+							<span>{routineLabel}</span>
+						</li>
+						<li>
+							<span class="benefit-icon">
+								<Camera size={18} strokeWidth={2.1} aria-hidden="true" />
+							</span>
+							<span>{photoLabel}</span>
+						</li>
+						<li>
+							<span class="benefit-icon">
+								<Star size={18} strokeWidth={2.1} aria-hidden="true" />
+							</span>
+							<span>Purrpoints</span>
+						</li>
+					</ul>
+
+					{#if form?.message && form?.field !== 'name'}
+						<p class="helper error">{form.message}</p>
+					{/if}
 				</div>
-
-				<ul class="summary">
-					<li>
-						<span class="summary-icon"><Bell size={17} strokeWidth={2.1} aria-hidden="true" /></span
-						>
-						<span>Daily reminder</span>
-					</li>
-					<li>
-						<span class="summary-icon"
-							><Camera size={17} strokeWidth={2.1} aria-hidden="true" /></span
-						>
-						<span>Photo check</span>
-					</li>
-					<li>
-						<span class="summary-icon"><Star size={17} strokeWidth={2.1} aria-hidden="true" /></span
-						>
-						<span>Purrpoints</span>
-					</li>
-				</ul>
-
-				{#if form?.message}
-					<p class="field-error">{form.message}</p>
-				{/if}
 
 				<div class="actions">
 					<button class="btn btn-ghost" type="button" onclick={previous} disabled={submitting}>
 						Previous
 					</button>
 					<button class="btn btn-primary" type="submit" disabled={submitting}>
-						{submitting ? 'Starting...' : finalCta}
+						{submitting ? 'Starting...' : 'Start caring'}
 					</button>
 				</div>
 			</section>
@@ -221,266 +273,378 @@
 	.onboard {
 		display: flex;
 		flex-direction: column;
-		gap: 22px;
-		max-width: 420px;
-		min-height: calc(100dvh - 40px);
-		margin: 0 auto;
-		padding-top: 10px;
+		gap: 20px;
+		max-width: 480px;
+		min-height: calc(100svh - 36px);
+		margin-inline: auto;
 	}
 
-	.welcome {
-		display: grid;
-		justify-items: start;
-		gap: 14px;
+	/* Header: brand mark + progress bars with a readable step label. */
+	.ob-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding-top: 4px;
 	}
 
-	.welcome-mark {
+	.ob-mark {
 		display: grid;
 		place-items: center;
-		width: 60px;
-		height: 60px;
+		width: 56px;
+		height: 56px;
+		flex: none;
 		border-radius: 20px;
 		background: var(--color-paper-2);
 		border: 1px solid var(--color-line);
-		box-shadow: 0 10px 24px color-mix(in srgb, var(--color-charcoal) 9%, transparent);
+		box-shadow: var(--shadow-card);
 	}
 
-	.welcome-mark img {
-		width: 46px;
-		height: 46px;
+	.ob-mark img {
+		width: 42px;
+		height: 42px;
 		object-fit: contain;
 	}
 
-	.steps {
-		display: flex;
+	.progress {
+		display: grid;
+		justify-items: end;
 		gap: 8px;
-		margin: 0;
-		padding: 0;
-		list-style: none;
 	}
 
-	.steps li {
-		width: 30px;
+	.bars {
+		display: flex;
+		gap: 7px;
+	}
+
+	.bar {
+		width: 26px;
 		height: 6px;
 		border-radius: var(--radius-pill);
 		background: var(--color-line);
-		transition: background 200ms ease;
+		transition:
+			background 220ms ease,
+			width 220ms var(--ease-mobile);
 	}
 
-	.steps li.active {
+	.bar.filled {
+		background: color-mix(in srgb, var(--color-charcoal) 45%, var(--color-line));
+	}
+
+	.bar.current {
+		width: 34px;
 		background: var(--color-charcoal);
 	}
 
-	form {
+	.progress-label {
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
+	.ob-form {
 		display: flex;
 		flex: 1;
 		flex-direction: column;
 	}
 
+	/* Center the content + actions cluster so tall screens feel balanced, not top-heavy. */
 	.step {
 		display: flex;
 		flex: 1;
 		flex-direction: column;
-		gap: 16px;
+		justify-content: center;
+		gap: 22px;
+		padding-bottom: max(16px, env(safe-area-inset-bottom));
+	}
+
+	.step-content {
+		display: grid;
+		gap: 18px;
 	}
 
 	.step-head {
 		display: grid;
-		gap: 4px;
+		gap: 5px;
 	}
 
 	.eyebrow {
 		margin: 0;
-		color: var(--color-peach);
+		color: var(--color-success-text);
 		font-size: 0.9rem;
 		font-weight: 800;
-		filter: saturate(1.1) brightness(0.82);
 	}
 
 	.step-head h1 {
 		margin: 0;
 		color: var(--color-ink);
-		font-size: 1.9rem;
-		line-height: 1.08;
+		font-size: 2rem;
+		line-height: 1.06;
 	}
 
-	.lede {
+	.subtitle {
 		margin: 0;
 		color: var(--color-muted);
-		font-size: 0.95rem;
-		font-weight: 600;
+		font-size: 0.98rem;
+		font-weight: 500;
 	}
 
-	.choice-grid {
+	/* Step 1 — care path cards (both first-class). */
+	.path-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
 		gap: 12px;
 	}
 
-	.choice {
+	.path-card {
 		display: grid;
-		justify-items: start;
-		gap: 6px;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: 14px;
 		border: 1px solid var(--color-line);
 		border-radius: var(--radius-card);
 		background: var(--color-paper-2);
-		padding: 18px 14px;
+		padding: 16px;
 		color: var(--color-charcoal);
 		text-align: left;
 		cursor: pointer;
-		box-shadow: 0 8px 20px color-mix(in srgb, var(--color-charcoal) 5%, transparent);
+		box-shadow: var(--shadow-card);
 		transition:
 			background 160ms ease,
 			border-color 160ms ease,
 			transform 160ms var(--ease-mobile);
 	}
 
-	.choice:active {
-		transform: scale(0.98);
+	.path-card:active {
+		transform: scale(0.99);
 	}
 
-	.choice-icon {
+	.path-icon {
 		display: grid;
 		place-items: center;
-		width: 44px;
-		height: 44px;
-		border-radius: 15px;
-		background: var(--color-paper-3);
+		width: 52px;
+		height: 52px;
+		flex: none;
+		border-radius: 18px;
+		background: var(--color-peach-soft);
 		color: var(--color-charcoal);
 	}
 
-	.choice.active {
-		border-color: color-mix(in srgb, var(--color-success-text) 30%, var(--color-line));
-		background: var(--color-sage-soft);
-		color: var(--color-success-text);
+	.path-text {
+		display: grid;
+		gap: 3px;
+		min-width: 0;
 	}
 
-	.choice.active .choice-icon {
-		background: color-mix(in srgb, var(--color-paper-2) 70%, var(--color-sage-soft));
-		color: var(--color-success-text);
-	}
-
-	.choice-title {
-		font-size: 1rem;
+	.path-title {
+		font-size: 1.08rem;
 		font-weight: 800;
 	}
 
-	.choice-sub {
+	.path-body {
 		color: var(--color-muted);
-		font-size: 0.76rem;
-		font-weight: 600;
+		font-size: 0.88rem;
+		font-weight: 500;
 		line-height: 1.35;
 	}
 
-	.choice.active .choice-sub {
-		color: color-mix(in srgb, var(--color-success-text) 80%, transparent);
-	}
-
-	.multi-chip {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-pill);
-		background: var(--color-paper-2);
-		padding: 12px 16px;
-		font-size: 0.86rem;
-		font-weight: 700;
-		color: var(--color-charcoal);
-		cursor: pointer;
-		transition:
-			background 160ms ease,
-			border-color 160ms ease;
-	}
-
-	.multi-chip.active {
-		background: var(--color-sage-soft);
-		border-color: color-mix(in srgb, var(--color-success-text) 24%, var(--color-line));
+	.path-check {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		flex: none;
+		border-radius: 50%;
+		border: 1.5px solid var(--color-line);
+		background: var(--color-paper);
 		color: var(--color-success-text);
 	}
 
-	.multi-chip input {
+	.path-card.active {
+		border-color: color-mix(in srgb, var(--color-success-text) 32%, var(--color-line));
+		background: var(--color-sage-soft);
+		color: var(--color-success-text);
+	}
+
+	.path-card.active .path-icon {
+		background: color-mix(in srgb, var(--color-paper-2) 66%, var(--color-sage-soft));
+		color: var(--color-success-text);
+	}
+
+	.path-card.active .path-body {
+		color: color-mix(in srgb, var(--color-success-text) 82%, transparent);
+	}
+
+	.path-card.active .path-check {
+		border-color: transparent;
+		background: color-mix(in srgb, var(--color-success-text) 20%, var(--color-paper-2));
+	}
+
+	/* Secondary multi-cat setting — visually subordinate to the two path cards. */
+	.multi-toggle {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		border: 1px dashed var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-3);
+		padding: 11px 16px;
+		color: var(--color-muted);
+		font-size: 0.86rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			background 160ms ease,
+			border-color 160ms ease,
+			color 160ms ease;
+	}
+
+	.multi-toggle.active {
+		border-style: solid;
+		border-color: color-mix(in srgb, var(--color-success-text) 24%, var(--color-line));
+		background: var(--color-sage-soft);
+		color: var(--color-success-text);
+	}
+
+	.multi-toggle input {
 		position: absolute;
 		width: 1px;
 		height: 1px;
 		opacity: 0;
 	}
 
-	.multi-check {
+	.multi-box {
 		display: grid;
 		place-items: center;
-		width: 22px;
-		height: 22px;
+		width: 20px;
+		height: 20px;
 		flex: none;
-		border-radius: 8px;
+		border-radius: 7px;
 		border: 1.5px solid var(--color-line);
 		background: var(--color-paper);
 		color: var(--color-success-text);
 	}
 
-	.multi-chip.active .multi-check {
-		border-color: color-mix(in srgb, var(--color-success-text) 40%, transparent);
-		background: color-mix(in srgb, var(--color-paper-2) 80%, var(--color-sage-soft));
+	.multi-toggle.active .multi-box {
+		border-color: transparent;
+		background: color-mix(in srgb, var(--color-paper-2) 78%, var(--color-sage-soft));
+	}
+
+	/* Step 2 — large profile preview. */
+	.preview-box {
+		display: grid;
+		justify-items: center;
+		gap: 10px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-card-lg);
+		background:
+			radial-gradient(
+				circle at 50% 22%,
+				color-mix(in srgb, var(--color-peach-soft) 60%, transparent),
+				transparent 60%
+			),
+			var(--color-paper-2);
+		padding: 22px 20px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.preview-portrait {
+		display: grid;
+		place-items: center;
+		width: 112px;
+		height: 112px;
+		border-radius: 32px;
+		background: var(--color-peach-soft);
+		overflow: hidden;
+	}
+
+	.preview-portrait img {
+		width: 88px;
+		height: 88px;
+		object-fit: contain;
+	}
+
+	.preview-name {
+		max-width: 100%;
+		overflow: hidden;
+		color: var(--color-ink);
+		font-family: var(--font-display);
+		font-size: 1.4rem;
+		font-weight: 700;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.preview-name.muted {
+		color: var(--color-muted);
+	}
+
+	.preview-path {
+		border-radius: var(--radius-pill);
+		background: var(--color-sage-soft);
+		color: var(--color-success-text);
+		padding: 4px 13px;
+		font-size: 0.8rem;
+		font-weight: 800;
 	}
 
 	.field {
 		display: grid;
-		gap: 6px;
+		gap: 7px;
 	}
 
-	.field span {
-		color: var(--color-muted);
-		font-size: 0.82rem;
+	.field-label {
+		color: var(--color-charcoal);
+		font-size: 0.84rem;
 		font-weight: 800;
 	}
 
 	.field input {
+		width: 100%;
 		border: 1px solid var(--color-line);
-		border-radius: 16px;
+		border-radius: 18px;
 		background: var(--color-paper-2);
 		color: var(--color-ink);
-		padding: 13px 15px;
+		padding: 14px 16px;
 		font: inherit;
-		font-size: 0.95rem;
+		font-size: 0.98rem;
 	}
 
 	.field input:focus-visible {
 		outline: 2px solid color-mix(in srgb, var(--color-peach) 60%, transparent);
 		outline-offset: 1px;
+		border-color: color-mix(in srgb, var(--color-peach) 50%, var(--color-line));
 	}
 
-	.field-error {
-		margin: 0;
-		color: var(--color-danger-text);
-		font-size: 0.82rem;
-		font-weight: 700;
-	}
-
+	/* Step 2 — avatar picker, consistent with path cards, soft selected state. */
 	.avatar-grid {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 8px;
+		gap: 10px;
 		border: 0;
 		margin: 0;
 		padding: 0;
+		min-width: 0;
 	}
 
 	.avatar-grid legend {
-		margin-bottom: 8px;
+		float: left;
+		width: 100%;
+		margin-bottom: 10px;
 		padding: 0;
-		color: var(--color-muted);
-		font-size: 0.82rem;
+		color: var(--color-charcoal);
+		font-size: 0.84rem;
 		font-weight: 800;
 	}
 
 	.avatar-choice {
 		display: grid;
 		justify-items: center;
-		gap: 5px;
-		border: 1px solid transparent;
-		border-radius: 16px;
+		gap: 6px;
+		border: 1px solid var(--color-line);
+		border-radius: 18px;
 		background: var(--color-paper-2);
-		padding: 8px 6px;
+		padding: 11px 6px;
 		font-size: 0.72rem;
 		font-weight: 700;
 		color: var(--color-muted);
@@ -493,7 +657,7 @@
 
 	.avatar-choice.active {
 		background: var(--color-sage-soft);
-		border-color: color-mix(in srgb, var(--color-success-text) 22%, transparent);
+		border-color: color-mix(in srgb, var(--color-success-text) 26%, var(--color-line));
 		color: var(--color-success-text);
 	}
 
@@ -504,69 +668,86 @@
 		opacity: 0;
 	}
 
+	.avatar-choice:focus-within {
+		outline: 2px solid color-mix(in srgb, var(--color-peach) 55%, transparent);
+		outline-offset: 2px;
+	}
+
 	.avatar-choice img {
-		width: 40px;
-		height: 40px;
+		width: 46px;
+		height: 46px;
 		object-fit: contain;
 	}
 
-	.preview {
+	/* Step 3 — summary + benefits. */
+	.summary-card {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		gap: 16px;
 		border: 1px solid var(--color-line);
-		border-radius: var(--radius-card);
-		background: var(--color-paper-2);
-		padding: 16px;
-		box-shadow: var(--shadow-card);
+		border-radius: var(--radius-card-lg);
+		background:
+			radial-gradient(
+				circle at 14% 0%,
+				color-mix(in srgb, var(--color-sky-soft) 46%, transparent),
+				transparent 42%
+			),
+			var(--color-paper-2);
+		padding: 18px;
+		box-shadow: var(--shadow-float);
 	}
 
-	.preview-avatar {
+	.summary-portrait {
 		display: grid;
 		place-items: center;
-		width: 60px;
-		height: 60px;
+		width: 78px;
+		height: 78px;
 		flex: none;
-		border-radius: 20px;
+		border-radius: 24px;
 		background: var(--color-peach-soft);
 		overflow: hidden;
 	}
 
-	.preview-avatar img {
-		width: 48px;
-		height: 48px;
+	.summary-portrait img {
+		width: 62px;
+		height: 62px;
 		object-fit: contain;
 	}
 
-	.preview-copy {
+	.summary-copy {
 		display: grid;
-		gap: 3px;
+		gap: 5px;
 		min-width: 0;
 	}
 
-	.preview-copy strong {
+	.summary-copy strong {
+		overflow: hidden;
 		color: var(--color-ink);
-		font-size: 1.1rem;
-		font-weight: 800;
-	}
-
-	.preview-copy span {
-		color: var(--color-muted);
-		font-size: 0.82rem;
+		font-family: var(--font-display);
+		font-size: 1.3rem;
 		font-weight: 700;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
-	.preview-tag {
+	.summary-path {
 		justify-self: start;
 		border-radius: var(--radius-pill);
 		background: var(--color-sage-soft);
 		color: var(--color-success-text);
-		padding: 2px 10px;
-		font-size: 0.72rem;
+		padding: 3px 12px;
+		font-size: 0.78rem;
 		font-weight: 800;
 	}
 
-	.summary {
+	.summary-tag {
+		justify-self: start;
+		color: var(--color-muted);
+		font-size: 0.78rem;
+		font-weight: 700;
+	}
+
+	.benefits {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 10px;
@@ -575,35 +756,57 @@
 		list-style: none;
 	}
 
-	.summary li {
+	.benefits li {
 		display: grid;
 		justify-items: center;
-		gap: 8px;
+		gap: 9px;
 		border: 1px solid var(--color-line);
 		border-radius: var(--radius-card);
 		background: var(--color-paper-2);
-		padding: 14px 8px;
-		font-size: 0.76rem;
+		padding: 15px 8px;
+		font-size: 0.78rem;
 		font-weight: 800;
 		color: var(--color-charcoal);
 		text-align: center;
 	}
 
-	.summary-icon {
+	.benefit-icon {
 		display: grid;
 		place-items: center;
-		width: 38px;
-		height: 38px;
-		border-radius: 13px;
+		width: 40px;
+		height: 40px;
+		border-radius: 14px;
 		background: var(--color-peach-soft);
 		color: var(--color-charcoal);
 	}
 
+	/* Actions — sit close to content on tall screens, sticky only on short ones. */
 	.actions {
 		display: flex;
-		gap: 10px;
-		margin-top: auto;
-		padding-top: 8px;
+		gap: 12px;
+	}
+
+	.actions-stacked {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.actions-row {
+		display: flex;
+		gap: 12px;
+	}
+
+	.helper {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.84rem;
+		font-weight: 600;
+		text-align: center;
+	}
+
+	.helper.error {
+		color: var(--color-danger-text);
+		font-weight: 700;
 	}
 
 	.btn {
@@ -611,7 +814,7 @@
 		min-height: 54px;
 		border-radius: var(--radius-pill);
 		font-size: 1rem;
-		font-weight: 850;
+		font-weight: 700;
 		cursor: pointer;
 		transition:
 			transform 160ms var(--ease-mobile),
@@ -630,7 +833,7 @@
 	}
 
 	.btn-primary:disabled {
-		opacity: 0.55;
+		opacity: 0.5;
 		cursor: not-allowed;
 		box-shadow: none;
 	}
@@ -642,21 +845,42 @@
 	}
 
 	.btn-ghost:disabled {
-		opacity: 0.55;
+		opacity: 0.5;
 		cursor: not-allowed;
 	}
 
+	/* Short viewports: don't center; keep actions reachable at the bottom. */
+	@media (max-height: 660px) {
+		.step {
+			justify-content: flex-start;
+		}
+
+		.actions,
+		.actions-stacked {
+			position: sticky;
+			bottom: 0;
+			margin-top: auto;
+			padding-top: 12px;
+			padding-bottom: max(12px, env(safe-area-inset-bottom));
+			background: linear-gradient(to top, var(--color-paper) 72%, transparent);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
-		.choice,
-		.multi-chip,
+		.path-card,
+		.multi-toggle,
 		.avatar-choice,
 		.btn,
-		.steps li {
+		.bar {
 			transition: none;
 		}
 	}
 
 	@media (max-width: 360px) {
+		.step-head h1 {
+			font-size: 1.8rem;
+		}
+
 		.avatar-grid {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
