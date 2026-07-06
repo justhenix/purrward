@@ -122,3 +122,8 @@ export function isRedeemableKind(kind: ItemKind): boolean {
 
 // The gacha pull pool (T3): every gacha-eligible catalog item.
 export const GACHA_POOL: CatalogItem[] = CATALOG.filter((item) => item.gacha === true);
+
+// Purchasable kinds (T5): owned items only. Gacha-eligibility does not block direct purchase.
+export function isPurchasableKind(kind: ItemKind): boolean {
+	return kind === 'accessory' || kind === 'background';
+}
