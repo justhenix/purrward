@@ -43,6 +43,7 @@ bun-debug.log*
 /coverage
 /.nyc_output
 /artifacts
+/output
 /test
 /test-results
 /test-results/artifacts
