@@ -2,14 +2,14 @@ import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
-import config from './pterodactyl.config';
-import { pterodactyl } from './src/lib/pterodactyl/core/vite/plugin';
+import config from './purrdocs.config';
+import { purrdocs } from './src/lib/purrdocs/core/vite/plugin';
 
 export default defineConfig({
-	plugins: [tailwindcss(), pterodactyl({ config, contentDir: 'src/content/docs' }), sveltekit()],
+	plugins: [tailwindcss(), purrdocs({ config, contentDir: 'src/content/docs' }), sveltekit()],
 	resolve: {
 		alias: {
-			'pterodactyl-core': path.resolve('./src/lib/pterodactyl/core')
+			'purrdocs-core': path.resolve('./src/lib/purrdocs/core')
 		}
 	},
 	server: {

@@ -1,4 +1,4 @@
-<!-- User help page: short in-app guide plus secondary developer docs link. -->
+<!-- User help page: short in-app guide plus hidden developer docs button. -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -68,10 +68,13 @@
 		<a class="back-button" href={resolve('/profile')} aria-label="Back to profile">
 			<ChevronLeft size={22} strokeWidth={2.3} aria-hidden="true" />
 		</a>
-		<div>
+		<div class="help-copy">
 			<h1>Help</h1>
 			<p>Quick guide for caring, earning, and using Purrward.</p>
 		</div>
+		<a class="docs-button" href={resolve('/dev-docs')} aria-label="Developer docs">
+			<Code2 size={18} strokeWidth={2.3} aria-hidden="true" />
+		</a>
 	</header>
 
 	<section class="guide-card" aria-label="Quick help">
@@ -97,16 +100,6 @@
 			</details>
 		{/each}
 	</section>
-
-	<a class="developer-card" href={resolve('/dev-docs')}>
-		<span class="developer-icon" aria-hidden="true">
-			<Code2 size={18} strokeWidth={2.3} />
-		</span>
-		<span>
-			<strong>Developer docs</strong>
-			<small>Setup, architecture, security notes, and local development.</small>
-		</span>
-	</a>
 </div>
 
 <style>
@@ -135,6 +128,24 @@
 		box-shadow: var(--shadow-card);
 	}
 
+	.help-copy {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.docs-button {
+		display: grid;
+		width: 42px;
+		height: 42px;
+		flex: 0 0 auto;
+		place-items: center;
+		border: 1px dashed var(--color-line);
+		border-radius: 15px;
+		background: var(--color-paper);
+		color: var(--color-charcoal);
+		text-decoration: none;
+	}
+
 	.help-header h1 {
 		margin: 0;
 		color: var(--color-ink);
@@ -143,8 +154,7 @@
 
 	.help-header p,
 	.answer p,
-	.answer li,
-	.developer-card small {
+	.answer li {
 		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.84rem;
@@ -211,36 +221,5 @@
 		font-size: 0.78rem;
 		font-weight: 850;
 		text-decoration: none;
-	}
-
-	.developer-card {
-		display: grid;
-		grid-template-columns: 42px 1fr;
-		align-items: center;
-		gap: 12px;
-		border: 1px dashed var(--color-line);
-		border-radius: 22px;
-		background: var(--color-paper);
-		color: var(--color-charcoal);
-		padding: 13px 15px;
-		text-decoration: none;
-	}
-
-	.developer-icon {
-		display: grid;
-		width: 42px;
-		height: 42px;
-		place-items: center;
-		border-radius: 15px;
-		background: var(--color-paper-3);
-		color: var(--color-charcoal);
-	}
-
-	.developer-card strong {
-		display: block;
-		margin-bottom: 2px;
-		color: var(--color-ink);
-		font-size: 0.92rem;
-		font-weight: 900;
 	}
 </style>

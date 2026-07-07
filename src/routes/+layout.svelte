@@ -307,7 +307,7 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: var(--ptero-color-bg, #f4f6fb);
+		background: var(--color-paper, #fdf8ef);
 	}
 
 	:global(html[data-is-docs='true']),
@@ -318,7 +318,7 @@
 		padding: 0 !important;
 		overflow: hidden !important;
 		display: block !important;
-		background: var(--ptero-color-bg, #f4f6fb) !important;
+		background: var(--color-paper, #fdf8ef) !important;
 	}
 
 	.page-decor {

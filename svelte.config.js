@@ -2,7 +2,7 @@
 import adapterCloudflare from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { mdsvex } from 'mdsvex';
-import { createMdsvexConfig } from './src/lib/pterodactyl/core/mdsvex/config.js';
+import { createMdsvexConfig } from './src/lib/purrdocs/core/mdsvex/config.js';
 
 const mdsvexConfig = createMdsvexConfig();
 
@@ -23,7 +23,7 @@ const config = {
 				if (!filename || !/\.(md|svx)$/.test(filename)) return;
 				if (!content.includes('CodeBlock') && !content.includes('CodeTabs')) return;
 
-				const importStatement = "import { CodeBlock, CodeTabs } from 'pterodactyl-core';";
+				const importStatement = "import { CodeBlock, CodeTabs } from 'purrdocs-core';";
 				if (content.includes('<script')) {
 					return {
 						code: content.replace(/<script(.*?)>/, `<script$1>\n${importStatement}`)
@@ -39,7 +39,7 @@ const config = {
 	kit: {
 		adapter: adapterCloudflare(),
 		alias: {
-			'pterodactyl-core': './src/lib/pterodactyl/core'
+			'purrdocs-core': './src/lib/purrdocs/core'
 		},
 		typescript: {
 			config: (config) => ({
