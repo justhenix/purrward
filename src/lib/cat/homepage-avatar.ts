@@ -67,49 +67,9 @@ const COATS: readonly CatCoat[] = [
 ];
 const POSES: readonly CatPose[] = ['sit', 'sleep', 'play', 'eat', 'drink', 'groom', 'idle'];
 const EYE_COLORS: readonly CatEyeColor[] = ['blue', 'green', 'orange'];
-const DARK_FACE_COATS = new Set<CatCoat>(['black', 'tuxedo']);
-
-export const faceAssets = {
-	default: {
-		happy: 'happy',
-		normal: {
-			blue: 'normal_blue',
-			green: 'normal_green',
-			orange: 'normal_orange'
-		},
-		sad: {
-			blue: 'sad_blue',
-			green: 'sad_green',
-			orange: 'sad_orange'
-		},
-		sleepy: 'sleep'
-	},
-	dark: {
-		happy: 'dark_happy',
-		normal: {
-			blue: 'dark_normal_blue',
-			green: 'dark_normal_green',
-			orange: 'dark_normal_orange'
-		},
-		sad: {
-			blue: 'dark_sad_blue',
-			green: 'dark_sad_green',
-			orange: 'dark_sad_orange'
-		},
-		sleepy: 'dark_sleep'
-	}
-} as const satisfies Record<
-	'default' | 'dark',
-	{
-		happy: string;
-		normal: Record<CatEyeColor, string>;
-		sad: Record<CatEyeColor, string>;
-		sleepy: string;
-	}
->;
 
 type ParsedBody = { asset: CatAsset; coat: CatCoat; pose: CatPose };
-type ParsedFace = { asset: CatAsset; mood: CatMood; eyeColor: CatEyeColor | null; dark: boolean };
+type ParsedFace = { asset: CatAsset; mood: CatMood; eyeColor: CatEyeColor | null };
 
 function parseBodies(): ParsedBody[] {
 	const out: ParsedBody[] = [];
@@ -137,7 +97,7 @@ function parseFaces(): ParsedFace[] {
 			asset.tags.find((tag): tag is CatEyeColor =>
 				(EYE_COLORS as readonly string[]).includes(tag)
 			) ?? null;
-		out.push({ asset, mood, eyeColor, dark: asset.tags.includes('dark') });
+		out.push({ asset, mood, eyeColor });
 	}
 	return out;
 }
@@ -155,10 +115,6 @@ function faceFitsPose(faceMood: CatMood, pose: CatPose): boolean {
 	return true;
 }
 
-export function isDarkCatCoat(coat: CatCoat): boolean {
-	return DARK_FACE_COATS.has(coat);
-}
-
 function layerFromAsset(asset: CatAsset): HomepageCatLayer {
 	return {
 		id: asset.id,
@@ -168,21 +124,6 @@ function layerFromAsset(asset: CatAsset): HomepageCatLayer {
 	};
 }
 
-function mappedFaceAssetId(coat: CatCoat, mood: CatMood, eyeColor: CatEyeColor): string | null {
-	const faceSet = isDarkCatCoat(coat) ? faceAssets.dark : faceAssets.default;
-	if (mood === 'happy') return faceSet.happy;
-	if (mood === 'sleepy') return faceSet.sleepy;
-	if (mood === 'sad') return faceSet.sad[eyeColor];
-	if (mood === 'normal') return faceSet.normal[eyeColor];
-	return null;
-}
-
-function mappedFace(coat: CatCoat, mood: CatMood, eyeColor: CatEyeColor): ParsedFace | null {
-	const assetId = mappedFaceAssetId(coat, mood, eyeColor);
-	if (!assetId) return null;
-	return FACES.find((face) => face.asset.id === assetId) ?? null;
-}
-
 function chooseFace(
 	pose: CatPose,
 	desiredMood: CatMood,
@@ -190,7 +131,7 @@ function chooseFace(
 	coat: CatCoat,
 	warnings: string[]
 ): ParsedFace | null {
-	const pool = FACES.filter((face) => faceFitsPose(face.mood, pose) && !face.dark);
+	const pool = FACES.filter((face) => faceFitsPose(face.mood, pose));
 
 	// 1. default-eye mood
 	const defaultEyeMood = pool.find(
@@ -271,10 +212,8 @@ export function resolveHomepageCatAvatar(input: HomepageCatInput): HomepageCatAv
 		desiredMood = 'sleepy';
 	}
 
-	// 3. Choose exactly one face layer. Dark cats route through dark_cat assets.
-	const face =
-		mappedFace(coat, desiredMood, defaultEye) ??
-		chooseFace(pose, desiredMood, defaultEye, coat, warnings);
+	// 3. Choose exactly one face layer.
+	const face = chooseFace(pose, desiredMood, defaultEye, coat, warnings);
 
 	const renderStack: HomepageCatLayer[] = [layerFromAsset(body.asset)];
 	let eyeColor: CatEyeColor = defaultEye;

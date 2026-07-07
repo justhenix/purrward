@@ -30,12 +30,11 @@
 	let purrTimer: number | undefined;
 	let wakeTimer: number | undefined;
 	let petLabel = $derived(label ? `Pet ${label}` : 'Pet cat');
-	let isDarkFace = $derived(layers.some((layer) => layer.id.startsWith('dark_')));
 	let happyLayer = $derived.by((): HomepageCatLayer | null => {
-		const asset = getAssetById(isDarkFace ? 'dark_happy' : 'happy');
+		const asset = getAssetById('happy');
 		return asset
 			? {
-					id: isDarkFace ? 'awake_dark_happy' : 'awake_happy',
+					id: 'awake_happy',
 					src: resolveCatAssetUrl(asset.uiSrcKey),
 					alt: asset.name,
 					zIndex: asset.zIndex + 1
@@ -45,7 +44,7 @@
 	let isSleepy = $derived(mood === 'sleepy' || layers.some((layer) => isSleepLayer(layer)));
 
 	function isSleepLayer(layer: HomepageCatLayer): boolean {
-		return layer.id === 'sleep' || layer.id === 'dark_sleep';
+		return layer.id === 'sleep';
 	}
 
 	function handlePet() {
