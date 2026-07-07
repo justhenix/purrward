@@ -10,7 +10,7 @@ Core product loop:
 pick a cat -> care task -> photo proof -> server validation -> metadata strip -> Gemini verification -> daily anti-cheat caps -> per-cat + user points ledger -> rewards
 ```
 
-The home screen wires this flow through the secure `/api/verify` endpoint. Sign in, onboard a cat (or join free cat mode for community cats), log a routine with photo proof, and watch Purrpoints grow. Live OAuth, Turso, and Gemini credentials still need a final smoke test before recording the demo — see `docs/smoke-test-checklist.md`.
+The home screen wires this flow through the secure `/api/verify` endpoint. Sign in, onboard a cat (or join free cat mode for community cats), log a routine with photo proof, and watch Purrpoints grow. Live OAuth, Turso, and Gemini credentials must be configured before testing the full demo.
 
 ## What's Implemented
 
@@ -28,9 +28,8 @@ The home screen wires this flow through the secure `/api/verify` endpoint. Sign 
 ## Requires Live Env Vars
 
 Auth, verification, vet triage, and the database need real credentials. The app runs and
-builds without them, but those flows are inert until configured. See
-`docs/smoke-test-checklist.md` for the full variable list and smoke tests. These were
-**not run** in the build environment (no live credentials) and are not claimed as passing.
+builds without them, but those flows are inert until configured. These credential-backed
+flows were **not run** in the build environment and are not claimed as passing.
 
 ## Why It Fits
 
@@ -89,7 +88,6 @@ For production, set the same values as Cloudflare Pages environment variables or
 - Points are server-computed and awarded in an atomic DB transaction (user + cat).
 - Account deletion cascades all user-owned data.
 
-Full checklists: `docs/security-checklist.md`, `docs/submission-checklist.md`, `docs/smoke-test-checklist.md`.
 Submission evidence: `documentation/Project_Report.pdf`, `documentation/security-report.md`, `documentation/aikido-test.md`.
 
 ## Quickstart

@@ -32,7 +32,7 @@
 
 ## Phase 5: Finalization
 
-- [ ] Run `docs/security.md` pre-deploy checklist
-- [ ] Complete `docs/submission.md` checklist
+- [ ] Review `documentation/security-report.md`
+- [ ] Complete submission checklist from the project report
 - [ ] Cloudflare Pages deployment
 - [ ] Record 5-minute hackathon demo video
