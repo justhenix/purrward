@@ -2,7 +2,7 @@
 // T3 = gacha pull endpoint (see ticket legend in db/schema.ts).
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { userInventory, users } from './db/schema';
-import { GACHA_POOL, type CatalogItem, type ItemKind } from './catalog';
+import { GACHA_POOL, type CatalogItem, type CosmeticTier, type ItemKind } from './catalog';
 import { checkRateLimit, hashRateKey, type RateLimitDecision } from './rate-limit';
 import { SANDBOX_BALANCE } from './sandbox';
 
@@ -11,6 +11,11 @@ type Database = typeof import('./db').db;
 // SECURITY: cost is server-owned; the client never supplies or influences it.
 export const GACHA_PULL_COST = 30;
 export const GACHA_DUPLICATE_REFUND = 5;
+export const GACHA_TIER_ODDS: Record<CosmeticTier, number> = {
+	common: 70,
+	rare: 22,
+	epic: 8
+};
 
 // Per-user pull cap. IP-level limiting already runs in hooks.server.ts.
 export const GACHA_DAILY_LIMIT = 30;
@@ -18,20 +23,41 @@ export const GACHA_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const MAX_PULL_ATTEMPTS = 3;
 
-export type GachaItem = { id: string; title: string; kind: ItemKind; desc: string };
+export type GachaItem = {
+	id: string;
+	title: string;
+	kind: ItemKind;
+	desc: string;
+	tier?: CosmeticTier;
+};
 
 export type GachaResult =
 	| { ok: true; item: GachaItem; balance: number; duplicate: boolean; refund: number }
 	| { ok: false; status: number; error: string };
 
 function toGachaItem(item: CatalogItem): GachaItem {
-	return { id: item.id, title: item.title, kind: item.kind, desc: item.desc };
+	return { id: item.id, title: item.title, kind: item.kind, desc: item.desc, tier: item.tier };
 }
 
-// SECURITY: unbiased-enough random pick from the unowned pool (server-side only).
+function randomIndex(size: number): number {
+	return crypto.getRandomValues(new Uint32Array(1))[0] % size;
+}
+
+// SECURITY: server-side weighted tier pick; client only receives the result.
 function randomPick(pool: CatalogItem[]): CatalogItem {
-	const index = crypto.getRandomValues(new Uint32Array(1))[0] % pool.length;
-	return pool[index];
+	const roll = randomIndex(100);
+	let threshold = 0;
+	let tier: CosmeticTier = 'common';
+	for (const [name, weight] of Object.entries(GACHA_TIER_ODDS) as [CosmeticTier, number][]) {
+		threshold += weight;
+		if (roll < threshold) {
+			tier = name;
+			break;
+		}
+	}
+	const candidates = pool.filter((item) => item.tier === tier);
+	const weightedPool = candidates.length > 0 ? candidates : pool;
+	return weightedPool[randomIndex(weightedPool.length)];
 }
 
 // Drizzle wraps the driver error, so walk the cause chain for the UNIQUE-constraint signal.

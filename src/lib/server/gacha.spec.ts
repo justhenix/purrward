@@ -9,7 +9,13 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { eq } from 'drizzle-orm';
 import * as schema from './db/schema';
 import { userInventory, users } from './db/schema';
-import { GACHA_DAILY_LIMIT, GACHA_DUPLICATE_REFUND, checkGachaRateLimit, pullGacha } from './gacha';
+import {
+	GACHA_DAILY_LIMIT,
+	GACHA_DUPLICATE_REFUND,
+	GACHA_TIER_ODDS,
+	checkGachaRateLimit,
+	pullGacha
+} from './gacha';
 import { GACHA_POOL, findItem } from './catalog';
 import { POST } from '../../routes/api/gacha/pull/+server';
 import { SANDBOX_BALANCE } from './sandbox';
@@ -102,6 +108,10 @@ afterEach(() => {
 });
 
 describe('pullGacha', () => {
+	it('publishes cozy jar tier odds for the client', () => {
+		expect(GACHA_TIER_ODDS).toEqual({ common: 70, rare: 22, epic: 8 });
+	});
+
 	it('deducts 30 and writes exactly one inventory row matching the returned item', async () => {
 		await seedUser('u1', 100);
 		const result = await pullGacha({ database: db, userId: 'u1' });

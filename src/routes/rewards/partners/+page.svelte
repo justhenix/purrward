@@ -49,8 +49,8 @@
 
 <div class="partners-page">
 	<header class="map-head">
-		<p>Where your coupons work</p>
 		<h1>Partner map</h1>
+		<p>Where your coupons work</p>
 	</header>
 
 	{#if data.partners.length === 0}

@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { eq } from 'drizzle-orm';
 import { REWARDS } from '$lib/server/rewards';
 import { daysUntilNextRotation, featuredRewardIds } from '$lib/featured';
-import { GACHA_PULL_COST } from '$lib/server/gacha';
+import { GACHA_PULL_COST, GACHA_TIER_ODDS } from '$lib/server/gacha';
 import { ACCESSORIES, CATALOG, DEFAULT_BACKGROUND_ID } from '$lib/server/catalog';
 import { listEquippedAccessories } from '$lib/server/inventory';
 import { userInventory } from '$lib/server/db/schema';
@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ locals, parent, depends }) => {
 		featuredIds,
 		daysUntilRotation,
 		gachaCost: GACHA_PULL_COST,
+		gachaOdds: GACHA_TIER_ODDS,
 		accessories: ACCESSORIES.map((item) => ({
 			id: item.id,
 			title: item.title,

@@ -81,8 +81,8 @@
 
 <div class="history-page">
 	<header class="history-head">
-		<p>Your claimed rewards</p>
 		<h1>My coupons</h1>
+		<p>Your claimed rewards</p>
 	</header>
 
 	{#if !data.authed}
