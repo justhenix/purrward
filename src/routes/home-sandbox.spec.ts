@@ -69,7 +69,7 @@ beforeEach(async () => {
 	await db.insert(cats).values({
 		id: 'c1',
 		userId: 'u1',
-		name: 'Mochi',
+		name: 'Luna',
 		careMode: 'owned',
 		avatarId: 'orange',
 		purrpoints: 0,

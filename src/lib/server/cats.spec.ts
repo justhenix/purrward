@@ -90,15 +90,15 @@ afterEach(() => {
 describe('createCat', () => {
 	it('creates a valid owned cat and sets it active', async () => {
 		await seedUser('u1');
-		const result = await createCat(db, 'u1', { name: '  Mochi  ', avatarId: 'orange' });
+		const result = await createCat(db, 'u1', { name: '  Luna  ', avatarId: 'orange' });
 
 		expect(result.ok).toBe(true);
 		if (result.ok) {
-			expect(result.value.name).toBe('Mochi');
+			expect(result.value.name).toBe('Luna');
 			expect(result.value.careMode).toBe('owned');
 		}
 		const active = await getActiveCat(db, 'u1');
-		expect(active?.name).toBe('Mochi');
+		expect(active?.name).toBe('Luna');
 	});
 
 	it('rejects an empty name without creating a cat', async () => {
@@ -177,10 +177,10 @@ describe('removeCat', () => {
 });
 
 describe('getOrCreateDefaultCat', () => {
-	it('creates a default Mochi when the user has none', async () => {
+	it('creates a default cat when the user has none', async () => {
 		await seedUser('u1');
 		const cat = await getOrCreateDefaultCat(db, 'u1');
-		expect(cat.name).toBe('Mochi');
+		expect(cat.name).toBe('My cat');
 		expect(await listCats(db, 'u1')).toHaveLength(1);
 	});
 });

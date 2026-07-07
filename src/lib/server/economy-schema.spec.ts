@@ -168,7 +168,7 @@ describe('cat_equipped_cosmetics slots', () => {
 		await db.insert(cats).values({
 			id: 'c1',
 			userId: 'u1',
-			name: 'Mochi',
+			name: 'Luna',
 			careMode: 'owned',
 			avatarId: 'orange',
 			purrpoints: 0,
@@ -231,7 +231,7 @@ describe('cats equip fields', () => {
 		await db.insert(cats).values({
 			id: 'c1',
 			userId: 'u1',
-			name: 'Mochi',
+			name: 'Luna',
 			careMode: 'owned',
 			avatarId: 'orange',
 			purrpoints: 0,

@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Cat from '@lucide/svelte/icons/cat';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ImageIcon from '@lucide/svelte/icons/image';
+	import LogIn from '@lucide/svelte/icons/log-in';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import Star from '@lucide/svelte/icons/star';
-	import { deriveParentName } from '$lib/account-identity';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import { deriveCatState } from '$lib/cat-state';
@@ -27,6 +29,7 @@
 		type CatMood,
 		type CatPose
 	} from '$lib/cat/homepage-avatar';
+	import { compactPointValue, displayCatName, displayParentName } from '$lib/home/home-copy';
 	import { habitSetFor } from '$lib/tasks';
 	import type { TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
@@ -80,14 +83,6 @@
 		return 'sit';
 	}
 
-	function greetingName(value: string): string {
-		const trimmed = value.trim();
-		if (!trimmed || trimmed.length > 14 || /\d{7,}/.test(trimmed) || trimmed.startsWith('ga-')) {
-			return '';
-		}
-		return trimmed;
-	}
-
 	let { data, form }: PageProps = $props();
 
 	let switcherOpen = $state(false);
@@ -118,10 +113,12 @@
 	let active = $derived(tasks.find((task) => task.id === requestedTask) ?? nextTask);
 
 	let profileAvatar = $derived(resolveProfileAvatar(data.user, data.preferences.avatarChoice));
-	let firstName = $derived(greetingName(deriveParentName(data.user).split(' ')[0] ?? ''));
-	let catName = $derived(data.activeCat?.name ?? 'Mochi');
+	let catName = $derived(displayCatName(data.activeCat?.name));
+	let parentName = $derived(displayParentName(data.user?.displayName));
+	let greetingName = $derived(parentName === catName && parentName.length > 8 ? '' : parentName);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
+	let balanceLabel = $derived(compactPointValue(balance));
 
 	// Lightweight pet state: mood + pose from today's care progress (signed-in only).
 	let catState = $derived(
@@ -133,22 +130,18 @@
 			? 'normal'
 			: catState === 'happy'
 				? 'happy'
-				: catState === 'hungry'
-					? 'sad'
-					: catState === 'sleeping'
-						? 'sleepy'
-						: 'normal'
+				: catState === 'sleeping'
+					? 'sleepy'
+					: 'normal'
 	);
 	let preferredPose = $derived<CatPose>(
 		!signedIn
 			? 'sit'
 			: catState === 'sleeping'
 				? 'sleep'
-				: catState === 'hungry'
-					? 'eat'
-					: catState === 'happy'
-						? 'sit'
-						: poseForTask(active.id)
+				: catState === 'happy'
+					? 'sit'
+					: poseForTask(active.id)
 	);
 	let equippedAccessoryAssets = $derived(data.equippedAccessories.map((item) => item.assetId));
 	let heroCat = $derived(
@@ -161,6 +154,7 @@
 	);
 
 	let rewardPoints = $derived(sandboxMode ? 1000 : active.reward);
+	let rewardLabel = $derived(compactPointValue(rewardPoints));
 
 	function openSceneSheet() {
 		switcherOpen = false;
@@ -198,6 +192,15 @@
 		name="description"
 		content="Care for your cat, scan proof, and earn Purrpoints for healthy routines."
 	/>
+	<link
+		rel="preload"
+		as="image"
+		href={visibleScene?.id === 'bg_park' ? bgPark : bgRoom}
+		fetchpriority="high"
+	/>
+	{#if heroCat.renderStack[0]}
+		<link rel="preload" as="image" href={heroCat.renderStack[0].src} fetchpriority="high" />
+	{/if}
 </svelte:head>
 
 <div class="home">
@@ -213,7 +216,12 @@
 				{#if signedIn}
 					<div class="overlay-head">
 						<div class="pet-hud">
-							<p>{firstName ? `Hi, ${firstName}` : 'Hi'}</p>
+							<p>
+								<span>Hi</span>
+								{#if greetingName}
+									<span class="greeting-name">{greetingName}</span>
+								{/if}
+							</p>
 							<button
 								type="button"
 								class="cat-pill"
@@ -231,19 +239,31 @@
 						</div>
 						<a class="points-hud" href={resolve('/rewards')} aria-label="Open rewards">
 							<Star size={15} strokeWidth={2.5} aria-hidden="true" />
-							<span>{balance} pts</span>
+							<span>{balanceLabel} pts</span>
 						</a>
-						<a class="profile" href={resolve('/profile')} aria-label="Profile and settings">
-							{#if profileAvatar.kind === 'image'}
-								<img
-									class={profileAvatar.cat ? 'profile-cat' : undefined}
-									src={profileAvatar.src}
-									alt=""
-								/>
-							{:else}
-								<span>{profileAvatar.letter}</span>
-							{/if}
-						</a>
+						<div class="profile-stack">
+							<a class="profile" href={resolve('/profile')} aria-label="Profile and settings">
+								{#if profileAvatar.kind === 'image'}
+									<img
+										class={profileAvatar.cat ? 'profile-cat' : undefined}
+										src={profileAvatar.src}
+										alt=""
+									/>
+								{:else}
+									<span>{profileAvatar.letter}</span>
+								{/if}
+							</a>
+							<button
+								type="button"
+								class="scene-chip"
+								aria-haspopup="dialog"
+								aria-expanded={showSceneSheet}
+								onclick={openSceneSheet}
+							>
+								<ImageIcon size={15} strokeWidth={2.4} aria-hidden="true" />
+								<span>Scene</span>
+							</button>
+						</div>
 					</div>
 				{:else}
 					<div class="overlay-head">
@@ -252,21 +272,6 @@
 							<strong>Purrward</strong>
 						</div>
 					</div>
-				{/if}
-			{/snippet}
-
-			{#snippet sceneControl()}
-				{#if signedIn}
-					<button
-						type="button"
-						class="scene-chip"
-						aria-haspopup="dialog"
-						aria-expanded={showSceneSheet}
-						onclick={openSceneSheet}
-					>
-						<ImageIcon size={15} strokeWidth={2.4} aria-hidden="true" />
-						<span>Scene</span>
-					</button>
 				{/if}
 			{/snippet}
 
@@ -283,7 +288,7 @@
 				{#if signedIn && !allDone}
 					<div class="care-action-bubble">
 						<strong>{active.heroTitle}</strong>
-						<span class="reward-chip">+{rewardPoints} pts</span>
+						<span class="reward-chip">+{rewardLabel}</span>
 						<a class="scan-chip" href={resolve(`/care-proof?task=${active.id}`)}>
 							<Camera size={14} strokeWidth={2.4} aria-hidden="true" />
 							<span>Scan</span>
@@ -297,14 +302,13 @@
 					<div class="dock-stack signed-out">
 						<div class="guest-cta">
 							<div class="guest-copy">
-								<strong>Start your cat's care day</strong>
-								<p>Care routines, photo proof, and Purrpoints.</p>
+								<strong>Guest mode</strong>
+								<p>Sign in to save progress.</p>
 							</div>
 							<a class="scan-cta" href={resolve('/auth/login')}>
-								<Camera size={20} strokeWidth={2.3} aria-hidden="true" />
-								<span>Sign in to meet your cat</span>
+								<LogIn size={19} strokeWidth={2.4} aria-hidden="true" />
+								<span>Sign in</span>
 							</a>
-							<p class="welcome-note">Photo proof keeps Purrpoints fair.</p>
 						</div>
 					</div>
 				{/if}
@@ -319,13 +323,20 @@
 		class="sheet-backdrop"
 		aria-label="Close cat picker"
 		onclick={() => (switcherOpen = false)}
+		transition:fade={{ duration: 180, easing: cubicOut }}
 	></button>
-	<div class="sheet" role="dialog" aria-label="Choose a cat">
+	<div
+		class="sheet"
+		role="dialog"
+		aria-label="Choose a cat"
+		transition:fly={{ y: 24, duration: 220, opacity: 0, easing: cubicOut }}
+	>
 		<p class="sheet-title">Choose a cat</p>
 		<ul class="sheet-list">
 			{#each cats as cat (cat.id)}
 				{@const avatar = getCatAvatar(cat.avatarId)}
 				{@const isActive = cat.id === data.activeCat?.id}
+				{@const catLabel = displayCatName(cat.name)}
 				<li>
 					<form method="POST" action="?/select">
 						<input type="hidden" name="catId" value={cat.id} />
@@ -334,7 +345,7 @@
 								{#if avatar}<img src={avatar.src} alt="" />{/if}
 							</span>
 							<span class="sheet-name">
-								{cat.name}
+								{catLabel}
 								<span class="sheet-mode"
 									>({cat.careMode === 'community' ? 'community' : 'pet'})</span
 								>
@@ -364,8 +375,14 @@
 		class="sheet-backdrop scene-backdrop"
 		aria-label="Close scene picker"
 		onclick={closeSceneSheet}
+		transition:fade={{ duration: 180, easing: cubicOut }}
 	></button>
-	<div class="sheet scene-sheet" role="dialog" aria-label="Scene">
+	<div
+		class="sheet scene-sheet"
+		role="dialog"
+		aria-label="Scene"
+		transition:fly={{ y: 24, duration: 220, opacity: 0, easing: cubicOut }}
+	>
 		<div class="sheet-heading">
 			<p class="sheet-title">Scene</p>
 		</div>
@@ -413,11 +430,17 @@
 	</div>
 {/if}
 
-<!-- Home screen as a full pet scene: Mochi in the room, care bubbles floating on top. -->
+<!-- Home screen as a full pet scene with care bubbles floating on top. -->
 
 <style>
 	.home {
-		min-height: 100dvh;
+		min-height: 100svh;
+	}
+
+	@supports (height: 100dvh) {
+		.home {
+			min-height: 100dvh;
+		}
 	}
 
 	/* Break out of app padding so the park is the Home world, including behind the nav. */
@@ -432,31 +455,43 @@
 	.overlay-head {
 		position: relative;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 46px;
+		grid-template-columns: minmax(0, 8.5rem) minmax(4.5rem, 1fr) max-content;
 		align-items: flex-start;
-		gap: 14px;
-		min-height: 48px;
+		gap: 8px;
 	}
 
 	.pet-hud {
 		display: grid;
-		gap: 7px;
-		max-width: 126px;
+		width: max-content;
+		max-width: 100%;
+		gap: 6px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
 		border-radius: 22px;
 		background: color-mix(in srgb, var(--color-paper-2) 82%, transparent);
-		padding: 8px 9px 9px;
+		padding: 7px 8px 8px;
 		backdrop-filter: blur(8px);
 		box-shadow: var(--shadow-card);
 	}
 
 	.pet-hud p {
+		display: flex;
+		max-width: 8rem;
+		gap: 0.25rem;
 		margin: 0;
 		color: var(--color-charcoal);
 		font-size: 0.78rem;
 		font-weight: 800;
 		line-height: 1.12;
-		overflow-wrap: anywhere;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.greeting-name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.brand-hud {
@@ -490,11 +525,11 @@
 	}
 
 	.points-hud {
-		position: absolute;
-		top: 0;
-		left: 50%;
 		z-index: 2;
 		display: inline-flex;
+		min-width: 0;
+		max-width: 6.2rem;
+		justify-self: center;
 		align-items: center;
 		gap: 5px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 68%, transparent);
@@ -507,12 +542,24 @@
 		text-decoration: none;
 		backdrop-filter: blur(8px);
 		box-shadow: var(--shadow-card);
-		transform: translateX(-50%);
+		white-space: nowrap;
+	}
+
+	.points-hud span {
+		overflow: hidden;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.points-hud:active {
-		transform: translateX(-50%) translateY(1px) scale(0.98);
+		transform: translateY(1px) scale(0.98);
+	}
+
+	.profile-stack {
+		display: grid;
+		justify-self: end;
+		justify-items: center;
+		gap: 6px;
 	}
 
 	.profile {
@@ -547,23 +594,30 @@
 
 	.cat-pill {
 		display: inline-flex;
+		width: 100%;
+		min-width: 0;
 		max-width: 100%;
 		align-items: center;
-		gap: 8px;
+		gap: 6px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
 		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--color-paper-2) 72%, transparent);
-		padding: 7px 14px 7px 10px;
+		padding: 7px 10px 7px 9px;
 		color: var(--color-ink);
 		font-size: 0.9rem;
 		font-weight: 800;
+		overflow: hidden;
+		white-space: nowrap;
 		cursor: pointer;
 	}
 
 	.cat-pill-name {
 		min-width: 0;
+		max-width: 7rem;
 		line-height: 1.1;
-		overflow-wrap: anywhere;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.cat-pill :global(svg) {
@@ -595,10 +649,10 @@
 	.care-action-bubble {
 		display: flex;
 		width: max-content;
-		max-width: min(86vw, 292px);
+		max-width: calc(100vw - 32px);
 		min-height: 38px;
 		align-items: center;
-		gap: 7px;
+		gap: 6px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 68%, transparent);
 		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--color-paper-2) 94%, transparent);
@@ -614,16 +668,19 @@
 		font-size: 0.92rem;
 		font-weight: 800;
 		line-height: 1.05;
-		overflow-wrap: anywhere;
+		white-space: nowrap;
 	}
 
 	.reward-chip {
+		display: inline-flex;
 		flex: none;
+		min-height: 22px;
+		align-items: center;
 		border-radius: var(--radius-pill);
-		background: var(--color-butter);
-		color: var(--color-charcoal);
-		padding: 4px 7px;
-		font-size: 0.7rem;
+		background: color-mix(in srgb, var(--color-butter) 48%, var(--color-paper-2));
+		color: var(--color-warning-text);
+		padding: 0 7px;
+		font-size: 0.68rem;
 		font-weight: 850;
 		white-space: nowrap;
 	}
@@ -635,18 +692,18 @@
 	}
 
 	.scene-chip {
-		justify-self: end;
 		display: inline-flex;
-		min-height: 28px;
+		min-height: 25px;
 		align-items: center;
 		gap: 4px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 62%, transparent);
 		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--color-paper-2) 72%, transparent);
+		background: color-mix(in srgb, var(--color-paper-2) 66%, transparent);
 		color: var(--color-muted);
-		padding: 0 9px;
-		font-size: 0.72rem;
+		padding: 0 8px;
+		font-size: 0.7rem;
 		font-weight: 800;
+		white-space: nowrap;
 		box-shadow: none;
 		cursor: pointer;
 	}
@@ -702,13 +759,6 @@
 		line-height: 1.36;
 	}
 
-	.welcome-note {
-		margin: 0;
-		color: var(--color-muted);
-		font-size: 0.78rem;
-		font-weight: 650;
-	}
-
 	.scan-cta {
 		display: inline-flex;
 		width: 100%;
@@ -735,7 +785,7 @@
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
-		padding: 0 10px;
+		padding: 0 12px;
 		font-size: 0.78rem;
 		font-weight: 900;
 		text-decoration: none;
@@ -757,12 +807,13 @@
 
 	.sheet {
 		position: fixed;
-		left: 50%;
+		left: 0;
+		right: 0;
 		bottom: calc(var(--app-safe-bottom) - 8px);
 		z-index: 61;
 		width: min(calc(100% - 24px), 406px);
+		margin-inline: auto;
 		max-height: calc(100dvh - var(--app-safe-bottom) - 32px);
-		transform: translateX(-50%);
 		border: 1px solid var(--color-line);
 		border-radius: 24px;
 		background: var(--color-paper-2);
@@ -934,13 +985,25 @@
 			gap: 14px;
 		}
 
+		.overlay-head {
+			grid-template-columns: minmax(0, 7.7rem) minmax(4.1rem, 1fr) max-content;
+			gap: 6px;
+		}
+
+		.pet-hud p {
+			max-width: 7.2rem;
+		}
+
+		.cat-pill-name {
+			max-width: 5rem;
+		}
+
 		.scan-cta {
 			font-size: 0.78rem;
 		}
 
 		.care-action-bubble {
 			max-width: calc(100vw - 32px);
-			flex-wrap: wrap;
 			padding: 6px;
 		}
 

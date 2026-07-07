@@ -294,7 +294,7 @@ export async function getOrCreateDefaultCat(
 	const created = await createCat(
 		database,
 		userId,
-		{ name: 'Mochi', avatarId: 'orange', careMode: 'owned' },
+		{ name: 'My cat', avatarId: 'orange', careMode: 'owned' },
 		now
 	);
 	// createCat only fails on validation/cap; these inputs are always valid, so this is unreachable.
