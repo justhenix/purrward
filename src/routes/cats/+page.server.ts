@@ -1,6 +1,6 @@
 // Cats route server: list, create, select, edit, and remove owner-scoped cats.
 import type { Actions, PageServerLoad } from './$types';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { CAT_AVATARS } from '$lib/cat-avatars';
 import {
 	CAT_CAP,
@@ -13,7 +13,15 @@ import {
 } from '$lib/server/cats';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) redirect(303, '/auth/login');
+	if (!locals.user) {
+		return {
+			cats: [],
+			activeCatId: null,
+			avatars: CAT_AVATARS,
+			catCap: CAT_CAP,
+			isGuest: true
+		};
+	}
 
 	const { db } = await import('$lib/server/db');
 	const cats = await listCats(db, locals.user.id);
@@ -23,7 +31,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		cats,
 		activeCatId: activeCat?.id ?? null,
 		avatars: CAT_AVATARS,
-		catCap: CAT_CAP
+		catCap: CAT_CAP,
+		isGuest: false
 	};
 };
 

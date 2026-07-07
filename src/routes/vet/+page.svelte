@@ -5,6 +5,7 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import Bot from '@lucide/svelte/icons/bot';
 	import History from '@lucide/svelte/icons/history';
+	import LogIn from '@lucide/svelte/icons/log-in';
 	import ShieldPlus from '@lucide/svelte/icons/shield-plus';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -13,6 +14,8 @@
 	import Stethoscope from '@lucide/svelte/icons/stethoscope';
 	import UserRound from '@lucide/svelte/icons/user-round';
 	import X from '@lucide/svelte/icons/x';
+	import { fade, scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { fieldWarning, formInput } from '$lib/form-validation';
 	import { CLINICS, type Clinic } from '$lib/vet-clinics';
 	import type { PageProps } from './$types';
@@ -34,6 +37,7 @@
 
 	let { data }: PageProps = $props();
 
+	let signedIn = $derived(Boolean(data.user));
 	let catName = $derived(data.activeCat?.name ?? 'your cat');
 	let userQuery = $state('');
 	let sending = $state(false);
@@ -268,7 +272,7 @@
 	<title>Purrward | Vet Chat</title>
 </svelte:head>
 
-<div class="vet-page">
+<div class={['vet-page', !signedIn && 'signed-out']}>
 	<header class="vet-header">
 		<div class="title-block">
 			<h1>Ask about {catName}</h1>
@@ -529,6 +533,7 @@
 				type="button"
 				aria-label="Close booking"
 				onclick={closeBooking}
+				transition:fade={{ duration: 180, easing: cubicOut }}
 			></button>
 			<div
 				class="booking-modal"
@@ -536,6 +541,7 @@
 				aria-modal="true"
 				tabindex={-1}
 				aria-label={`Book ${bookingClinic.name}`}
+				transition:scale={{ duration: 200, start: 0.96, opacity: 0, easing: cubicOut }}
 			>
 				<div class="booking-modal-head">
 					<div>
@@ -574,6 +580,16 @@
 			</div>
 		</div>
 	{/if}
+
+	{#if !signedIn}
+		<section class="signin-blocker" aria-labelledby="vet-signin-title">
+			<h2 id="vet-signin-title">Sign in to access Vet</h2>
+			<a href={resolve('/auth/login')}>
+				<LogIn size={18} strokeWidth={2.4} aria-hidden="true" />
+				<span>Sign in</span>
+			</a>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -583,6 +599,76 @@
 		gap: 14px;
 		height: 100%;
 		min-height: 0;
+	}
+
+	.vet-page.signed-out > :not(.signin-blocker) {
+		filter: blur(3px);
+		opacity: 0.55;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.signin-blocker {
+		position: fixed;
+		top: calc((100svh - var(--app-safe-bottom)) / 2);
+		left: 50%;
+		z-index: 46;
+		display: grid;
+		width: min(calc(100vw - 40px), 372px);
+		gap: 12px;
+		justify-items: center;
+		transform: translate(-50%, -50%);
+		border: 1px solid color-mix(in srgb, var(--color-line) 78%, transparent);
+		border-radius: var(--radius-card);
+		background: color-mix(in srgb, var(--color-paper-2) 92%, transparent);
+		padding: 22px 18px;
+		text-align: center;
+		box-shadow: var(--shadow-float);
+		backdrop-filter: blur(12px);
+		/* Ease the card in (opacity + scale + blur) instead of popping. */
+		animation: signin-blocker-in 220ms var(--ease-mobile, ease-out) both;
+		will-change: transform, opacity;
+	}
+
+	@keyframes signin-blocker-in {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -46%) scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+	}
+
+	@supports (height: 100dvh) {
+		.signin-blocker {
+			top: calc((100dvh - var(--app-safe-bottom)) / 2);
+		}
+	}
+
+	.signin-blocker h2 {
+		margin: 0;
+		color: var(--color-ink);
+		font-family: var(--font-display);
+		font-size: 1.22rem;
+		font-weight: 850;
+		line-height: 1.12;
+	}
+
+	.signin-blocker a {
+		display: inline-flex;
+		width: 100%;
+		min-height: 42px;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		font-size: 0.9rem;
+		font-weight: 900;
+		text-decoration: none;
 	}
 
 	/* Calm header */

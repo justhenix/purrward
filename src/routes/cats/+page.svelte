@@ -17,6 +17,7 @@
 	let newMode = $state<'owned' | 'community'>('owned');
 	let query = $state('');
 
+	let isGuest = $derived(data.isGuest);
 	let atCap = $derived(data.cats.length >= data.catCap);
 	let showSearch = $derived(data.cats.length > 6);
 	let filteredCats = $derived(
@@ -36,10 +37,18 @@
 			<ChevronLeft size={22} strokeWidth={2.3} aria-hidden="true" />
 		</a>
 		<div>
-			<p>Your cats</p>
 			<h1>My Cats</h1>
+			<p>{isGuest ? 'Guest mode' : 'Your cats'}</p>
 		</div>
 	</header>
+
+	{#if isGuest}
+		<section class="guest-note">
+			<strong>Guest mode</strong>
+			<span>Sign in to save progress.</span>
+			<a href={resolve('/auth/login')}>Sign in</a>
+		</section>
+	{/if}
 
 	{#if showSearch}
 		<label class="search">
@@ -95,12 +104,14 @@
 			</article>
 		{/each}
 
-		{#if filteredCats.length === 0}
+		{#if filteredCats.length === 0 && !isGuest}
 			<p class="empty">No cats match that name.</p>
 		{/if}
 	</section>
 
-	{#if showAdd}
+	{#if isGuest}
+		<!-- Guest mode has no saved cats; sign-in owns real cat creation. -->
+	{:else if showAdd}
 		<form class="add-form" method="POST" action="?/create">
 			<h2>Add a cat</h2>
 			<div class="mode-switch">
@@ -128,12 +139,7 @@
 
 			<label class="field">
 				<span>Name</span>
-				<input
-					name="name"
-					bind:value={newName}
-					placeholder="Mochi, Luna, Orange..."
-					maxlength="40"
-				/>
+				<input name="name" bind:value={newName} placeholder="Luna, Orange..." maxlength="40" />
 			</label>
 
 			<fieldset class="avatar-grid">
@@ -233,6 +239,40 @@
 
 	.search input:focus {
 		outline: none;
+	}
+
+	.guest-note {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 3px 12px;
+		align-items: center;
+		border: 1px solid var(--color-line);
+		border-radius: 22px;
+		background: var(--color-sky-soft);
+		padding: 13px 14px;
+	}
+
+	.guest-note strong {
+		color: var(--color-ink);
+		font-size: 0.92rem;
+	}
+
+	.guest-note span {
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
+	.guest-note a {
+		grid-row: 1 / span 2;
+		grid-column: 2;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 9px 14px;
+		font-size: 0.78rem;
+		font-weight: 850;
+		text-decoration: none;
 	}
 
 	.cat-list {
