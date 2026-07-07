@@ -17,7 +17,14 @@ export const load: LayoutServerLoad = async ({ cookies, locals, url, depends }) 
 
 		const path = url.pathname;
 		// Send freshly authenticated users with no cat to onboarding (avoid redirect loops).
-		if (cats.length === 0 && !path.startsWith('/onboarding') && !path.startsWith('/auth/')) {
+		if (
+			cats.length === 0 &&
+			!path.startsWith('/onboarding') &&
+			!path.startsWith('/auth/') &&
+			!path.startsWith('/docs') &&
+			!path.startsWith('/dev-docs') &&
+			path !== '/help'
+		) {
 			redirect(303, '/onboarding');
 		}
 	}

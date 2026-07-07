@@ -109,7 +109,7 @@
 		<section class="summary-card">
 			<span class="summary-avatar" aria-hidden="true"><span class="letter">G</span></span>
 			<span class="summary-copy">
-				<strong>Guest</strong>
+				<strong>Guest mode</strong>
 				<small>Sign in to save progress.</small>
 			</span>
 			<a class="signin-link" href={resolve('/auth/login')}>Sign in</a>
@@ -131,6 +131,8 @@
 				<span class="progress-text">
 					{data.careStats.completedCount} of {data.careStats.totalCount} today
 				</span>
+			{:else if !data.user}
+				<span class="progress-text">Sign in to save progress.</span>
 			{/if}
 		</span>
 		<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
@@ -178,7 +180,7 @@
 			<span class="menu-icon"><LifeBuoy size={19} strokeWidth={2.2} aria-hidden="true" /></span>
 			<span class="menu-copy">
 				<strong>Help</strong>
-				<small>Search guides and FAQs</small>
+				<small>Quick user guide</small>
 			</span>
 			<ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
 		</a>

@@ -1,13 +1,12 @@
 // Profile settings actions: edit parent name and choose the profile picture.
 import type { Actions, PageServerLoad } from './$types';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { shouldUseSecureCookie } from '$lib/server/auth';
 import { updateParentName } from '$lib/server/account';
 import { parsePreferences, serializePreferences } from '$lib/server/preferences';
 import { validateAvatarChoice } from '$lib/avatar-ids';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) redirect(303, '/auth/login');
+export const load: PageServerLoad = async () => {
 	return {};
 };
 

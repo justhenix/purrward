@@ -4,8 +4,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { deleteSessionCookie, shouldUseSecureCookie } from '$lib/server/auth';
 import { deleteAccount } from '$lib/server/account';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) redirect(303, '/auth/login');
+export const load: PageServerLoad = async () => {
 	return {};
 };
 

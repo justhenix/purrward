@@ -1,8 +1,5 @@
-<!-- Segmented light/dark/system theme control. -->
+<!-- Theme preference dropdown. -->
 <script lang="ts">
-	import Monitor from '@lucide/svelte/icons/monitor';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Sun from '@lucide/svelte/icons/sun';
 	import type { ThemePreference } from '$lib/theme';
 
 	type Props = {
@@ -50,94 +47,81 @@
 		selected = value;
 		void persist(value);
 	}
+
+	function changeTheme(event: Event): void {
+		const value = (event.currentTarget as HTMLSelectElement).value as ThemePreference;
+		choose(value);
+	}
 </script>
 
-<div class={['theme-toggle', compact && 'compact']} role="radiogroup" aria-label="Color theme">
-	{#each OPTIONS as option (option.value)}
-		{@const isActive = selected === option.value}
-		<button
-			type="button"
-			role="radio"
-			aria-checked={isActive}
-			class={['segment', isActive && 'active']}
-			onclick={() => choose(option.value)}
-		>
-			<span class="segment-icon" aria-hidden="true">
-				{#if option.value === 'light'}
-					<Sun size={16} strokeWidth={2.4} />
-				{:else if option.value === 'dark'}
-					<Moon size={16} strokeWidth={2.4} />
-				{:else}
-					<Monitor size={16} strokeWidth={2.4} />
-				{/if}
-			</span>
-			<span class="segment-label">{option.label}</span>
-		</button>
-	{/each}
-</div>
+<label class={['theme-toggle', compact && 'compact']}>
+	<span class="sr-only">Color theme</span>
+	<select value={selected} onchange={changeTheme} aria-label="Color theme">
+		{#each OPTIONS as option (option.value)}
+			<option value={option.value}>{option.label}</option>
+		{/each}
+	</select>
+</label>
 
 <style>
 	.theme-toggle {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 4px;
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-pill);
-		background: var(--color-paper-3);
-		padding: 4px;
+		position: relative;
+		display: inline-grid;
+		min-width: 124px;
 	}
 
-	.segment {
-		display: inline-flex;
-		min-height: 40px;
-		align-items: center;
-		justify-content: center;
-		gap: 7px;
+	.theme-toggle::after {
+		position: absolute;
+		top: 50%;
+		right: 14px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		color: var(--color-muted);
+		content: '';
+		pointer-events: none;
+		transform: translateY(-70%) rotate(45deg);
+	}
+
+	select {
+		appearance: none;
+		width: 100%;
+		min-height: 42px;
 		border: 1px solid transparent;
 		border-radius: var(--radius-pill);
-		background: transparent;
-		color: var(--color-muted);
+		background: var(--color-paper-2);
+		color: var(--color-ink);
+		padding: 0 34px 0 14px;
 		font-family: var(--font-sans);
 		font-size: 0.86rem;
 		font-weight: 800;
 		cursor: pointer;
-		transition:
-			background 140ms var(--ease-mobile),
-			color 140ms var(--ease-mobile);
-	}
-
-	.segment:active {
-		transform: translateY(1px);
-	}
-
-	.segment.active {
 		border-color: var(--color-line);
-		background: var(--color-paper-2);
-		color: var(--color-ink);
 		box-shadow: var(--shadow-card);
 	}
 
-	.segment-icon {
-		display: grid;
-		place-items: center;
+	select:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--color-charcoal) 34%, transparent);
+		outline-offset: 2px;
 	}
 
 	.compact {
-		grid-template-columns: repeat(3, 36px);
+		min-width: 104px;
 	}
 
-	.compact .segment {
-		min-height: 36px;
-		gap: 0;
+	.compact select {
+		min-height: 38px;
+		padding-left: 12px;
+		font-size: 0.8rem;
 	}
 
-	.compact .segment-label {
-		display: none;
-	}
-
-	@media (max-width: 360px) {
-		.segment-label {
-			display: none;
-		}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
 	}
 </style>

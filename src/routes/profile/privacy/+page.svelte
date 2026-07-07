@@ -18,7 +18,7 @@
 	import UserRound from '@lucide/svelte/icons/user-round';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	let deleteOpen = $state(false);
 	let deleteConfirm = $state('');
 
@@ -156,40 +156,47 @@
 		</nav>
 	</section>
 
-	<section class="danger-zone">
-		<div class="panel-heading">
-			<h2>Account control</h2>
-			<p>Delete your account and care data.</p>
-		</div>
-		{#if !deleteOpen}
-			<button class="danger-toggle" type="button" onclick={() => (deleteOpen = true)}>
-				Delete my account
-			</button>
-		{:else}
-			<form method="POST" action="?/deleteAccount" class="danger-form">
-				<label class="field">
-					<span>Type DELETE to confirm</span>
-					<input
-						name="confirm"
-						bind:value={deleteConfirm}
-						autocomplete="off"
-						placeholder="DELETE"
-					/>
-				</label>
-				{#if form?.deleteError}
-					<p class="field-error">{form.message}</p>
-				{/if}
-				<div class="danger-actions">
-					<button class="danger-cancel" type="button" onclick={() => (deleteOpen = false)}>
-						Cancel
-					</button>
-					<button class="danger-confirm" type="submit" disabled={deleteConfirm !== 'DELETE'}>
-						Delete forever
-					</button>
-				</div>
-			</form>
-		{/if}
-	</section>
+	{#if data.user}
+		<section class="danger-zone">
+			<div class="panel-heading">
+				<h2>Account control</h2>
+				<p>Delete your account and care data.</p>
+			</div>
+			{#if !deleteOpen}
+				<button class="danger-toggle" type="button" onclick={() => (deleteOpen = true)}>
+					Delete my account
+				</button>
+			{:else}
+				<form method="POST" action="?/deleteAccount" class="danger-form">
+					<label class="field">
+						<span>Type DELETE to confirm</span>
+						<input
+							name="confirm"
+							bind:value={deleteConfirm}
+							autocomplete="off"
+							placeholder="DELETE"
+						/>
+					</label>
+					{#if form?.deleteError}
+						<p class="field-error">{form.message}</p>
+					{/if}
+					<div class="danger-actions">
+						<button class="danger-cancel" type="button" onclick={() => (deleteOpen = false)}>
+							Cancel
+						</button>
+						<button class="danger-confirm" type="submit" disabled={deleteConfirm !== 'DELETE'}>
+							Delete forever
+						</button>
+					</div>
+				</form>
+			{/if}
+		</section>
+	{:else}
+		<section class="panel">
+			<h2>Guest mode</h2>
+			<p class="note">Sign in to manage account data.</p>
+		</section>
+	{/if}
 </div>
 
 <style>

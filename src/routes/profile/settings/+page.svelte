@@ -35,86 +35,95 @@
 		<h1>Profile settings</h1>
 	</header>
 
-	<form class="panel name-panel" method="POST" action="?/name">
-		<div class="name-row">
-			<label class="field">
-				<span>Parent name</span>
-				<input name="parentName" bind:value={parentName} maxlength="40" autocomplete="off" />
-			</label>
-			<button class="save" type="submit">Save</button>
-		</div>
-		{#if form?.field === 'name'}
-			<p class="field-error">{form.message}</p>
-		{:else if form?.savedName}
-			<p class="field-ok">Saved.</p>
-		{/if}
-	</form>
-
-	<form class="panel" method="POST" action="?/avatar">
-		<div class="panel-heading"><h2>Profile picture</h2></div>
-		{#if !editingAvatar}
-			<div class="avatar-current">
-				<span class="avatar-preview current">
-					{#if selectedCat}
-						<img class="cat" src={selectedCat.src} alt="" />
-					{:else if photoUrl}
-						<img class="photo" src={photoUrl} alt="" />
-					{:else}
-						<span class="letter-text">{initial}</span>
-					{/if}
-				</span>
-				<span class="avatar-current-label">{currentLabel}</span>
-				<button class="change" type="button" onclick={() => (editingAvatar = true)}>Change</button>
+	{#if data.user}
+		<form class="panel name-panel" method="POST" action="?/name">
+			<div class="name-row">
+				<label class="field">
+					<span>Parent name</span>
+					<input name="parentName" bind:value={parentName} maxlength="40" autocomplete="off" />
+				</label>
+				<button class="save" type="submit">Save</button>
 			</div>
-		{:else}
-			<div class="avatar-options">
-				<button
-					class={['avatar-choice', avatarChoice === 'initial' && 'active']}
-					type="submit"
-					name="avatarChoice"
-					value="initial"
-					aria-pressed={avatarChoice === 'initial'}
-				>
-					{#if photoUrl}
-						<span class="avatar-preview photo"><img src={photoUrl} alt="" /></span>
-						<span>Photo</span>
-					{:else}
-						<span class="avatar-preview letter">{initial}</span>
-						<span>Letter</span>
-					{/if}
-				</button>
-				{#each CAT_AVATARS as avatar (avatar.id)}
+			{#if form?.field === 'name'}
+				<p class="field-error">{form.message}</p>
+			{:else if form?.savedName}
+				<p class="field-ok">Saved.</p>
+			{/if}
+		</form>
+
+		<form class="panel" method="POST" action="?/avatar">
+			<div class="panel-heading"><h2>Profile picture</h2></div>
+			{#if !editingAvatar}
+				<div class="avatar-current">
+					<span class="avatar-preview current">
+						{#if selectedCat}
+							<img class="cat" src={selectedCat.src} alt="" />
+						{:else if photoUrl}
+							<img class="photo" src={photoUrl} alt="" />
+						{:else}
+							<span class="letter-text">{initial}</span>
+						{/if}
+					</span>
+					<span class="avatar-current-label">{currentLabel}</span>
+					<button class="change" type="button" onclick={() => (editingAvatar = true)}>Change</button
+					>
+				</div>
+			{:else}
+				<div class="avatar-options">
 					<button
-						class={['avatar-choice', avatarChoice === avatar.id && 'active']}
+						class={['avatar-choice', avatarChoice === 'initial' && 'active']}
 						type="submit"
 						name="avatarChoice"
-						value={avatar.id}
-						aria-pressed={avatarChoice === avatar.id}
+						value="initial"
+						aria-pressed={avatarChoice === 'initial'}
 					>
-						<span class="avatar-preview cat"><img src={avatar.src} alt="" /></span>
-						<span>{avatar.label}</span>
+						{#if photoUrl}
+							<span class="avatar-preview photo"><img src={photoUrl} alt="" /></span>
+							<span>Photo</span>
+						{:else}
+							<span class="avatar-preview letter">{initial}</span>
+							<span>Letter</span>
+						{/if}
 					</button>
-				{/each}
-			</div>
-		{/if}
-	</form>
-
-	<section class="panel">
-		<div class="row">
-			<span class="row-label">Email</span>
-			<span class="row-value">{data.user?.email ?? 'Not signed in'}</span>
-		</div>
-	</section>
-
-	<section class="panel">
-		<div class="panel-heading"><h2>Account</h2></div>
-		<form method="POST" action={resolve('/auth/logout')}>
-			<button class="sign-out" type="submit">
-				<LogOut size={18} strokeWidth={2.2} aria-hidden="true" />
-				Sign out
-			</button>
+					{#each CAT_AVATARS as avatar (avatar.id)}
+						<button
+							class={['avatar-choice', avatarChoice === avatar.id && 'active']}
+							type="submit"
+							name="avatarChoice"
+							value={avatar.id}
+							aria-pressed={avatarChoice === avatar.id}
+						>
+							<span class="avatar-preview cat"><img src={avatar.src} alt="" /></span>
+							<span>{avatar.label}</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 		</form>
-	</section>
+
+		<section class="panel">
+			<div class="row">
+				<span class="row-label">Email</span>
+				<span class="row-value">{data.user.email}</span>
+			</div>
+		</section>
+
+		<section class="panel">
+			<div class="panel-heading"><h2>Account</h2></div>
+			<form method="POST" action={resolve('/auth/logout')}>
+				<button class="sign-out" type="submit">
+					<LogOut size={18} strokeWidth={2.2} aria-hidden="true" />
+					Sign out
+				</button>
+			</form>
+		</section>
+	{:else}
+		<section class="panel guest-panel">
+			<div class="panel-heading"><h2>Guest mode</h2></div>
+			<p>Sign in to save progress.</p>
+			<a class="signin-button" href={resolve('/auth/login')}>Sign in</a>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -370,5 +379,26 @@
 		font-size: 0.95rem;
 		font-weight: 850;
 		cursor: pointer;
+	}
+
+	.guest-panel p {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.9rem;
+		font-weight: 700;
+	}
+
+	.signin-button {
+		display: inline-flex;
+		min-height: 46px;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 0 18px;
+		font-size: 0.9rem;
+		font-weight: 850;
+		text-decoration: none;
 	}
 </style>

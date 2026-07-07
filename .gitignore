@@ -101,5 +101,6 @@ vite.config.ts.timestamp-*
 .antigravity
 .antigravity-ide
 .cagent
-.playwright-cli/
+.playwright-cli
 _tmp
+docs
