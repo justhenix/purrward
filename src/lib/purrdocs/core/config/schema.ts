@@ -20,12 +20,12 @@ const VersionSchema = z.object({
 const VersionConfigSchema = z.object({
 	current: z.string(),
 	available: z.array(VersionSchema),
-	aliases: z.record(z.string()).optional()
+	aliases: z.record(z.string(), z.string()).optional()
 });
 
 const SidebarConfigSchema = z.object({
 	sectionOrder: z.array(z.string()).optional(),
-	subsectionOrder: z.record(z.array(z.string())).optional()
+	subsectionOrder: z.record(z.string(), z.array(z.string())).optional()
 });
 
 const SdkConfigSchema = z.object({
@@ -37,7 +37,7 @@ const SdkConfigSchema = z.object({
 const ThemeConfigSchema = z.object({
 	primary: z.string().optional(),
 	accent: z.string().optional(),
-	colors: z.record(z.string()).optional()
+	colors: z.record(z.string(), z.string()).optional()
 });
 
 const SearchConfigSchema = z.object({
@@ -52,7 +52,7 @@ export const PurrdocsConfigSchema = z.object({
 	sidebar: SidebarConfigSchema.optional(),
 	editUrl: z.union([z.string(), z.function()]).optional(),
 	sdks: z.array(SdkConfigSchema).optional(),
-	components: z.record(z.unknown()).optional(),
+	components: z.record(z.string(), z.unknown()).optional(),
 	theme: ThemeConfigSchema.optional(),
 	search: SearchConfigSchema.optional()
 });
