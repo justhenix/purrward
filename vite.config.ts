@@ -7,6 +7,10 @@ import { purrdocs } from './src/lib/purrdocs/core/vite/plugin';
 
 export default defineConfig({
 	plugins: [tailwindcss(), purrdocs({ config, contentDir: 'src/content/docs' }), sveltekit()],
+	build: {
+		// ponytail: Vite 8 minify OOMs on this repo; restore minify after the bundler bug is gone.
+		minify: false
+	},
 	resolve: {
 		alias: {
 			'purrdocs-core': path.resolve('./src/lib/purrdocs/core')
