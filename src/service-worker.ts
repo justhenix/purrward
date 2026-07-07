@@ -50,16 +50,5 @@ sw.addEventListener('fetch', (event) => {
 	// navigations natively so the session cookie is sent correctly.
 	if (request.mode === 'navigate') return;
 
-	// Network-first for other same-origin GET assets, falling back to cache when offline.
-	event.respondWith(
-		fetch(request)
-			.then((response) => {
-				if (response.ok && response.type === 'basic') {
-					const clone = response.clone();
-					caches.open(CACHE).then((cache) => cache.put(request, clone));
-				}
-				return response;
-			})
-			.catch(async () => (await caches.match(request)) ?? Response.error())
-	);
+	// SECURITY: non-precached requests stay browser-native to avoid proxying arbitrary URLs.
 });

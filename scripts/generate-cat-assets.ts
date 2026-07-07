@@ -1,7 +1,7 @@
 // Generates the UI-ready cat asset manifest from the real asset folders.
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { basename, dirname, extname, join, relative } from 'node:path';
+import { basename, dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { format } from 'prettier';
 
 type LayerKind =
@@ -43,9 +43,10 @@ type CatAssetManifest = {
 };
 
 const SOURCE_DIR = 'src/lib/assets/cats';
-const OUTPUT_MANIFEST = join(SOURCE_DIR, 'cat-assets.generated.json');
-const OUTPUT_SCHEMA = join(SOURCE_DIR, 'cat-assets.schema.json');
-const ASSET_ROOT = join(process.cwd(), SOURCE_DIR);
+const PROJECT_ROOT = process.cwd();
+const ASSET_ROOT = resolve(PROJECT_ROOT, SOURCE_DIR);
+const OUTPUT_MANIFEST = resolveAssetPath('cat-assets.generated.json');
+const OUTPUT_SCHEMA = resolveAssetPath('cat-assets.schema.json');
 const SUPPORTED_EXTENSIONS = new Set(['.webp', '.png', '.svg', '.jpg', '.jpeg']);
 const LAYER_ORDER = ['paint_splash', 'body', 'expression', 'accessory', 'misc'] as const;
 const ALL_LAYER_KINDS = [...LAYER_ORDER, 'fallback', 'unclassified'] as const;
@@ -65,14 +66,39 @@ function toPosixPath(value: string): string {
 	return value.replaceAll('\\', '/');
 }
 
+function assertInsideAssetRoot(path: string): string {
+	const resolved = resolve(path);
+	const assetRelativePath = relative(ASSET_ROOT, resolved);
+	if (
+		assetRelativePath === '' ||
+		(!assetRelativePath.startsWith('..') && !isAbsolute(assetRelativePath))
+	) {
+		return resolved;
+	}
+	throw new Error(`refusing asset path outside ${SOURCE_DIR}: ${path}`);
+}
+
+function resolveAssetPath(...segments: string[]): string {
+	return assertInsideAssetRoot(resolve(ASSET_ROOT, ...segments));
+}
+
+function resolveManifestAssetPath(assetPath: string): string {
+	const prefix = `${SOURCE_DIR}/`;
+	if (!assetPath.startsWith(prefix)) {
+		throw new Error(`refusing manifest path outside ${SOURCE_DIR}: ${assetPath}`);
+	}
+	return resolveAssetPath(assetPath.slice(prefix.length));
+}
+
 async function scanImageFiles(dir: string): Promise<string[]> {
-	const entries = (await readdir(dir, { withFileTypes: true })).sort((a, b) =>
+	const safeDir = assertInsideAssetRoot(dir);
+	const entries = (await readdir(safeDir, { withFileTypes: true })).sort((a, b) =>
 		a.name.localeCompare(b.name)
 	);
 	const files: string[] = [];
 
 	for (const entry of entries) {
-		const fullPath = join(dir, entry.name);
+		const fullPath = resolveAssetPath(relative(ASSET_ROOT, safeDir), entry.name);
 		if (entry.isDirectory()) {
 			files.push(...(await scanImageFiles(fullPath)));
 			continue;
@@ -157,7 +183,7 @@ function tagsFor(baseId: string, kind: LayerKind): string[] {
 }
 
 function createAsset(fullPath: string): CatAsset {
-	const uiSrcKey = toPosixPath(relative(ASSET_ROOT, fullPath));
+	const uiSrcKey = toPosixPath(relative(ASSET_ROOT, assertInsideAssetRoot(fullPath)));
 	const filename = basename(fullPath);
 	const baseId = basename(filename, extname(filename)).toLowerCase();
 	const kind = classify(uiSrcKey, baseId);
@@ -246,7 +272,9 @@ function validate(manifest: CatAssetManifest): string[] {
 			ids.add(asset.id);
 			if (uiSrcKeys.has(asset.uiSrcKey)) errors.push(`duplicate uiSrcKey: ${asset.uiSrcKey}`);
 			uiSrcKeys.add(asset.uiSrcKey);
-			if (!existsSync(join(process.cwd(), asset.path))) errors.push(`missing path: ${asset.path}`);
+			if (!existsSync(resolveManifestAssetPath(asset.path))) {
+				errors.push(`missing path: ${asset.path}`);
+			}
 			if (asset.kind !== kind)
 				errors.push(`asset ${asset.id} is in ${kind} but has kind ${asset.kind}`);
 			if (asset.kind === 'body' && asset.pose !== 'sit')
@@ -307,7 +335,7 @@ async function writeJson(path: string, value: object): Promise<void> {
 		trailingComma: 'none',
 		useTabs: true
 	});
-	await writeFile(path, formatted);
+	await writeFile(assertInsideAssetRoot(path), formatted);
 }
 
 async function main(): Promise<void> {
