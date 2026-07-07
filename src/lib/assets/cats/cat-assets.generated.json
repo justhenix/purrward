@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"generatedAt": "2026-07-05T23:49:51.818Z",
+	"generatedAt": "2026-07-07T14:10:51.792Z",
 	"sourceDir": "src/lib/assets/cats",
 	"supportedPoses": ["sit"],
 	"layerOrder": ["paint_splash", "body", "expression", "accessory", "misc"],
@@ -96,6 +96,94 @@
 			}
 		],
 		"expression": [
+			{
+				"id": "dark_happy",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Happy",
+				"filename": "happy.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/happy.webp",
+				"uiSrcKey": "expressions/dark_cat/happy.webp",
+				"tags": ["dark", "happy", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_normal_blue",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Normal Blue",
+				"filename": "normal_blue.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/normal_blue.webp",
+				"uiSrcKey": "expressions/dark_cat/normal_blue.webp",
+				"tags": ["dark", "normal", "blue", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_normal_green",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Normal Green",
+				"filename": "normal_green.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/normal_green.webp",
+				"uiSrcKey": "expressions/dark_cat/normal_green.webp",
+				"tags": ["dark", "normal", "green", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_normal_orange",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Normal Orange",
+				"filename": "normal_orange.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/normal_orange.webp",
+				"uiSrcKey": "expressions/dark_cat/normal_orange.webp",
+				"tags": ["dark", "normal", "orange", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_sad_blue",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Sad Blue",
+				"filename": "sad_blue.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/sad_blue.webp",
+				"uiSrcKey": "expressions/dark_cat/sad_blue.webp",
+				"tags": ["dark", "sad", "blue", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_sad_green",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Sad Green",
+				"filename": "sad_green.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/sad_green.webp",
+				"uiSrcKey": "expressions/dark_cat/sad_green.webp",
+				"tags": ["dark", "sad", "green", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_sad_orange",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Sad Orange",
+				"filename": "sad_orange.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/sad_orange.webp",
+				"uiSrcKey": "expressions/dark_cat/sad_orange.webp",
+				"tags": ["dark", "sad", "orange", "expression"],
+				"zIndex": 30
+			},
+			{
+				"id": "dark_sleep",
+				"kind": "expression",
+				"pose": "sit",
+				"name": "Dark Sleep",
+				"filename": "sleep.webp",
+				"path": "src/lib/assets/cats/expressions/dark_cat/sleep.webp",
+				"uiSrcKey": "expressions/dark_cat/sleep.webp",
+				"tags": ["dark", "sleep", "expression"],
+				"zIndex": 30
+			},
 			{
 				"id": "happy",
 				"kind": "expression",
@@ -242,42 +330,19 @@
 				"zIndex": 40
 			}
 		],
-		"paint_splash": [
-			{
-				"id": "blue_splash",
-				"kind": "paint_splash",
-				"pose": "sit",
-				"name": "Blue Splash",
-				"filename": "blue_splash.webp",
-				"path": "src/lib/assets/cats/paint_splash/blue_splash.webp",
-				"uiSrcKey": "paint_splash/blue_splash.webp",
-				"tags": ["blue", "splash", "paint_splash"],
-				"zIndex": 0
-			},
-			{
-				"id": "pink_splash",
-				"kind": "paint_splash",
-				"pose": "sit",
-				"name": "Pink Splash",
-				"filename": "pink_splash.webp",
-				"path": "src/lib/assets/cats/paint_splash/pink_splash.webp",
-				"uiSrcKey": "paint_splash/pink_splash.webp",
-				"tags": ["pink", "splash", "paint_splash"],
-				"zIndex": 0
-			},
-			{
-				"id": "yellow_splash",
-				"kind": "paint_splash",
-				"pose": "sit",
-				"name": "Yellow Splash",
-				"filename": "yellow_splash.webp",
-				"path": "src/lib/assets/cats/paint_splash/yellow_splash.webp",
-				"uiSrcKey": "paint_splash/yellow_splash.webp",
-				"tags": ["yellow", "splash", "paint_splash"],
-				"zIndex": 0
-			}
-		],
+		"paint_splash": [],
 		"misc": [
+			{
+				"id": "bg_park_guide",
+				"kind": "misc",
+				"pose": "sit",
+				"name": "Bg Park Guide",
+				"filename": "bg_park_guide.webp",
+				"path": "src/lib/assets/cats/zzz_guide/bg_park_guide.webp",
+				"uiSrcKey": "zzz_guide/bg_park_guide.webp",
+				"tags": ["bg", "park", "guide", "misc"],
+				"zIndex": 50
+			},
 			{
 				"id": "cat-polaroid",
 				"kind": "misc",

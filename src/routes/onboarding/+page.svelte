@@ -1,15 +1,27 @@
 <!-- First-run onboarding: a warm 3-step flow to pick a care path, build a cat profile, and start caring. -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import Cat from '@lucide/svelte/icons/cat';
 	import HeartHandshake from '@lucide/svelte/icons/heart-handshake';
 	import Check from '@lucide/svelte/icons/check';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
 	import Camera from '@lucide/svelte/icons/camera';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Star from '@lucide/svelte/icons/star';
 	import logo from '$lib/assets/logo/logo.svg';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import type { PageProps } from './$types';
+
+	type AvatarMethod = 'scan' | 'manual';
+	type ScanStatus = 'idle' | 'ready' | 'loading' | 'matched' | 'no-match' | 'error';
+	type AvatarScanMatch = {
+		matched: true;
+		avatarId: string;
+		confidence: 'good' | 'close';
+		reason: string;
+	};
+	type AvatarScanPayload = AvatarScanMatch | { matched: false; reason: string };
 
 	let { data, form }: PageProps = $props();
 
@@ -17,6 +29,14 @@
 	let mode = $state<'owned' | 'community'>('owned');
 	let name = $state('');
 	let selectedAvatar = $state<string>('orange');
+	let avatarMethod = $state<AvatarMethod>('manual');
+	let scanFile = $state<File | null>(null);
+	let scanPreviewUrl = $state<string | null>(null);
+	let scanStatus = $state<ScanStatus>('idle');
+	let scanMatch = $state<AvatarScanMatch | null>(null);
+	let scanMessage = $state('');
+	let cameraInput = $state<HTMLInputElement>();
+	let uploadInput = $state<HTMLInputElement>();
 	let multipleCats = $state(false);
 	let submitting = $state(false);
 
@@ -24,15 +44,10 @@
 	const action = $derived(isCommunity ? '?/community' : '?/owned');
 	const stepLabel = $derived(`Step ${step} of 3`);
 
-	// Step 2 copy adapts to the chosen care path.
-	const profileTitle = $derived(isCommunity ? 'Care profile' : 'Name and look');
-	const profileSubtitle = $derived(
-		isCommunity ? 'Name the cat or group you care for.' : "Create your cat's profile."
-	);
-	const nameLabel = $derived(isCommunity ? 'Care name' : 'Cat name');
-	const namePlaceholder = $derived(
-		isCommunity ? 'Campus Cats, Shelter A, Orange...' : 'Mochi, Luna, Orange...'
-	);
+	const profileTitle = $derived('Name and look');
+	const profileSubtitle = $derived('Cat profile.');
+	const nameLabel = $derived('Cat name');
+	const namePlaceholder = $derived('Mochi');
 
 	// Preview + summary state.
 	const trimmedName = $derived(name.trim());
@@ -41,10 +56,19 @@
 	const careTypeLabel = $derived(isCommunity ? 'Community cats' : 'My cat');
 	const previewAvatar = $derived(getCatAvatar(selectedAvatar));
 	const canContinue = $derived(trimmedName.length > 0);
+	const suggestedAvatar = $derived(scanMatch ? getCatAvatar(scanMatch.avatarId) : null);
+	const canSubmitScan = $derived(scanFile !== null && scanStatus !== 'loading');
 
 	// Step 3 benefit labels shift with the care path (routine vs logs, check vs proof).
 	const routineLabel = $derived(isCommunity ? 'Care logs' : 'Daily routine');
 	const photoLabel = $derived(isCommunity ? 'Photo proof' : 'Photo check');
+
+	$effect(() => {
+		const url = scanPreviewUrl;
+		return () => {
+			if (url) URL.revokeObjectURL(url);
+		};
+	});
 
 	function next() {
 		step = Math.min(3, step + 1);
@@ -52,6 +76,115 @@
 
 	function previous() {
 		step = Math.max(1, step - 1);
+	}
+
+	function chooseAvatarMethod(method: AvatarMethod) {
+		avatarMethod = method;
+		if (method === 'manual') {
+			scanStatus = 'idle';
+			scanMessage = '';
+		}
+	}
+
+	function resetScan() {
+		scanFile = null;
+		scanPreviewUrl = null;
+		scanStatus = 'idle';
+		scanMatch = null;
+		scanMessage = '';
+	}
+
+	function handleScanFile(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0] ?? null;
+		input.value = '';
+		if (!file) return;
+		scanFile = file;
+		scanPreviewUrl = URL.createObjectURL(file);
+		scanStatus = 'ready';
+		scanMatch = null;
+		scanMessage = '';
+		avatarMethod = 'scan';
+	}
+
+	function openCamera() {
+		cameraInput?.click();
+	}
+
+	function openUpload() {
+		uploadInput?.click();
+	}
+
+	function readError(payload: unknown): string {
+		if (!payload || typeof payload !== 'object') return '';
+		const error = (payload as { error?: unknown }).error;
+		return typeof error === 'string' ? error : '';
+	}
+
+	function readAvatarMatchPayload(payload: unknown): AvatarScanPayload | null {
+		if (!payload || typeof payload !== 'object') return null;
+		const value = payload as {
+			matched?: unknown;
+			avatarId?: unknown;
+			confidence?: unknown;
+			reason?: unknown;
+		};
+		const reason = typeof value.reason === 'string' ? value.reason : '';
+		if (value.matched === false) return { matched: false, reason };
+		if (value.matched !== true || typeof value.avatarId !== 'string') return null;
+		if (!data.avatars.some((avatar) => avatar.id === value.avatarId)) return null;
+		const confidence = value.confidence === 'good' ? 'good' : 'close';
+		return { matched: true, avatarId: value.avatarId, confidence, reason };
+	}
+
+	async function submitScan() {
+		if (!scanFile) {
+			scanStatus = 'error';
+			scanMessage = 'Choose a photo first.';
+			return;
+		}
+
+		scanStatus = 'loading';
+		scanMatch = null;
+		scanMessage = 'Finding match…';
+
+		const body = new FormData();
+		body.set('image', scanFile);
+		try {
+			const response = await fetch(resolve('/api/onboarding/avatar-match'), {
+				method: 'POST',
+				body
+			});
+			const payload: unknown = await response.json().catch(() => null);
+			if (!response.ok) {
+				const error = readError(payload);
+				scanStatus = 'error';
+				scanMessage = /too large|maximum 5mb/i.test(error)
+					? 'Image too large. Pick manually.'
+					: "Couldn't scan. Pick manually.";
+				return;
+			}
+
+			const result = readAvatarMatchPayload(payload);
+			if (!result) throw new Error('Bad avatar match response.');
+			if (result.matched) {
+				scanMatch = result;
+				scanStatus = 'matched';
+				scanMessage = result.reason;
+			} else {
+				scanStatus = 'no-match';
+				scanMessage = 'Pick manually.';
+			}
+		} catch {
+			scanStatus = 'error';
+			scanMessage = "Couldn't scan. Pick manually.";
+		}
+	}
+
+	function useSuggestedAvatar() {
+		if (!scanMatch) return;
+		selectedAvatar = scanMatch.avatarId;
+		chooseAvatarMethod('manual');
 	}
 </script>
 
@@ -93,7 +226,6 @@
 			<section class="step" aria-label={stepLabel}>
 				<div class="step-content">
 					<div class="step-head">
-						<p class="eyebrow">Let's set up care</p>
 						<h1>Who are you caring for?</h1>
 						<p class="subtitle">Choose your care path.</p>
 					</div>
@@ -152,9 +284,9 @@
 		{/if}
 
 		{#if step === 2}
-			<section class="step" aria-label={stepLabel}>
-				<div class="step-content">
-					<div class="step-head">
+			<section class="step profile-step" aria-label={stepLabel}>
+				<div class="step-content profile-content">
+					<div class="step-head profile-head">
 						<h1>{profileTitle}</h1>
 						<p class="subtitle">{profileSubtitle}</p>
 					</div>
@@ -163,8 +295,11 @@
 						<span class="preview-portrait" aria-hidden="true">
 							{#if previewAvatar}<img src={previewAvatar.src} alt="" />{/if}
 						</span>
-						<span class="preview-name" class:muted={!trimmedName}>{previewName}</span>
-						<span class="preview-path">{careTypeLabel}</span>
+						<div class="preview-copy">
+							<span class="preview-kicker">Preview</span>
+							<span class="preview-name">{previewName}</span>
+							{#if previewAvatar}<span class="preview-avatar-name">{previewAvatar.label}</span>{/if}
+						</div>
 					</div>
 
 					<label class="field">
@@ -178,26 +313,157 @@
 						/>
 					</label>
 
-					<fieldset class="avatar-grid">
-						<legend>Pick a look</legend>
-						{#each data.avatars as avatar (avatar.id)}
-							<label class={['avatar-choice', selectedAvatar === avatar.id && 'active']}>
-								<input
-									type="radio"
-									value={avatar.id}
-									checked={selectedAvatar === avatar.id}
-									onchange={() => (selectedAvatar = avatar.id)}
-								/>
-								<img src={avatar.src} alt={avatar.label} />
-								<span>{avatar.label}</span>
-							</label>
-						{/each}
-					</fieldset>
+					<section class="avatar-method" aria-labelledby="avatar-method-title">
+						<div class="avatar-method-head">
+							<h2 id="avatar-method-title">Avatar</h2>
+						</div>
+
+						<div class="method-segment" role="radiogroup" aria-label="Avatar method">
+							<button
+								type="button"
+								class:active={avatarMethod === 'scan'}
+								role="radio"
+								aria-checked={avatarMethod === 'scan'}
+								onclick={() => chooseAvatarMethod('scan')}
+							>
+								Scan
+							</button>
+
+							<button
+								type="button"
+								class:active={avatarMethod === 'manual'}
+								role="radio"
+								aria-checked={avatarMethod === 'manual'}
+								onclick={() => chooseAvatarMethod('manual')}
+							>
+								Manual
+							</button>
+						</div>
+					</section>
+
+					{#if avatarMethod === 'scan'}
+						<section class="scan-panel" aria-label="Scan cat">
+							<div class="panel-head">
+								<h3>Find match</h3>
+								<p>Use a cat photo.</p>
+							</div>
+
+							<input
+								bind:this={cameraInput}
+								class="file-input"
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								capture="environment"
+								onchange={handleScanFile}
+							/>
+							<input
+								bind:this={uploadInput}
+								class="file-input"
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								onchange={handleScanFile}
+							/>
+
+							<div class="scan-actions">
+								<button class="scan-button" type="button" onclick={openCamera}>
+									<Camera size={18} strokeWidth={2.2} aria-hidden="true" />
+									Open camera
+								</button>
+								<button class="scan-button" type="button" onclick={openUpload}>Upload</button>
+							</div>
+
+							{#if scanPreviewUrl}
+								<div class="scan-preview">
+									<img src={scanPreviewUrl} alt="Selected cat preview" />
+								</div>
+							{/if}
+
+							<button
+								class="btn btn-primary scan-submit"
+								type="button"
+								onclick={submitScan}
+								disabled={!canSubmitScan}
+							>
+								{scanStatus === 'loading' ? 'Finding match…' : 'Find match'}
+							</button>
+
+							{#if scanStatus === 'matched' && scanMatch && suggestedAvatar}
+								<div class="match-card">
+									<div class="match-head">
+										<strong>Best match</strong>
+									</div>
+									<span class="match-avatar">
+										<img src={suggestedAvatar.src} alt={suggestedAvatar.label} />
+									</span>
+									<div class="match-actions">
+										<button class="btn btn-primary" type="button" onclick={useSuggestedAvatar}>
+											Use
+										</button>
+										<button class="btn btn-ghost" type="button" onclick={resetScan}>
+											<RotateCcw size={15} strokeWidth={2.4} aria-hidden="true" />
+											Try again
+										</button>
+										<button
+											class="btn btn-ghost"
+											type="button"
+											onclick={() => chooseAvatarMethod('manual')}
+										>
+											Manual
+										</button>
+									</div>
+								</div>
+							{:else if scanStatus === 'no-match'}
+								<div class="scan-state">
+									<strong>No match</strong>
+									<span>{scanMessage}</span>
+									<button
+										class="btn btn-ghost"
+										type="button"
+										onclick={() => chooseAvatarMethod('manual')}
+									>
+										Manual
+									</button>
+								</div>
+							{:else if scanStatus === 'error'}
+								<div class="scan-state error">
+									<strong
+										>{scanMessage.startsWith('Image') ? 'Image too large' : 'Couldn’t scan'}</strong
+									>
+									<span>Pick manually.</span>
+									<button
+										class="btn btn-ghost"
+										type="button"
+										onclick={() => chooseAvatarMethod('manual')}
+									>
+										Manual
+									</button>
+								</div>
+							{/if}
+						</section>
+					{:else}
+						<fieldset class="avatar-picker">
+							<legend>Pick avatar</legend>
+							<div class="avatar-grid">
+								{#each data.avatars as avatar (avatar.id)}
+									<label class={['avatar-choice', selectedAvatar === avatar.id && 'active']}>
+										<input
+											type="radio"
+											value={avatar.id}
+											checked={selectedAvatar === avatar.id}
+											onchange={() => (selectedAvatar = avatar.id)}
+										/>
+										<img src={avatar.src} alt={avatar.label} />
+										<span>{avatar.label}</span>
+									</label>
+								{/each}
+							</div>
+						</fieldset>
+					{/if}
 				</div>
 
 				<div class="actions actions-stacked">
 					{#if !canContinue}
-						<p class="helper">Enter a name to continue.</p>
+						<p class="helper">Add a name to continue.</p>
 					{:else if form?.field === 'name'}
 						<p class="helper error">{form.message}</p>
 					{/if}
@@ -348,19 +614,19 @@
 		flex-direction: column;
 	}
 
-	/* Center the content + actions cluster so tall screens feel balanced, not top-heavy. */
 	.step {
 		display: flex;
 		flex: 1;
 		flex-direction: column;
 		justify-content: center;
-		gap: 22px;
-		padding-bottom: max(16px, env(safe-area-inset-bottom));
+		gap: 18px;
+		padding-bottom: max(20px, env(safe-area-inset-bottom));
 	}
 
 	.step-content {
 		display: grid;
-		gap: 18px;
+		gap: 14px;
+		padding-bottom: 4px;
 	}
 
 	.step-head {
@@ -368,11 +634,18 @@
 		gap: 5px;
 	}
 
-	.eyebrow {
-		margin: 0;
-		color: var(--color-success-text);
-		font-size: 0.9rem;
-		font-weight: 800;
+	.profile-step {
+		justify-content: flex-start;
+		gap: 12px;
+		padding-bottom: max(28px, calc(env(safe-area-inset-bottom) + 18px));
+	}
+
+	.profile-content {
+		gap: 10px;
+	}
+
+	.profile-head {
+		gap: 2px;
 	}
 
 	.step-head h1 {
@@ -382,11 +655,20 @@
 		line-height: 1.06;
 	}
 
+	.profile-head h1 {
+		font-size: 1.5rem;
+		line-height: 1.12;
+	}
+
 	.subtitle {
 		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.98rem;
 		font-weight: 500;
+	}
+
+	.profile-head .subtitle {
+		font-size: 0.84rem;
 	}
 
 	/* Step 1 — care path cards (both first-class). */
@@ -530,38 +812,44 @@
 		background: color-mix(in srgb, var(--color-paper-2) 78%, var(--color-sage-soft));
 	}
 
-	/* Step 2 — large profile preview. */
 	.preview-box {
-		display: grid;
-		justify-items: center;
+		display: flex;
+		align-items: center;
 		gap: 10px;
 		border: 1px solid var(--color-line);
-		border-radius: var(--radius-card-lg);
-		background:
-			radial-gradient(
-				circle at 50% 22%,
-				color-mix(in srgb, var(--color-peach-soft) 60%, transparent),
-				transparent 60%
-			),
-			var(--color-paper-2);
-		padding: 22px 20px;
-		box-shadow: var(--shadow-card);
+		border-radius: 18px;
+		background: var(--color-paper-2);
+		padding: 9px 10px;
 	}
 
 	.preview-portrait {
 		display: grid;
 		place-items: center;
-		width: 112px;
-		height: 112px;
-		border-radius: 32px;
+		width: 56px;
+		height: 56px;
+		flex: none;
+		border-radius: 18px;
 		background: var(--color-peach-soft);
 		overflow: hidden;
 	}
 
 	.preview-portrait img {
-		width: 88px;
-		height: 88px;
+		width: 46px;
+		height: 46px;
 		object-fit: contain;
+	}
+
+	.preview-copy {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.preview-kicker,
+	.preview-avatar-name {
+		color: var(--color-muted);
+		font-size: 0.74rem;
+		font-weight: 800;
 	}
 
 	.preview-name {
@@ -569,23 +857,10 @@
 		overflow: hidden;
 		color: var(--color-ink);
 		font-family: var(--font-display);
-		font-size: 1.4rem;
+		font-size: 0.98rem;
 		font-weight: 700;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.preview-name.muted {
-		color: var(--color-muted);
-	}
-
-	.preview-path {
-		border-radius: var(--radius-pill);
-		background: var(--color-sage-soft);
-		color: var(--color-success-text);
-		padding: 4px 13px;
-		font-size: 0.8rem;
-		font-weight: 800;
 	}
 
 	.field {
@@ -605,7 +880,7 @@
 		border-radius: 18px;
 		background: var(--color-paper-2);
 		color: var(--color-ink);
-		padding: 14px 16px;
+		padding: 12px 14px;
 		font: inherit;
 		font-size: 0.98rem;
 	}
@@ -616,35 +891,247 @@
 		border-color: color-mix(in srgb, var(--color-peach) 50%, var(--color-line));
 	}
 
-	/* Step 2 — avatar picker, consistent with path cards, soft selected state. */
-	.avatar-grid {
+	.avatar-method {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 10px;
+		gap: 8px;
+	}
+
+	.avatar-method-head h2 {
+		margin: 0;
+		color: var(--color-charcoal);
+		font-size: 0.84rem;
+		font-weight: 800;
+	}
+
+	.method-segment {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 6px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-3);
+		padding: 4px;
+	}
+
+	.method-segment button {
+		min-height: 36px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: var(--color-muted);
+		font-size: 0.9rem;
+		font-weight: 850;
+		cursor: pointer;
+	}
+
+	.method-segment button.active {
+		background: var(--color-paper-2);
+		color: var(--color-ink);
+		box-shadow: 0 6px 14px color-mix(in srgb, var(--color-charcoal) 8%, transparent);
+	}
+
+	.scan-panel {
+		display: grid;
+		gap: 8px;
+		border: 1px solid var(--color-line);
+		border-radius: 18px;
+		background: var(--color-paper-2);
+		padding: 10px;
+	}
+
+	.panel-head {
+		display: grid;
+		gap: 2px;
+	}
+
+	.panel-head h3 {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: 0.98rem;
+	}
+
+	.panel-head p {
+		margin: 0;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 650;
+	}
+
+	.file-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.scan-actions {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+
+	.scan-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 42px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-2);
+		color: var(--color-charcoal);
+		font-size: 0.86rem;
+		font-weight: 800;
+		cursor: pointer;
+	}
+
+	.scan-preview {
+		display: grid;
+		place-items: center;
+		min-height: 86px;
+		border: 1px solid var(--color-line);
+		border-radius: 18px;
+		background: var(--color-paper-3);
+		overflow: hidden;
+	}
+
+	.scan-preview img {
+		width: 100%;
+		max-height: 112px;
+		object-fit: contain;
+	}
+
+	.scan-submit {
+		width: 100%;
+	}
+
+	.match-card {
+		display: grid;
+		justify-items: center;
+		gap: 8px;
+		border: 1px solid color-mix(in srgb, var(--color-success-text) 26%, var(--color-line));
+		border-radius: 18px;
+		background: var(--color-sage-soft);
+		padding: 10px;
+	}
+
+	.match-head {
+		display: grid;
+		justify-items: center;
+	}
+
+	.match-head strong {
+		color: var(--color-success-text);
+		font-size: 1rem;
+	}
+
+	.match-avatar {
+		display: grid;
+		place-items: center;
+		width: 64px;
+		height: 64px;
+		border-radius: 18px;
+		background: var(--color-paper-2);
+		overflow: hidden;
+	}
+
+	.match-avatar img {
+		width: 52px;
+		height: 52px;
+		object-fit: contain;
+	}
+
+	.match-actions {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+		width: 100%;
+	}
+
+	.match-actions .btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		min-height: 42px;
+		font-size: 0.84rem;
+	}
+
+	.match-actions .btn-primary {
+		grid-column: 1 / -1;
+	}
+
+	.scan-state {
+		display: grid;
+		justify-items: center;
+		gap: 9px;
+		border: 1px dashed var(--color-line);
+		border-radius: 20px;
+		background: var(--color-paper-3);
+		padding: 14px;
+		text-align: center;
+	}
+
+	.scan-state strong {
+		color: var(--color-ink);
+		font-size: 1rem;
+	}
+
+	.scan-state span {
+		color: var(--color-muted);
+		font-size: 0.86rem;
+		font-weight: 700;
+	}
+
+	.scan-state.error {
+		border-color: color-mix(in srgb, var(--color-danger-text) 24%, var(--color-line));
+		background: var(--color-danger-bg);
+	}
+
+	.scan-state.error strong {
+		color: var(--color-danger-text);
+	}
+
+	.scan-state button {
+		width: 100%;
+		min-height: 44px;
+	}
+
+	/* Step 2 — avatar picker, consistent with path cards, soft selected state. */
+	.avatar-picker {
+		display: grid;
+		gap: 9px;
 		border: 0;
 		margin: 0;
 		padding: 0;
 		min-width: 0;
 	}
 
-	.avatar-grid legend {
-		float: left;
-		width: 100%;
-		margin-bottom: 10px;
+	.avatar-picker legend {
 		padding: 0;
 		color: var(--color-charcoal);
 		font-size: 0.84rem;
 		font-weight: 800;
 	}
 
+	.avatar-grid {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 9px;
+		margin-top: 10px;
+		min-width: 0;
+	}
+
 	.avatar-choice {
 		display: grid;
 		justify-items: center;
-		gap: 6px;
+		gap: 5px;
 		border: 1px solid var(--color-line);
-		border-radius: 18px;
+		border-radius: 16px;
 		background: var(--color-paper-2);
-		padding: 11px 6px;
+		min-height: 82px;
+		padding: 9px 5px;
 		font-size: 0.72rem;
 		font-weight: 700;
 		color: var(--color-muted);
@@ -674,8 +1161,8 @@
 	}
 
 	.avatar-choice img {
-		width: 46px;
-		height: 46px;
+		width: 44px;
+		height: 44px;
 		object-fit: contain;
 	}
 
@@ -788,7 +1275,7 @@
 
 	.actions-stacked {
 		flex-direction: column;
-		gap: 12px;
+		gap: 8px;
 	}
 
 	.actions-row {
@@ -811,7 +1298,7 @@
 
 	.btn {
 		flex: 1;
-		min-height: 54px;
+		min-height: 50px;
 		border-radius: var(--radius-pill);
 		font-size: 1rem;
 		font-weight: 700;
@@ -860,9 +1347,9 @@
 			position: sticky;
 			bottom: 0;
 			margin-top: auto;
-			padding-top: 12px;
-			padding-bottom: max(12px, env(safe-area-inset-bottom));
-			background: linear-gradient(to top, var(--color-paper) 72%, transparent);
+			padding-top: 10px;
+			padding-bottom: max(14px, env(safe-area-inset-bottom));
+			background: linear-gradient(to top, var(--color-paper) 78%, transparent);
 		}
 	}
 

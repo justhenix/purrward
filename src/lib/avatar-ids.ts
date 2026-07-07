@@ -6,7 +6,8 @@ export const CAT_AVATAR_IDS = [
 	'calico',
 	'siamese',
 	'tabby',
-	'white'
+	'white',
+	'black'
 ] as const;
 
 export type CatAvatarId = (typeof CAT_AVATAR_IDS)[number];

@@ -161,17 +161,20 @@ function createAsset(fullPath: string): CatAsset {
 	const filename = basename(fullPath);
 	const baseId = basename(filename, extname(filename)).toLowerCase();
 	const kind = classify(uiSrcKey, baseId);
-	const id = kind === 'fallback' ? `fallback_${baseId}` : baseId;
+	const darkExpression = kind === 'expression' && uiSrcKey.startsWith('expressions/dark_cat/');
+	const id =
+		kind === 'fallback' ? `fallback_${baseId}` : darkExpression ? `dark_${baseId}` : baseId;
+	const displayId = darkExpression ? `dark_${baseId}` : baseId;
 
 	return {
 		id,
 		kind,
 		pose: 'sit',
-		name: kind === 'fallback' ? `Fallback ${titleCase(baseId)}` : titleCase(baseId),
+		name: kind === 'fallback' ? `Fallback ${titleCase(baseId)}` : titleCase(displayId),
 		filename,
 		path: `${SOURCE_DIR}/${uiSrcKey}`,
 		uiSrcKey,
-		tags: tagsFor(baseId, kind),
+		tags: tagsFor(displayId, kind),
 		zIndex: Z_INDEX[kind]
 	};
 }

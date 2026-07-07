@@ -1,4 +1,5 @@
 // Maps local avatar ids to selector previews and display artwork.
+import blackCat from '$lib/assets/cats/sit_pfp_or_fallback/black_sit.webp';
 import calicoCat from '$lib/assets/cats/sit_pfp_or_fallback/calico_sit.webp';
 import greyCat from '$lib/assets/cats/sit_pfp_or_fallback/grey_sit.webp';
 import orangeCat from '$lib/assets/cats/sit_pfp_or_fallback/orange_sit.webp';
@@ -12,28 +13,83 @@ import { isCatAvatarId } from '$lib/avatar-ids';
 export type CatAvatarOption = {
 	id: CatAvatarId;
 	label: string;
+	name: string;
 	src: string;
+	asset: string;
+	traits: readonly string[];
+	matchDescription: string;
 };
 
-export const CAT_AVATAR_ARTWORK: readonly CatAvatarOption[] = [
-	{ id: 'orange', label: 'Orange', src: orangeCat },
-	{ id: 'tuxedo', label: 'Tuxedo', src: tuxedoCat },
-	{ id: 'grey', label: 'Grey', src: greyCat },
-	{ id: 'calico', label: 'Calico', src: calicoCat },
-	{ id: 'siamese', label: 'Siamese', src: siameseCat },
-	{ id: 'tabby', label: 'Tabby', src: tabbyCat },
-	{ id: 'white', label: 'White', src: whiteCat }
-];
+function avatar(
+	id: CatAvatarId,
+	name: string,
+	src: string,
+	traits: readonly string[],
+	matchDescription: string
+): CatAvatarOption {
+	return { id, label: name, name, src, asset: src, traits, matchDescription };
+}
 
 export const CAT_AVATARS: readonly CatAvatarOption[] = [
-	{ id: 'orange', label: 'Orange', src: orangeCat },
-	{ id: 'tuxedo', label: 'Tuxedo', src: tuxedoCat },
-	{ id: 'grey', label: 'Grey', src: greyCat },
-	{ id: 'calico', label: 'Calico', src: calicoCat },
-	{ id: 'siamese', label: 'Siamese', src: siameseCat },
-	{ id: 'tabby', label: 'Tabby', src: tabbyCat },
-	{ id: 'white', label: 'White', src: whiteCat }
+	avatar(
+		'orange',
+		'Orange',
+		orangeCat,
+		['orange coat', 'ginger coat'],
+		'Orange or ginger cat with warm coat color.'
+	),
+	avatar(
+		'tuxedo',
+		'Tuxedo',
+		tuxedoCat,
+		['black and white', 'white chest'],
+		'Black and white cat with a white chest or face markings.'
+	),
+	avatar(
+		'grey',
+		'Grey',
+		greyCat,
+		['grey coat', 'solid grey'],
+		'Grey cat with a mostly solid grey coat.'
+	),
+	avatar(
+		'calico',
+		'Calico',
+		calicoCat,
+		['black orange white patches'],
+		'Cat with black, orange, and white patch markings.'
+	),
+	avatar(
+		'siamese',
+		'Siamese',
+		siameseCat,
+		['cream body', 'dark face ears paws'],
+		'Light body with darker face, ears, paws, or tail.'
+	),
+	avatar(
+		'tabby',
+		'Tabby',
+		tabbyCat,
+		['striped coat', 'tabby markings'],
+		'Striped cat with tabby-like coat markings.'
+	),
+	avatar(
+		'white',
+		'White',
+		whiteCat,
+		['white coat', 'cream coat'],
+		'White or very light cream cat.'
+	),
+	avatar(
+		'black',
+		'Black',
+		blackCat,
+		['black coat', 'solid dark coat'],
+		'Black cat with a solid dark coat.'
+	)
 ];
+
+export const CAT_AVATAR_ARTWORK = CAT_AVATARS;
 
 export function getCatAvatar(value: string | null | undefined): CatAvatarOption | null {
 	if (!value || !isCatAvatarId(value)) return null;

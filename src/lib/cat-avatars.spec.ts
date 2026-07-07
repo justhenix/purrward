@@ -7,6 +7,7 @@ describe('cat avatars', () => {
 	it('uses sit assets for avatar lookup and picker artwork', () => {
 		expect(getCatAvatar('orange')?.src).toBe(orangeSit);
 		expect(CAT_AVATAR_ARTWORK[0].src).toBe(orangeSit);
-		expect(CAT_AVATARS[0].src).toBe(orangeSit);
+		expect(CAT_AVATARS.find((avatar) => avatar.id === 'orange')?.src).toBe(orangeSit);
+		expect(CAT_AVATARS.every((avatar) => avatar.traits.length > 0)).toBe(true);
 	});
 });
