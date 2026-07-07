@@ -13,12 +13,14 @@
 {#if prev || next}
 	<nav class="prev-next">
 		{#if prev}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a href={prev.href} class="prev-link">
 				<span class="label">← Previous</span>
 				<span class="title">{prev.title}</span>
 			</a>
 		{/if}
 		{#if next}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a href={next.href} class="next-link">
 				<span class="label">Next →</span>
 				<span class="title">{next.title}</span>

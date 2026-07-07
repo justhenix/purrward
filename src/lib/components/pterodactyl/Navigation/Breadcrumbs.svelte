@@ -33,6 +33,7 @@
 		{#if crumb.isEllipsis}
 			<span class="crumb ellipsis" aria-hidden="true">…</span>
 		{:else if crumb.href && index < displayItems.length - 1}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a class="crumb link" href={crumb.href} title={crumb.label}>
 				{truncateLabel(crumb.label)}
 			</a>

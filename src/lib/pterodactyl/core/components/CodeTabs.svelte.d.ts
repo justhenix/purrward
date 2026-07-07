@@ -13,4 +13,8 @@ export interface CodeTabsProps {
 	initialIndex?: number;
 }
 
-export default class CodeTabs extends SvelteComponent<CodeTabsProps, {}, {}> {}
+export default class CodeTabs extends SvelteComponent<
+	CodeTabsProps,
+	Record<string, never>,
+	Record<string, never>
+> {}

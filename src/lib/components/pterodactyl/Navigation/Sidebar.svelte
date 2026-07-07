@@ -2,6 +2,7 @@
 <script lang="ts">
 	import type { DocsSection } from 'pterodactyl-core';
 	import { ChevronDown } from '@lucide/svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	interface Props {
 		sections: DocsSection[];
@@ -11,7 +12,7 @@
 	let { sections, currentPath }: Props = $props();
 
 	// Track which sections are expanded
-	let expandedSections = $state(new Set<string>());
+	const expandedSections = new SvelteSet<string>();
 
 	// Initialize with current section expanded
 	$effect(() => {
@@ -24,20 +25,19 @@
 			);
 
 			if (hasActivePage || hasActiveSubsection) {
-				expandedSections = new Set([section.title]);
+				expandedSections.clear();
+				expandedSections.add(section.title);
 				break; // Only open one section
 			}
 		}
 	});
 
 	function toggleSection(title: string) {
-		const newExpanded = new Set(expandedSections);
-		if (newExpanded.has(title)) {
-			newExpanded.delete(title);
+		if (expandedSections.has(title)) {
+			expandedSections.delete(title);
 		} else {
-			newExpanded.add(title);
+			expandedSections.add(title);
 		}
-		expandedSections = newExpanded;
 	}
 
 	function isActive(href: string): boolean {
@@ -56,8 +56,9 @@
 		<!-- Top section with no category (flat) -->
 		<div class="nav-section flat-section">
 			<ul class="nav-items">
-				{#each sections[0].items as item}
+				{#each sections[0].items as item (item.href)}
 					<li>
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 						<a href={item.href} class:active={isActive(item.href)}>
 							<span class="nav-title">{item.title}</span>
 							{#if formatScope(item.scope)}
@@ -71,7 +72,7 @@
 	{/if}
 
 	<!-- Remaining sections as accordion -->
-	{#each sections.slice(1) as section}
+	{#each sections.slice(1) as section (section.title)}
 		<div class="nav-section">
 			<button
 				class="section-title"
@@ -85,8 +86,9 @@
 			{#if expandedSections.has(section.title)}
 				{#if section.items.length > 0}
 					<ul class="nav-items">
-						{#each section.items as item}
+						{#each section.items as item (item.href)}
 							<li>
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 								<a href={item.href} class:active={isActive(item.href)}>
 									<span class="nav-title">{item.title}</span>
 									{#if formatScope(item.scope)}
@@ -99,12 +101,13 @@
 				{/if}
 
 				{#if section.subsections}
-					{#each section.subsections as subsection}
+					{#each section.subsections as subsection (subsection.title)}
 						<div class="subsection">
 							<h4 class="subsection-title">{subsection.title}</h4>
 							<ul class="nav-items">
-								{#each subsection.items as item}
+								{#each subsection.items as item (item.href)}
 									<li>
+										<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 										<a href={item.href} class:active={isActive(item.href)}>
 											<span class="nav-title">{item.title}</span>
 											{#if formatScope(item.scope)}

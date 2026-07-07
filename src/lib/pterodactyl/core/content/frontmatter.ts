@@ -36,7 +36,7 @@ export function parseFrontmatter(content: string): {
 		};
 	} catch (error) {
 		console.error('Invalid frontmatter:', error);
-		throw new Error(`Frontmatter validation failed: ${error}`);
+		throw new Error(`Frontmatter validation failed: ${error}`, { cause: error });
 	}
 }
 

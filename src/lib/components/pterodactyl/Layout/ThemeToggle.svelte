@@ -134,7 +134,7 @@
 
 	{#if isOpen}
 		<div class="theme-dropdown" role="listbox">
-			{#each themeOptions as option}
+			{#each themeOptions as option (option)}
 				<button
 					type="button"
 					class="theme-option"

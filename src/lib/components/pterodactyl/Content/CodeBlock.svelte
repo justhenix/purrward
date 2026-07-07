@@ -101,7 +101,7 @@
 
 	<div class="code-content">
 		<pre class="code-pre"><code class="language-{language}"
-				>{#each lines as line, index}<span
+				>{#each lines as line, index (index)}<span
 						class="code-line"
 						class:highlighted={isHighlighted(startLine + index)}
 						data-line={startLine + index}

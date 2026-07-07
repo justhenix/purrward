@@ -9,9 +9,10 @@
 		lang?: string;
 	};
 
-	let { tabs = [] }: { tabs?: Tab[]; initialIndex?: number } = $props();
+	let { tabs = [], initialIndex = 0 }: { tabs?: Tab[]; initialIndex?: number } = $props();
 
-	let active = $state(0);
+	// svelte-ignore state_referenced_locally
+	let active = $state(initialIndex);
 
 	let hasTabs = $derived(tabs.length > 1);
 
@@ -40,7 +41,6 @@
 		{#if tabs[active]}
 			<CodeBlock
 				code={tabs[active].code}
-				source={tabs[active].source}
 				lang={tabs[active].lang ?? 'text'}
 				title={tabs[active].label}
 			/>

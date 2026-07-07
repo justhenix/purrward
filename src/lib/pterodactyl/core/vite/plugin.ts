@@ -2,11 +2,10 @@
 import type { Plugin } from 'vite';
 import type { PterodactylConfig } from '../config/types.ts';
 import fg from 'fast-glob';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 import { extractSlug, extractVersion } from '../content/loader.ts';
 import { parseFrontmatter } from '../content/frontmatter.ts';
 import { readFile } from 'node:fs/promises';
-import { buildSearchIndex } from '../search/index.ts';
 import { initializeHighlighter } from '../mdsvex/highlighter.ts';
 
 export interface PterodactylPluginOptions {
@@ -19,7 +18,7 @@ export interface PterodactylPluginOptions {
  * Components are not included here - they should be loaded separately.
  */
 async function generateContentModule(root: string, contentDir: string): Promise<string> {
-	const contentPath = resolve(root, contentDir);
+	const contentPath = resolve(root, contentDir).replace(/\\/g, '/');
 	const pattern = `${contentPath}/**/*.{md,mdx,svx}`;
 	const files = await fg(pattern, { absolute: true });
 
@@ -34,7 +33,7 @@ async function generateContentModule(root: string, contentDir: string): Promise<
 			return `{
 	slug: ${JSON.stringify(slug)},
 	version: ${JSON.stringify(version)},
-	filepath: ${JSON.stringify(filepath)},
+	filepath: ${JSON.stringify('/' + relative(root, filepath).replace(/\\/g, '/'))},
 	frontmatter: ${JSON.stringify(frontmatter)},
 	content: ${JSON.stringify(rawContent)}
 }`;
@@ -137,7 +136,7 @@ export function pterodactyl(options: PterodactylPluginOptions): Plugin {
 			// Virtual module: pterodactyl:search
 			if (id === 'virtual:pterodactyl:search') {
 				// Generate search index from content at build time
-				const contentPath = resolve(root, contentDir);
+				const contentPath = resolve(root, contentDir).replace(/\\/g, '/');
 				const pattern = `${contentPath}/**/*.{md,mdx,svx}`;
 				const files = await fg(pattern, { absolute: true });
 
@@ -152,7 +151,7 @@ export function pterodactyl(options: PterodactylPluginOptions): Plugin {
 						return `{
 	slug: ${JSON.stringify(slug)},
 	version: ${JSON.stringify(version)},
-	filepath: ${JSON.stringify(filepath)},
+	filepath: ${JSON.stringify('/' + relative(root, filepath).replace(/\\/g, '/'))},
 	frontmatter: ${JSON.stringify(frontmatter)},
 	content: ${JSON.stringify(rawContent)}
 }`;

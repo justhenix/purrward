@@ -24,6 +24,7 @@
 </script>
 
 {#if href}
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 	<a class="package-badge {effectiveColor}" {href} target="_blank" rel="noopener noreferrer">
 		<span class="badge-label">{label}</span>
 		{#if version}

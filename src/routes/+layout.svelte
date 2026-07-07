@@ -53,6 +53,19 @@
 	let isProfileNavActive = $derived(
 		page.url.pathname.startsWith('/profile') || page.url.pathname.startsWith('/cats')
 	);
+
+	$effect(() => {
+		if (typeof document !== 'undefined') {
+			if (isDocsRoute) {
+				document.documentElement.setAttribute('data-is-docs', 'true');
+				document.body.setAttribute('data-is-docs', 'true');
+			} else {
+				document.documentElement.removeAttribute('data-is-docs');
+				document.body.removeAttribute('data-is-docs');
+			}
+		}
+	});
+
 	function warmRoute(href: string) {
 		void preloadCode(href).catch(() => undefined);
 		void preloadData(href).catch(() => undefined);
@@ -291,8 +304,21 @@
 
 	.docs-root {
 		width: 100%;
-		min-height: 100svh;
-		background: var(--color-paper);
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		background: var(--ptero-color-bg, #f4f6fb);
+	}
+
+	:global(html[data-is-docs='true']),
+	:global(body[data-is-docs='true']) {
+		height: 100% !important;
+		width: 100% !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		overflow: hidden !important;
+		display: block !important;
+		background: var(--ptero-color-bg, #f4f6fb) !important;
 	}
 
 	.page-decor {
@@ -554,7 +580,7 @@
 	}
 
 	@media (min-width: 768px) {
-		:global(body) {
+		:global(body:not([data-is-docs='true'])) {
 			display: flex;
 			min-height: 100vh;
 			justify-content: center;

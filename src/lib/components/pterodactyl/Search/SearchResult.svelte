@@ -45,6 +45,7 @@
 >
 	<div class="result-header">
 		<h3 class="result-title">
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html highlightMatches(result.item.title, titleMatches)}
 		</h3>
 		{#if result.item.section}
@@ -58,6 +59,7 @@
 
 	{#if result.item.content}
 		<p class="result-content">
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html highlightMatches(result.item.content, contentMatches)}
 		</p>
 	{/if}

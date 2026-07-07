@@ -3,9 +3,12 @@ import type { SvelteComponent } from 'svelte';
 
 export interface CodeBlockProps {
 	code: string;
-	source?: string;
 	lang?: string;
 	title?: string | null;
 }
 
-export default class CodeBlock extends SvelteComponent<CodeBlockProps, {}, {}> {}
+export default class CodeBlock extends SvelteComponent<
+	CodeBlockProps,
+	Record<string, never>,
+	Record<string, never>
+> {}

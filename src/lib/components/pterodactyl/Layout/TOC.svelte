@@ -78,6 +78,7 @@
 	});
 
 	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		currentPath;
 		queueMicrotask(refreshToc);
 	});
@@ -89,7 +90,7 @@
 	<nav class="toc">
 		<h4>On This Page</h4>
 		<ul>
-			{#each tocItems as item}
+			{#each tocItems as item (item.id)}
 				<li class:active={item.id === activeId}>
 					<a href="#{item.id}" style="padding-left: {(item.level - 2) * 0.75 + 0.5}rem"
 						>{item.text}</a

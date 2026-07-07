@@ -1,5 +1,5 @@
 // Ptero search payload and result types.
-import type { FuseIndexRecords, FuseResultMatch } from 'fuse.js';
+import type { FuseResultMatch } from 'fuse.js';
 
 /**
  * Search entry for indexing
@@ -21,6 +21,7 @@ export interface SearchEntry {
  */
 export interface SearchIndex {
 	entries: SearchEntry[];
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	fuseIndex?: any;
 }
 

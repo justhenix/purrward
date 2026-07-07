@@ -2,8 +2,6 @@
 <script lang="ts">
 	import { themePresets } from '$lib/pterodactyl/core/themes/presets';
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 
 	interface Props {
 		storageKey?: string;
@@ -12,15 +10,12 @@
 	let { storageKey = 'pterodactyl-preset' }: Props = $props();
 
 	let currentPreset = $state('default');
-	let mounted = $state(false);
 
 	const presets = Object.keys(themePresets);
 
 	// Load preset from URL or localStorage
 	$effect(() => {
 		if (!browser) return;
-
-		mounted = true;
 
 		// Check URL parameter first
 		const urlParams = new URLSearchParams(window.location.search);
@@ -84,7 +79,7 @@
 		onchange={handlePresetChange}
 		aria-label="Select theme preset"
 	>
-		{#each presets as preset}
+		{#each presets as preset (preset)}
 			<option value={preset}>
 				{formatPresetLabel(preset)}
 			</option>

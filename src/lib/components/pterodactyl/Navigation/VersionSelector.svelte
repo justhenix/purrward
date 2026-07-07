@@ -39,6 +39,7 @@
 		}
 
 		const newPath = buildVersionPath(versionId);
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		goto(newPath);
 		isOpen = false;
 	}

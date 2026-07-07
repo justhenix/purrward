@@ -69,7 +69,6 @@ export function buildSearchIndex(
 		.map((doc) => createSearchEntry(doc, baseUrl));
 
 	// Build Fuse index
-	const fuse = new Fuse(entries, fuseConfig);
 	const fuseIndex = Fuse.createIndex(fuseConfig.keys ?? [], entries);
 
 	return {

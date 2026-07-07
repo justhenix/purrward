@@ -2,10 +2,9 @@
 <script lang="ts">
 	let {
 		code,
-		source: _source,
 		lang = 'text',
 		title = null
-	}: { code: string; source?: string; lang?: string; title?: string | null } = $props();
+	}: { code: string; lang?: string; title?: string | null } = $props();
 
 	let copied = $state(false);
 
@@ -43,6 +42,7 @@
 	</button>
 	<div class="ptero-codeblock__inner">
 		<!-- SECURITY: code HTML is generated at build time from local Markdown by Shiki, not user input. -->
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		{@html code}
 	</div>
 </div>

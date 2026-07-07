@@ -71,6 +71,7 @@
 	}
 
 	function handleSelect(href: string) {
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		goto(href);
 		handleClose();
 	}
