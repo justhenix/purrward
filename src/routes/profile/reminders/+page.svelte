@@ -1,44 +1,34 @@
-<!-- Reminders submenu: daily care reminder toggle, reminder time, and care coverage. -->
+<!-- Reminders submenu: local daily care reminder toggle and multiple reminder times. -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let careReminders = $derived(data.preferences.careReminders);
-	let reminderTime = $derived(data.preferences.reminderTime);
+	let reminderTimes = $derived(data.preferences.reminderTimes);
+	let selectedCareNudges = $derived(data.preferences.careNudges);
+	let isGuest = $derived(!data.user);
+	let editingTime = $state<string | null>(null);
+	let addingTime = $state(false);
 	let draftTime = $state('08:00');
-	let customTime = $state('08:00');
-	let pickerOpen = $state(false);
+	let newTime = $state('08:00');
 
-	const nudges = ['Feed', 'Water', 'Litter', 'Play', 'Groom', 'Meds'];
-	const timePresets = [
-		{ label: 'Morning', value: '08:00' },
-		{ label: 'Noon', value: '12:00' },
-		{ label: 'Evening', value: '18:00' },
-		{ label: 'Night', value: '21:00' }
-	] as const;
-
-	let draftChoice = $state<string>('Morning');
-
-	function getTimeChoice(value: string) {
-		return timePresets.find((preset) => preset.value === value)?.label ?? 'Custom';
-	}
+	const nudgeOptions = [
+		{ id: 'feed', label: 'Feed' },
+		{ id: 'water', label: 'Water' },
+		{ id: 'litter', label: 'Litter' },
+		{ id: 'play', label: 'Play' },
+		{ id: 'groom', label: 'Groom' },
+		{ id: 'meds', label: 'Meds' }
+	];
 
 	function formatTime(value: string) {
 		const [hourText = '8', minute = '00'] = value.split(':');
 		const hour = Number(hourText);
 		const period = hour >= 12 ? 'PM' : 'AM';
-		const displayHour = hour % 12 || 12;
-		return `${displayHour}:${minute} ${period}`;
-	}
-
-	function resetDraft() {
-		draftTime = reminderTime;
-		draftChoice = getTimeChoice(reminderTime);
-		customTime = reminderTime;
+		return `${hour % 12 || 12}:${minute} ${period}`;
 	}
 
 	function savePreference(event: Event) {
@@ -46,35 +36,23 @@
 		input.form?.requestSubmit();
 	}
 
-	function openPicker() {
-		if (!careReminders) return;
-		resetDraft();
-		pickerOpen = true;
+	function startEdit(time: string) {
+		addingTime = false;
+		editingTime = time;
+		draftTime = time;
 	}
 
-	function closePicker() {
-		resetDraft();
-		pickerOpen = false;
+	function startAdd() {
+		editingTime = null;
+		addingTime = true;
 	}
 
-	function pickPreset(label: string, value: string) {
-		draftChoice = label;
-		draftTime = value;
+	function keptTimes(time: string) {
+		return reminderTimes.filter((item) => item !== time);
 	}
 
-	function pickCustom() {
-		draftChoice = 'Custom';
-		draftTime = customTime;
-	}
-
-	function updateCustomTime(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		customTime = input.value;
-		draftTime = input.value;
-	}
-
-	function saveTime() {
-		pickerOpen = false;
+	function isCareNudgeSelected(id: string) {
+		return selectedCareNudges.includes(id);
 	}
 </script>
 
@@ -90,107 +68,148 @@
 		<h1>Reminders</h1>
 	</header>
 
-	<div class="reminder-forms">
-		<form method="POST" action="?/reminder" class="panel">
-			<input name="reminderTime" type="hidden" value={reminderTime} />
-			<label class="toggle-row">
-				<span class="row-copy">
-					<strong>Daily reminder</strong>
-					<small>Gentle care nudge.</small>
-					{#if !careReminders}
-						<small>Turn on to get reminders.</small>
-					{/if}
-				</span>
-				<input
-					name="careReminders"
-					type="checkbox"
-					checked={careReminders}
-					onchange={savePreference}
-					aria-label="Daily reminder"
-				/>
-			</label>
-		</form>
+	<form method="POST" action="?/reminder" class="panel">
+		{#each reminderTimes as time (time)}
+			<input name="reminderTimes" type="hidden" value={time} />
+		{/each}
+		<label class="toggle-row">
+			<span class="row-copy">
+				<strong>Care reminders</strong>
+				<small>{careReminders ? 'On' : 'Off'}</small>
+			</span>
+			<input
+				name="careReminders"
+				type="checkbox"
+				checked={careReminders}
+				onchange={savePreference}
+				aria-label="Care reminders"
+			/>
+		</label>
+	</form>
 
-		<form
-			method="POST"
-			action="?/reminder"
-			class={['panel', 'time-panel', !careReminders && 'is-muted']}
-		>
-			<input name="careReminders" type="hidden" value="on" />
-			<input name="reminderTime" type="hidden" value={draftTime} />
-			<button
-				class="time-row"
-				type="button"
-				onclick={openPicker}
-				disabled={!careReminders}
-				aria-expanded={pickerOpen}
-			>
-				<span class="row-copy">
-					<strong>Reminder time</strong>
-				</span>
-				<span class="time-value">
-					<span>{formatTime(reminderTime)}</span>
-					<span class="change-copy">Change</span>
-					<ChevronRight size={17} strokeWidth={2.4} aria-hidden="true" />
-				</span>
-			</button>
+	<section class={['panel', 'time-panel', !careReminders && 'is-muted']}>
+		<div class="panel-heading">
+			<div class="row-copy">
+				<strong>Reminder times</strong>
+				<small>{isGuest ? 'Guest mode. Saved on this device.' : 'Daily care nudges.'}</small>
+			</div>
+		</div>
 
-			{#if pickerOpen}
-				<div class="picker" aria-label="Pick a time">
-					<h2>Pick a time</h2>
-					<div class="preset-grid">
-						{#each timePresets as preset (preset.label)}
-							<button
-								class:active-choice={draftChoice === preset.label}
-								type="button"
-								onclick={() => pickPreset(preset.label, preset.value)}
-							>
-								<span>{preset.label}</span>
-								<small>{formatTime(preset.value)}</small>
-							</button>
-						{/each}
-						<button
-							class:active-choice={draftChoice === 'Custom'}
-							type="button"
-							onclick={pickCustom}
-						>
-							<span>Custom</span>
-							<small>{formatTime(customTime)}</small>
-						</button>
-					</div>
-
-					{#if draftChoice === 'Custom'}
-						<label class="custom-time">
-							<span>Custom</span>
-							<input type="time" value={customTime} oninput={updateCustomTime} />
-						</label>
-					{/if}
-
-					<div class="picker-actions">
-						<button class="secondary-action" type="button" onclick={closePicker}>Cancel</button>
-						<button class="primary-action" type="submit" onclick={saveTime}>Save</button>
-					</div>
-				</div>
-			{/if}
-		</form>
-	</div>
-
-	<div class={['panel', 'nudge-panel', !careReminders && 'is-muted']}>
-		<span class="row-copy">
-			<strong>Care nudges</strong>
-			<small>Included in daily reminders.</small>
-		</span>
-		<ul class="nudges">
-			{#each nudges as nudge (nudge)}
+		<ul class="time-list">
+			{#each reminderTimes as time (time)}
 				<li>
-					<span class="nudge-icon" aria-hidden="true">
-						<Check size={14} strokeWidth={3} />
-					</span>
-					<span>{nudge}</span>
+					{#if editingTime === time}
+						<form method="POST" action="?/reminder" class="time-edit">
+							<input name="careReminders" type="hidden" value="on" />
+							<input name="careNudgesSubmitted" type="hidden" value="1" />
+							{#each keptTimes(time) as kept (kept)}
+								<input name="reminderTimes" type="hidden" value={kept} />
+							{/each}
+							<div class="time-edit-main">
+								<input name="reminderTimes" type="time" bind:value={draftTime} required />
+								<button class="primary-action" type="submit" disabled={!careReminders}>Save</button>
+								<button class="secondary-action" type="button" onclick={() => (editingTime = null)}>
+									Cancel
+								</button>
+							</div>
+							<fieldset class="nudge-editor">
+								<legend>Care nudges</legend>
+								<div class="nudges">
+									{#each nudgeOptions as nudge (nudge.id)}
+										<label class="nudge-choice">
+											<input
+												name="careNudges"
+												type="checkbox"
+												value={nudge.id}
+												checked={isCareNudgeSelected(nudge.id)}
+												disabled={!careReminders}
+											/>
+											<span class="nudge-icon" aria-hidden="true">
+												<Check size={14} strokeWidth={3} />
+											</span>
+											<span>{nudge.label}</span>
+										</label>
+									{/each}
+								</div>
+							</fieldset>
+						</form>
+					{:else}
+						<span class="time-value">{formatTime(time)}</span>
+						<div class="time-actions">
+							<button
+								class="secondary-action"
+								type="button"
+								disabled={!careReminders}
+								onclick={() => startEdit(time)}
+							>
+								Edit
+							</button>
+							<form method="POST" action="?/reminder">
+								<input name="careReminders" type="hidden" value="on" />
+								{#each keptTimes(time) as kept (kept)}
+									<input name="reminderTimes" type="hidden" value={kept} />
+								{/each}
+								<button
+									class="secondary-action"
+									type="submit"
+									disabled={!careReminders || reminderTimes.length === 1}
+								>
+									Delete
+								</button>
+							</form>
+						</div>
+					{/if}
 				</li>
 			{/each}
 		</ul>
-	</div>
+
+		{#if addingTime}
+			<form method="POST" action="?/reminder" class="add-time">
+				<input name="careReminders" type="hidden" value="on" />
+				<input name="careNudgesSubmitted" type="hidden" value="1" />
+				{#each reminderTimes as time (time)}
+					<input name="reminderTimes" type="hidden" value={time} />
+				{/each}
+				<label>
+					<span>Add time</span>
+					<input name="reminderTimes" type="time" bind:value={newTime} required />
+				</label>
+				<div class="add-time-actions">
+					<button class="primary-action" type="submit" disabled={!careReminders}>Save</button>
+					<button class="secondary-action" type="button" onclick={() => (addingTime = false)}>
+						Cancel
+					</button>
+				</div>
+				<fieldset class="nudge-editor">
+					<legend>Care nudges</legend>
+					<div class="nudges">
+						{#each nudgeOptions as nudge (nudge.id)}
+							<label class="nudge-choice">
+								<input
+									name="careNudges"
+									type="checkbox"
+									value={nudge.id}
+									checked={isCareNudgeSelected(nudge.id)}
+									disabled={!careReminders}
+								/>
+								<span class="nudge-icon" aria-hidden="true">
+									<Check size={14} strokeWidth={3} />
+								</span>
+								<span>{nudge.label}</span>
+							</label>
+						{/each}
+					</div>
+				</fieldset>
+			</form>
+		{:else}
+			<div class="add-time-start">
+				<span>Add time</span>
+				<button class="secondary-action" type="button" disabled={!careReminders} onclick={startAdd}>
+					Add time
+				</button>
+			</div>
+		{/if}
+	</section>
 </div>
 
 <style>
@@ -198,11 +217,6 @@
 		display: grid;
 		gap: 14px;
 		padding-bottom: calc(28px + env(safe-area-inset-bottom));
-	}
-
-	.reminder-forms {
-		display: grid;
-		gap: 14px;
 	}
 
 	.reminders-header {
@@ -228,8 +242,8 @@
 	.reminders-header h1 {
 		margin: 0;
 		color: var(--color-ink);
-		font-size: 1.5rem;
 		font-family: var(--font-display);
+		font-size: 1.5rem;
 	}
 
 	.panel {
@@ -240,7 +254,12 @@
 	}
 
 	.is-muted {
-		opacity: 0.58;
+		opacity: 0.62;
+	}
+
+	.toggle-row,
+	.panel-heading {
+		padding: 16px;
 	}
 
 	.toggle-row {
@@ -248,18 +267,7 @@
 		grid-template-columns: 1fr auto;
 		align-items: center;
 		gap: 12px;
-		padding: 16px;
 		cursor: pointer;
-	}
-
-	.time-panel {
-		overflow: hidden;
-	}
-
-	.nudge-panel {
-		display: grid;
-		gap: 14px;
-		padding: 16px;
 	}
 
 	.row-copy {
@@ -281,139 +289,119 @@
 		font-weight: 650;
 	}
 
-	.time-row {
-		display: grid;
-		width: 100%;
-		grid-template-columns: 1fr auto;
-		align-items: center;
-		gap: 12px;
-		border: 0;
-		background: transparent;
-		color: var(--color-charcoal);
-		padding: 16px;
-		text-align: left;
-		cursor: pointer;
+	.time-panel {
+		overflow: hidden;
 	}
 
-	.time-row:disabled {
-		cursor: default;
+	.time-list {
+		display: grid;
+		gap: 0;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.time-list li {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 12px;
+		border-top: 1px solid var(--color-line);
+		padding: 12px 16px;
 	}
 
 	.time-value {
-		display: inline-flex;
+		color: var(--color-ink);
+		font-size: 0.96rem;
+		font-weight: 850;
+	}
+
+	.time-actions,
+	.time-edit-main {
+		display: flex;
 		align-items: center;
-		gap: 7px;
-		color: var(--color-ink);
-		font-size: 0.94rem;
-		font-weight: 700;
-	}
-
-	.change-copy {
-		color: var(--color-muted);
-		font-size: 0.78rem;
-		font-weight: 800;
-	}
-
-	.picker {
-		display: grid;
-		gap: 10px;
-		border-top: 1px solid var(--color-line);
-		padding: 12px 16px 14px;
-		background: color-mix(in srgb, var(--color-paper-3) 38%, var(--color-paper-2));
-	}
-
-	.picker h2 {
-		margin: 0;
-		color: var(--color-ink);
-		font-size: 1rem;
-		font-family: var(--font-display);
-	}
-
-	.preset-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 8px;
 	}
 
-	.preset-grid button {
+	.time-edit {
+		grid-column: 1 / -1;
 		display: grid;
-		gap: 2px;
-		min-height: 52px;
-		border: 1px solid var(--color-line);
-		border-radius: 18px;
-		background: var(--color-paper-2);
-		color: var(--color-charcoal);
-		padding: 9px 10px;
-		text-align: left;
-		cursor: pointer;
+		gap: 10px;
 	}
 
-	.preset-grid button span {
-		font-size: 0.8rem;
-		font-weight: 850;
-	}
-
-	.preset-grid button small {
-		color: var(--color-muted);
-		font-size: 0.7rem;
-		font-weight: 750;
-	}
-
-	.preset-grid button.active-choice {
-		border-color: color-mix(in srgb, var(--color-sage) 70%, var(--color-line));
-		background: var(--color-sage-soft);
-	}
-
-	.custom-time {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		align-items: center;
-		gap: 12px;
-		border: 1px solid var(--color-line);
-		border-radius: 18px;
-		background: var(--color-paper-2);
-		padding: 10px 12px;
-		color: var(--color-charcoal);
-		font-size: 0.84rem;
-		font-weight: 850;
-	}
-
-	.custom-time input {
-		width: 112px;
+	.time-edit input[type='time'],
+	.add-time input[type='time'] {
+		min-height: 40px;
 		border: 1px solid var(--color-line);
 		border-radius: 14px;
 		background: var(--color-paper);
 		color: var(--color-ink);
-		padding: 8px 10px;
+		padding: 7px 10px;
 		font: inherit;
 		font-weight: 800;
 	}
 
-	.picker-actions {
+	.add-time {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 10px;
+		align-items: end;
+		border-top: 1px solid var(--color-line);
+		padding: 14px 16px 16px;
+	}
+
+	.add-time-start {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 10px;
+		align-items: center;
+		border-top: 1px solid var(--color-line);
+		padding: 14px 16px 16px;
+		color: var(--color-muted);
+		font-size: 0.8rem;
+		font-weight: 800;
+	}
+
+	.add-time-actions {
+		display: flex;
+		align-items: end;
 		gap: 8px;
 	}
 
-	.picker-actions button {
-		min-height: 42px;
-		border-radius: var(--radius-pill);
-		padding: 10px 14px;
-		font-size: 0.84rem;
-		font-weight: 850;
-		cursor: pointer;
+	.add-time > label {
+		display: grid;
+		gap: 6px;
+		color: var(--color-muted);
+		font-size: 0.8rem;
+		font-weight: 800;
 	}
 
+	.primary-action,
 	.secondary-action {
-		border: 1px solid var(--color-line);
-		background: var(--color-paper-2);
-		color: var(--color-charcoal);
+		min-height: 38px;
+		border-radius: var(--radius-pill);
+		padding: 0 14px;
+		font-size: 0.8rem;
+		font-weight: 850;
+		cursor: pointer;
 	}
 
 	.primary-action {
 		border: 1px solid var(--color-charcoal);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
+	}
+
+	.secondary-action {
+		border: 1px solid var(--color-line);
+		background: var(--color-paper);
+		color: var(--color-charcoal);
+	}
+
+	.primary-action:disabled,
+	.secondary-action:disabled {
+		opacity: 0.55;
+		cursor: not-allowed;
 	}
 
 	.nudges {
@@ -425,17 +413,55 @@
 		list-style: none;
 	}
 
-	.nudges li {
+	.nudge-editor {
+		grid-column: 1 / -1;
+		min-width: 0;
+		margin: 0;
+		border: 0;
+		padding: 2px 0 0;
+	}
+
+	.nudge-editor legend {
+		margin-bottom: 8px;
+		color: var(--color-muted);
+		font-size: 0.8rem;
+		font-weight: 850;
+	}
+
+	.nudge-choice {
 		display: flex;
+		position: relative;
 		align-items: center;
 		gap: 8px;
 		border: 1px solid var(--color-line);
 		border-radius: 18px;
-		background: color-mix(in srgb, var(--color-sage-soft) 34%, var(--color-paper-2));
-		color: var(--color-charcoal);
+		background: var(--color-paper);
+		color: var(--color-muted);
 		padding: 10px 12px;
 		font-size: 0.8rem;
 		font-weight: 800;
+		cursor: pointer;
+	}
+
+	.nudge-choice:has(input:checked) {
+		background: color-mix(in srgb, var(--color-sage-soft) 38%, var(--color-paper-2));
+		color: var(--color-charcoal);
+	}
+
+	.nudge-choice:has(input:disabled) {
+		cursor: not-allowed;
+	}
+
+	.nudge-choice input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+	}
+
+	.nudge-choice:has(input:focus-visible) {
+		outline: 2px solid color-mix(in srgb, var(--color-charcoal) 34%, transparent);
+		outline-offset: 2px;
 	}
 
 	.nudge-icon {
@@ -447,6 +473,11 @@
 		border-radius: 50%;
 		background: var(--color-paper-2);
 		color: var(--color-success-text);
+		opacity: 0.28;
+	}
+
+	.nudge-choice:has(input:checked) .nudge-icon {
+		opacity: 1;
 	}
 
 	.toggle-row input {
@@ -483,18 +514,15 @@
 	}
 
 	@media (max-width: 360px) {
-		.time-row {
+		.time-list li,
+		.add-time,
+		.add-time-start {
 			grid-template-columns: 1fr;
 		}
 
-		.time-value {
-			justify-content: space-between;
-		}
-	}
-
-	@media (max-width: 340px) {
-		.preset-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.time-actions,
+		.add-time-actions {
+			justify-content: start;
 		}
 	}
 </style>
