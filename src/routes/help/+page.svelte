@@ -9,7 +9,7 @@
 		title: string;
 		body: string;
 		bullets?: string[];
-		route?: string;
+		route?: '/' | '/cats' | '/care' | '/care-proof' | '/vet' | '/rewards' | '/profile/privacy';
 		action?: string;
 	};
 
@@ -91,7 +91,7 @@
 						</ul>
 					{/if}
 					{#if section.route && section.action}
-						<a href={resolve(section.route as any)}>{section.action}</a>
+						<a href={resolve(section.route)}>{section.action}</a>
 					{/if}
 				</div>
 			</details>
