@@ -35,7 +35,7 @@
 			<input
 				name="sandboxMode"
 				type="checkbox"
-				bind:checked={sandboxMode}
+				checked={sandboxMode}
 				onchange={savePreference}
 				aria-label="Sandbox mode"
 			/>
