@@ -86,9 +86,27 @@ function shouldSetHsts(url: URL): boolean {
 	return url.protocol === 'https:' || (host !== 'localhost' && host !== '127.0.0.1');
 }
 
+function setSecurityHeaders(response: Response, url: URL, scriptNonce: string): Response {
+	for (const [name, value] of Object.entries(createSecurityHeaders(scriptNonce))) {
+		response.headers.set(name, value);
+	}
+	if (shouldSetHsts(url)) {
+		response.headers.set(
+			'Strict-Transport-Security',
+			'max-age=31536000; includeSubDomains; preload'
+		);
+	}
+	return response;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const limited = await enforceIpRateLimit(event);
 	if (limited) return limited;
+
+	const scriptNonce = createScriptNonce();
+	if (event.request.method === 'HEAD' && !event.url.pathname.startsWith('/api/')) {
+		return setSecurityHeaders(new Response(null, { status: 200 }), event.url, scriptNonce);
+	}
 
 	const sessionId = event.cookies.get('session');
 	const result = sessionId ? await validateSession(sessionId) : null;
@@ -99,18 +117,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// SECURITY: read the persisted theme from the HttpOnly purrward_prefs cookie server-side.
 	const { theme } = parsePreferences(event.cookies.get('purrward_prefs'));
 
-	const scriptNonce = createScriptNonce();
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => addThemeAttr(addScriptNonce(html, scriptNonce), theme)
 	});
-	for (const [name, value] of Object.entries(createSecurityHeaders(scriptNonce))) {
-		response.headers.set(name, value);
-	}
-	if (shouldSetHsts(event.url)) {
-		response.headers.set(
-			'Strict-Transport-Security',
-			'max-age=31536000; includeSubDomains; preload'
-		);
-	}
-	return response;
+	return setSecurityHeaders(response, event.url, scriptNonce);
 };

@@ -90,6 +90,7 @@ For production, set the same values as Cloudflare Pages environment variables or
 - Account deletion cascades all user-owned data.
 
 Full checklists: `docs/security-checklist.md`, `docs/submission-checklist.md`, `docs/smoke-test-checklist.md`.
+Submission evidence: `documentation/Project_Report.pdf`, `documentation/security-report.md`, `documentation/aikido-test.md`.
 
 ## Quickstart
 

@@ -71,6 +71,8 @@ ehthumbs.db
 Desktop.ini
 *.pdf
 *.docx
+!/documentation/
+!/documentation/**
 
 # Editors
 .idea/
@@ -104,4 +106,3 @@ vite.config.ts.timestamp-*
 .cagent
 .playwright-cli
 _tmp
-docs
