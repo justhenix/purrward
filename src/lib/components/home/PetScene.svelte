@@ -110,7 +110,7 @@
 			<div class="scene-cat">
 				<span class="scene-shadow" aria-hidden="true"></span>
 				<div class="scene-cat-art">
-					<CatAvatar layers={catLayers} warnings={catWarnings} label={catLabel} />
+					<CatAvatar layers={catLayers} warnings={catWarnings} label={catLabel} interactive />
 				</div>
 			</div>
 		{/if}
@@ -133,13 +133,19 @@
 		--cat-size: clamp(164px, 45vw, 220px);
 
 		position: relative;
-		min-height: 100dvh;
+		min-height: 100svh;
 		border-radius: 0 0 var(--radius-card-lg) var(--radius-card-lg);
 		background-image: var(--scene-bg-light);
 		background-position: 50% bottom;
 		background-size: cover;
 		background-repeat: no-repeat;
 		overflow: hidden;
+	}
+
+	@supports (height: 100dvh) {
+		.scene {
+			min-height: 100dvh;
+		}
 	}
 
 	:global(:root[data-theme='dark']) .scene {
@@ -179,7 +185,8 @@
 		right: 0;
 		left: 0;
 		z-index: 30;
-		padding: 16px 16px 0;
+		padding: calc(env(safe-area-inset-top) + 16px) calc(env(safe-area-inset-right) + 16px) 0
+			calc(env(safe-area-inset-left) + 16px);
 	}
 
 	.scene-stage {
@@ -248,6 +255,7 @@
 		z-index: 2;
 		width: 100%;
 		height: 100%;
+		pointer-events: auto;
 	}
 
 	.scene-control,

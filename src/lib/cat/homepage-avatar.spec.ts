@@ -1,6 +1,6 @@
 // Unit coverage for the homepage cat avatar resolver (pose/face selection + fallbacks).
 import { describe, expect, it } from 'vitest';
-import { resolveHomepageCatAvatar } from './homepage-avatar';
+import { faceAssets, resolveHomepageCatAvatar } from './homepage-avatar';
 
 describe('resolveHomepageCatAvatar', () => {
 	it('composites separated body and face layers rather than a baked image', () => {
@@ -24,7 +24,7 @@ describe('resolveHomepageCatAvatar', () => {
 			'normal_blue'
 		);
 		expect(resolveHomepageCatAvatar({ coat: 'black', mood: 'normal' }).renderStack[1].id).toBe(
-			'normal_orange'
+			'dark_normal_orange'
 		);
 		expect(resolveHomepageCatAvatar({ coat: 'siamese', mood: 'sad' }).renderStack[1].id).toBe(
 			'sad_blue'
@@ -35,6 +35,25 @@ describe('resolveHomepageCatAvatar', () => {
 		const happy = resolveHomepageCatAvatar({ coat: 'white', mood: 'happy' });
 		expect(happy.renderStack[1].id).toBe('happy');
 		expect(happy.warnings).toHaveLength(0);
+	});
+
+	it('routes dark moods through dark_cat face assets', () => {
+		expect(resolveHomepageCatAvatar({ coat: 'tuxedo', mood: 'happy' }).renderStack[1].id).toBe(
+			faceAssets.dark.happy
+		);
+		expect(resolveHomepageCatAvatar({ coat: 'black', mood: 'sad' }).renderStack[1].id).toBe(
+			faceAssets.dark.sad.orange
+		);
+		expect(resolveHomepageCatAvatar({ coat: 'tuxedo', mood: 'sleepy' }).renderStack[1].id).toBe(
+			faceAssets.dark.sleepy
+		);
+		expect(resolveHomepageCatAvatar({ coat: 'black', mood: 'normal' }).renderStack[1].id).toBe(
+			faceAssets.dark.normal.orange
+		);
+
+		expect(resolveHomepageCatAvatar({ coat: 'grey', mood: 'sad' }).renderStack[1].id).toBe(
+			'sad_blue'
+		);
 	});
 
 	it('falls back to sit when a requested pose has no body asset', () => {
