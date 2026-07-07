@@ -46,6 +46,38 @@ Purrward makes the cat theme functional, not decorative: the app rewards real fe
 - Gemini REST API for photo verification and AI vet triage
 - Installable PWA (manifest + service worker)
 
+## Prerequisites
+
+- Bun 1.2+
+- Node.js 22+ / npm 11+ for Wrangler and Playwright tooling
+- Cloudflare account with Wrangler login for deploys
+- Turso/LibSQL database credentials
+- Google OAuth client for sign-in
+- Gemini API key for photo verification and vet triage
+
+## Configuration
+
+Copy `.env.example` to `.env`, then fill the live values:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Required for the full demo:
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Turso/LibSQL connection URL |
+| `DATABASE_AUTH_TOKEN` | Turso auth token |
+| `GOOGLE_CLIENT_ID` | Google OAuth app client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth app client secret |
+| `GOOGLE_REDIRECT_URI` | OAuth callback, e.g. `http://localhost:5173/auth/callback` locally |
+| `GEMINI_API_KEY` | Gemini API key for proof and vet checks |
+| `GEMINI_MODEL` | Photo verification model |
+| `GEMINI_VET_MODEL` | Vet triage model |
+
+For production, set the same values as Cloudflare Pages environment variables or secrets. Keep `.env` local only.
+
 ## Security Highlights
 
 - Google OAuth callback exchanges tokens server-side only.
@@ -63,11 +95,38 @@ Full checklists: `docs/security-checklist.md`, `docs/submission-checklist.md`, `
 
 ```powershell
 bun install
-Copy-Item .env.example .env
 bun run dev
 ```
 
-Fill `.env` with Turso, Google OAuth, and Gemini credentials before testing auth or verification.
+Open `http://localhost:5173`. Fill `.env` before testing auth, photo verification, rewards, or vet triage.
+
+## Run Instructions
+
+```powershell
+# local dev
+bun run dev
+
+# type + Svelte checks
+bun run check
+
+# unit tests
+bun test
+
+# lint/format check
+bun run lint
+
+# production build
+bun run build
+```
+
+## Deploy
+
+Build output is `.svelte-kit/cloudflare`, configured for Cloudflare Pages:
+
+```powershell
+bun run build
+npx wrangler pages deploy .svelte-kit\cloudflare --project-name hackkitty --branch main
+```
 
 ## Checks
 
