@@ -3,6 +3,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { setSessionCookie, shouldUseSecureCookie } from '$lib/server/auth';
 import { isDisposableEmailDomain } from '$lib/server/email-domains';
+import { parsePreferences, serializePreferences } from '$lib/server/preferences';
 import {
 	consumeAuthAttempt,
 	passwordHelpText,
@@ -20,6 +21,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	guest: async ({ cookies, url }) => {
+		const current = parsePreferences(cookies.get('purrward_prefs'));
+		cookies.set('purrward_prefs', serializePreferences({ ...current, sandboxMode: true }), {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'strict',
+			secure: shouldUseSecureCookie(url),
+			maxAge: 60 * 60 * 24 * 365
+		});
+
+		throw redirect(303, '/care-proof');
+	},
 	login: async ({ request, cookies, url, getClientAddress }) => {
 		const { db } = await import('$lib/server/db');
 		const rate = await consumeAuthAttempt({

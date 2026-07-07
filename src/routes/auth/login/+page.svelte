@@ -98,6 +98,12 @@
 
 		<div class="divider"><span>or</span></div>
 
+		<form method="POST" action="?/guest">
+			<button class="guest-button" type="submit">Continue as guest</button>
+		</form>
+
+		<div class="divider"><span>or</span></div>
+
 		<form
 			method="POST"
 			{action}
@@ -287,6 +293,7 @@
 	}
 
 	.google-button,
+	.guest-button,
 	.submit-button {
 		display: inline-flex;
 		width: 100%;
@@ -310,7 +317,14 @@
 		box-shadow: 0 10px 22px color-mix(in srgb, var(--color-charcoal) 6%, transparent);
 	}
 
+	.guest-button {
+		border: 1px solid color-mix(in srgb, var(--color-charcoal) 18%, var(--color-line));
+		background: var(--color-sage-soft);
+		color: var(--color-charcoal);
+	}
+
 	.google-button:active,
+	.guest-button:active,
 	.submit-button:active {
 		transform: translateY(1px);
 	}
@@ -443,6 +457,7 @@
 		}
 
 		.google-button,
+		.guest-button,
 		.submit-button {
 			font-size: 0.9rem;
 		}
@@ -476,6 +491,7 @@
 
 		.mode-switch button,
 		.google-button,
+		.guest-button,
 		.submit-button,
 		.input-wrap {
 			min-height: 42px;

@@ -162,20 +162,45 @@ describe('photo verification', () => {
 		expect(updates).toHaveLength(2);
 	});
 
-	it('awards sandbox points without calling Gemini or writing real points', async () => {
+	it('awards sandbox points only after Gemini verifies', async () => {
+		let calls = 0;
+
 		const result = await verifySandboxCarePhoto({
-			formData: createValidFormData('play')
+			formData: createValidFormData('play'),
+			fetcher: async () => {
+				calls += 1;
+				return new Response(JSON.stringify({ output_text: '{"verified":true,"reason":"cat toy"}' }));
+			},
+			apiKey: 'key'
 		});
 
+		expect(calls).toBe(1);
 		expect(result).toMatchObject({
 			status: 200,
 			taskType: 'play',
 			body: {
 				verified: true,
-				reason: 'Sandbox proof accepted.',
+				reason: 'cat toy',
 				pointsAwarded: 1000
 			}
 		});
+	});
+
+	it('rejects sandbox non-images before Gemini', async () => {
+		const formData = new FormData();
+		formData.set('taskType', 'street_feeding');
+		formData.set('photo', new File(['demo'], 'proof.mov', { type: 'video/quicktime' }));
+
+		const result = await verifySandboxCarePhoto({
+			formData,
+			fetcher: async () => {
+				throw new Error('Gemini should not be called');
+			},
+			apiKey: 'key'
+		});
+
+		expect(result.status).toBe(400);
+		expect(result.body.error).toBe('Invalid file type. Use JPEG, PNG, or WebP.');
 	});
 
 	it('rechecks task caps inside the transaction', async () => {

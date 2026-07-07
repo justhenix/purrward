@@ -99,6 +99,9 @@
 	let result = $state<VerifyBody | null>(null);
 	let capturedPhoto = $state<Blob | null>(null);
 	let capturedUrl = $state('');
+	let capturedIsVideo = $state(false);
+	let proofFileName = $state('');
+	let proofInputElement = $state<HTMLInputElement | null>(null);
 	let stream = $state<MediaStream | null>(null);
 	let videoElement = $state<HTMLVideoElement | null>(null);
 	let successCard = $state<HTMLElement | null>(null);
@@ -114,7 +117,7 @@
 	let statusText = $derived.by(() => {
 		if (submitting)
 			return data.preferences.sandboxMode
-				? 'Accepting sandbox proof...'
+				? 'Checking guest proof...'
 				: `Checking ${catName}'s proof...`;
 		if (result?.verified)
 			return `${active.success}. +${result.pointsAwarded ?? active.points} Purrpoints.`;
@@ -131,6 +134,8 @@
 	function revokeCapturedUrl() {
 		if (capturedUrl) URL.revokeObjectURL(capturedUrl);
 		capturedUrl = '';
+		capturedIsVideo = false;
+		proofFileName = '';
 	}
 
 	function stopCamera() {
@@ -140,7 +145,7 @@
 	}
 
 	async function openCamera() {
-		if (!data.user) {
+		if (!data.user && !sandboxMode) {
 			await goto(resolve('/auth/login'));
 			return;
 		}
@@ -210,6 +215,27 @@
 		cameraOpen = false;
 	}
 
+	function chooseProofFile() {
+		if (!data.preferences.sandboxMode || submitting) return;
+		proofInputElement?.click();
+	}
+
+	function useSelectedProof(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		revokeCapturedUrl();
+		capturedPhoto = file;
+		capturedUrl = URL.createObjectURL(file);
+		capturedIsVideo = file.type.startsWith('video/');
+		proofFileName = file.name;
+		result = null;
+		stopCamera();
+		cameraOpen = false;
+		input.value = '';
+	}
+
 	async function retakePhoto() {
 		revokeCapturedUrl();
 		capturedPhoto = null;
@@ -221,7 +247,7 @@
 	// Upload fallback removed to prevent reward exploit. Live camera capture is required.
 
 	async function submitProof() {
-		if (!capturedPhoto || !data.user || submitting || submitted) return;
+		if (!capturedPhoto || (!data.user && !sandboxMode) || submitting || submitted) return;
 
 		submitting = true;
 		result = null;
@@ -248,7 +274,7 @@
 
 		const body = new FormData();
 		body.set('taskType', active.id);
-		body.set('photo', capturedPhoto, `${active.id}-proof.jpg`);
+		body.set('photo', capturedPhoto, proofFileName || `${active.id}-proof.jpg`);
 
 		try {
 			const response = await fetch('/api/verify', { method: 'POST', body });
@@ -305,7 +331,7 @@
 			<p>{active.need}</p>
 			<span>
 				{data.preferences.sandboxMode
-					? 'Sandbox proof auto-passes for +1000 Purrpoints.'
+					? 'Guest proof is checked with AI before points are shown.'
 					: `Capture a live photo of ${catName} as care proof.`}
 			</span>
 		</div>
@@ -314,7 +340,18 @@
 	<main class="proof-flow" aria-label="Care proof camera">
 		<section class="preview-wrap" aria-label="Camera preview">
 			{#if capturedUrl}
-				<img class="captured-preview" src={capturedUrl} alt="Captured care proof" />
+				{#if capturedIsVideo}
+					<video
+						class="captured-preview"
+						src={capturedUrl}
+						controls
+						muted
+						playsinline
+						aria-label="Selected care proof"
+					></video>
+				{:else}
+					<img class="captured-preview" src={capturedUrl} alt="Captured care proof" />
+				{/if}
 			{:else if cameraOpen}
 				<video
 					bind:this={videoElement}
@@ -370,6 +407,16 @@
 			</section>
 		{:else}
 			<section class="proof-actions" aria-label="Photo capture actions">
+				{#if sandboxMode}
+					<input
+						bind:this={proofInputElement}
+						class="proof-input"
+						type="file"
+						accept="image/jpeg,image/png,image/webp"
+						onchange={useSelectedProof}
+						aria-label="Choose proof file"
+					/>
+				{/if}
 				{#if !capturedPhoto}
 					<button
 						class="primary-action"
@@ -380,6 +427,17 @@
 						<Camera size={18} strokeWidth={2.3} aria-hidden="true" />
 						Take photo
 					</button>
+					{#if sandboxMode}
+						<button
+							class="secondary-action"
+							type="button"
+							disabled={submitting}
+							onclick={chooseProofFile}
+						>
+							<Send size={17} strokeWidth={2.3} aria-hidden="true" />
+							Choose proof
+						</button>
+					{/if}
 				{:else}
 					<button
 						class="submit-action"
@@ -520,6 +578,10 @@
 	.proof-actions {
 		display: grid;
 		gap: 10px;
+	}
+
+	.proof-input {
+		display: none;
 	}
 
 	.success-card {

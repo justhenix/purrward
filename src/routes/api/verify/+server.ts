@@ -12,13 +12,19 @@ import {
 } from '$lib/server/sandbox';
 
 export const POST: RequestHandler = async ({ cookies, locals, request, fetch, url }) => {
-	if (!locals.user) return Response.json({ error: 'Authentication required.' }, { status: 401 });
-
 	const formData = await request.formData();
 	const preferences = parsePreferences(cookies.get('purrward_prefs'));
+	if (!env.GEMINI_API_KEY) {
+		return Response.json({ error: 'Verification is not configured.' }, { status: 500 });
+	}
 	if (preferences.sandboxMode) {
-		const result = await verifySandboxCarePhoto({ formData });
-		if (result.status === 200 && result.taskType) {
+		const result = await verifySandboxCarePhoto({
+			formData,
+			fetcher: fetch,
+			apiKey: env.GEMINI_API_KEY,
+			model: env.GEMINI_MODEL || undefined
+		});
+		if (result.status === 200 && result.taskType && result.body.verified) {
 			const tasks = parseSandboxTasks(cookies.get(SANDBOX_TASKS_COOKIE));
 			cookies.set(SANDBOX_TASKS_COOKIE, serializeSandboxTasks([...tasks, result.taskType]), {
 				path: '/',
@@ -31,9 +37,7 @@ export const POST: RequestHandler = async ({ cookies, locals, request, fetch, ur
 		return Response.json(result.body, { status: result.status });
 	}
 
-	if (!env.GEMINI_API_KEY) {
-		return Response.json({ error: 'Verification is not configured.' }, { status: 500 });
-	}
+	if (!locals.user) return Response.json({ error: 'Authentication required.' }, { status: 401 });
 
 	const { db } = await import('$lib/server/db');
 	// SECURITY: active cat is resolved server-side; client never supplies the cat id.

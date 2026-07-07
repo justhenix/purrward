@@ -305,9 +305,6 @@ export async function verifyCarePhoto(input: {
 	if (!(photo instanceof File)) return { status: 400, body: { error: 'Photo is required.' } };
 	if (!taskType) return { status: 400, body: { error: 'Choose a valid care task.' } };
 
-	const upload = validateUpload(photo);
-	if (!upload.ok) return { status: 400, body: { error: upload.error } };
-
 	const now = input.now ?? Date.now();
 	const limit = await checkLimits({
 		database: input.database,
@@ -317,6 +314,9 @@ export async function verifyCarePhoto(input: {
 		now
 	});
 	if (limit) return limit;
+
+	const upload = validateUpload(photo);
+	if (!upload.ok) return { status: 400, body: { error: upload.error } };
 
 	const imageBytes = stripImageMetadata(new Uint8Array(await photo.arrayBuffer()), photo.type);
 	const result = await callGemini({
@@ -362,6 +362,9 @@ export async function verifyCarePhoto(input: {
 
 export async function verifySandboxCarePhoto(input: {
 	formData: FormData;
+	fetcher: Fetcher;
+	apiKey: string;
+	model?: string;
 }): Promise<VerificationResponse & { taskType?: TaskType }> {
 	const photo = input.formData.get('photo');
 	const taskType = validateTaskType(input.formData.get('taskType'));
@@ -371,14 +374,23 @@ export async function verifySandboxCarePhoto(input: {
 	const upload = validateUpload(photo);
 	if (!upload.ok) return { status: 400, body: { error: upload.error } };
 
-	stripImageMetadata(new Uint8Array(await photo.arrayBuffer()), photo.type);
+	const imageBytes = stripImageMetadata(new Uint8Array(await photo.arrayBuffer()), photo.type);
+	const result = await callGemini({
+		fetcher: input.fetcher,
+		apiKey: input.apiKey,
+		imageBytes,
+		mime: photo.type,
+		taskType,
+		model: input.model
+	});
+	if (!result) return { status: 502, body: { error: 'Verification failed. Please try again.' } };
+
 	return {
 		status: 200,
 		taskType,
 		body: {
-			verified: true,
-			reason: 'Sandbox proof accepted.',
-			pointsAwarded: SANDBOX_POINTS_PER_PROOF
+			...result,
+			pointsAwarded: result.verified ? SANDBOX_POINTS_PER_PROOF : 0
 		}
 	};
 }
