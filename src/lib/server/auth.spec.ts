@@ -25,7 +25,12 @@ describe('auth cookie helpers', () => {
 
 	it('allows insecure cookies only on local development hosts', () => {
 		expect(shouldUseSecureCookie(new URL('http://localhost:5173'))).toBe(false);
+		expect(shouldUseSecureCookie(new URL('http://0.0.0.0:5173'))).toBe(false);
+		expect(shouldUseSecureCookie(new URL('http://192.168.1.12:5173'))).toBe(false);
+		expect(shouldUseSecureCookie(new URL('http://10.0.0.12:5173'))).toBe(false);
+		expect(shouldUseSecureCookie(new URL('http://172.16.0.12:5173'))).toBe(false);
 		expect(shouldUseSecureCookie(new URL('https://localhost:5173'))).toBe(true);
+		expect(shouldUseSecureCookie(new URL('http://172.15.0.12:5173'))).toBe(true);
 		expect(shouldUseSecureCookie(new URL('http://purrward.pages.dev'))).toBe(true);
 	});
 });

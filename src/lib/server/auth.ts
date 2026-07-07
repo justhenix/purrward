@@ -76,7 +76,24 @@ export function deleteSessionCookie(cookies: Cookies, secure = true): void {
 
 export function shouldUseSecureCookie(url: URL): boolean {
 	const host = url.hostname.toLowerCase();
-	return url.protocol === 'https:' || (host !== 'localhost' && host !== '127.0.0.1');
+	return url.protocol === 'https:' || !isLocalDevHost(host);
+}
+
+function isLocalDevHost(host: string): boolean {
+	if (
+		host === 'localhost' ||
+		host.endsWith('.localhost') ||
+		host === '127.0.0.1' ||
+		host === '0.0.0.0' ||
+		host === '[::1]'
+	)
+		return true;
+
+	const parts = host.split('.').map(Number);
+	if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255))
+		return false;
+	const [a, b] = parts;
+	return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
 }
 
 export function normalizeEmail(value: string): string | null {
