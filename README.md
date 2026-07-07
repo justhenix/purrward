@@ -65,16 +65,16 @@ Copy-Item .env.example .env
 
 Required for the full demo:
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Turso/LibSQL connection URL |
-| `DATABASE_AUTH_TOKEN` | Turso auth token |
-| `GOOGLE_CLIENT_ID` | Google OAuth app client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth app client secret |
-| `GOOGLE_REDIRECT_URI` | OAuth callback, e.g. `http://localhost:5173/auth/callback` locally |
-| `GEMINI_API_KEY` | Gemini API key for proof and vet checks |
-| `GEMINI_MODEL` | Photo verification model |
-| `GEMINI_VET_MODEL` | Vet triage model |
+| Variable               | Purpose                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`         | Turso/LibSQL connection URL                                        |
+| `DATABASE_AUTH_TOKEN`  | Turso auth token                                                   |
+| `GOOGLE_CLIENT_ID`     | Google OAuth app client ID                                         |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth app client secret                                     |
+| `GOOGLE_REDIRECT_URI`  | OAuth callback, e.g. `http://localhost:5173/auth/callback` locally |
+| `GEMINI_API_KEY`       | Gemini API key for proof and vet checks                            |
+| `GEMINI_MODEL`         | Photo verification model                                           |
+| `GEMINI_VET_MODEL`     | Vet triage model                                                   |
 
 For production, set the same values as Cloudflare Pages environment variables or secrets. Keep `.env` local only.
 

@@ -169,7 +169,9 @@ describe('photo verification', () => {
 			formData: createValidFormData('play'),
 			fetcher: async () => {
 				calls += 1;
-				return new Response(JSON.stringify({ output_text: '{"verified":true,"reason":"cat toy"}' }));
+				return new Response(
+					JSON.stringify({ output_text: '{"verified":true,"reason":"cat toy"}' })
+				);
 			},
 			apiKey: 'key'
 		});
