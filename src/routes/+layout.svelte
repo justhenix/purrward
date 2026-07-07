@@ -118,7 +118,7 @@
 	async function syncOfflineProofs() {
 		if (typeof window === 'undefined' || !navigator.onLine) return;
 		try {
-			const proofs = await getOfflineProofs();
+			const proofs = await getOfflineProofs(data.user?.id ?? 'sandbox');
 			if (proofs.length === 0) return;
 
 			globalToast = 'Syncing offline care...';

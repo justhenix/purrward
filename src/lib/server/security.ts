@@ -13,7 +13,10 @@ export type { CareMode, TaskType };
 
 /** SECURITY: strip HTML tags to prevent XSS */
 export function sanitize(input: string): string {
-	return input.replace(/[<>]/g, '');
+	return Array.from(input.replace(/[<>]/g, ''), (char) => {
+		const code = char.charCodeAt(0);
+		return code !== 10 && (code < 32 || code === 127) ? ' ' : char;
+	}).join('');
 }
 
 /** SECURITY: validate MIME type for photo uploads */

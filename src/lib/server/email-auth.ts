@@ -18,7 +18,7 @@ const PASSWORD_MAX_LENGTH = 128;
 const PASSWORD_ITERATIONS = 210_000;
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
 const AUTH_RATE_WINDOW_MS = 60 * 60 * 1000;
-const AUTH_RATE_LIMIT = 10;
+const AUTH_RATE_LIMIT = 5;
 const DUMMY_SALT = 'LTXfR8B535MdxEsJgtA7qLw26xurWkWZVrcy8wZUsvk';
 
 export type AuthRateResult = { allowed: true } | { allowed: false; retryAfterSeconds: number };

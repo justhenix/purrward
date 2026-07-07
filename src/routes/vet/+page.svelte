@@ -183,7 +183,7 @@
 				emergency?: boolean;
 				error?: string;
 			};
-			addMessage('vet', body.reply ?? body.error ?? 'Vet triage is unavailable right now.');
+			addMessage('vet', body.reply ?? 'Vet triage is unavailable right now.');
 			// SECURITY/UX: server-detected emergencies surface the banner automatically.
 			if (body.emergency) {
 				emergencyActive = true;

@@ -4,7 +4,7 @@
 
 Production: https://purrward.app
 Branch: `main`
-Checked: 2026-07-08 03:50 +07:00
+Checked: 2026-07-08 04:20 +07:00
 
 ## Passed Locally
 
@@ -36,4 +36,8 @@ Checked: 2026-07-08 03:50 +07:00
 
 See `documentation/aikido-test.md`.
 
-Open items are external-dashboard state until Aikido finishes the restarted scan and the running AI Code Audit. Expected residuals are Cloudflare's managed `Server` header, the GitHub organization IP allow-list policy, and Aikido's low-severity inline CSS warning for current Svelte dynamic styles.
+![Aikido repository issue list](./aikido-repository-issues.png)
+
+![Aikido AI Code Audit findings](./aikido-code-audit.png)
+
+The repository issue list screenshot, AI Code Audit screenshot, and remediation table are tracked in `documentation/aikido-test.md`. Expected residuals after deploy retest are Cloudflare's managed `Server` header, the GitHub organization IP allow-list policy, and Aikido's low-severity inline CSS warning for current Svelte dynamic styles.

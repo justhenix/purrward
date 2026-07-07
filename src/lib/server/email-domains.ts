@@ -71,7 +71,7 @@ const DISPOSABLE_DOMAINS = new Set<string>([
 // Returns true when the email's domain is a known disposable/throwaway provider.
 // Expects a normalized (lowercased, validated) email address.
 export function isDisposableEmailDomain(email: string): boolean {
-	const domain = email.split('@')[1];
+	const domain = email.split('@')[1]?.toLowerCase().replace(/\.+$/g, '');
 	if (!domain) return false;
 	if (DISPOSABLE_DOMAINS.has(domain)) return true;
 	// Catch subdomains of a blocked provider (e.g. inbox.mailinator.com).

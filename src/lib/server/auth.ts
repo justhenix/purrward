@@ -102,6 +102,10 @@ export function normalizeEmail(value: string): string | null {
 	if (!/^[^\s@]{1,64}@[^\s@]{1,253}$/.test(email)) return null;
 	const [, domain] = email.split('@');
 	if (!domain?.includes('.')) return null;
+	if (domain.endsWith('.') || domain.includes('..')) return null;
+	if (!domain.split('.').every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) {
+		return null;
+	}
 	return email;
 }
 

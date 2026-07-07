@@ -256,6 +256,7 @@
 		if (typeof navigator !== 'undefined' && !navigator.onLine) {
 			try {
 				await addOfflineProof({
+					userId: data.user?.id ?? 'sandbox',
 					catId: data.activeCat?.id ?? 'default',
 					taskType: active.id,
 					photo: capturedPhoto,
@@ -288,6 +289,7 @@
 			// Fallback: save to IndexedDB on network fetch errors
 			try {
 				await addOfflineProof({
+					userId: data.user?.id ?? 'sandbox',
 					catId: data.activeCat?.id ?? 'default',
 					taskType: active.id,
 					photo: capturedPhoto,

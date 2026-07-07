@@ -37,8 +37,10 @@ async function enforceAvatarMatchLimit(input: {
 }
 
 export const POST: RequestHandler = async ({ fetch, getClientAddress, locals, request }) => {
+	if (!locals.user) return Response.json({ error: 'Authentication required.' }, { status: 401 });
+
 	const limited = await enforceAvatarMatchLimit({
-		userId: locals.user?.id ?? null,
+		userId: locals.user.id,
 		getClientAddress
 	});
 	if (limited) return limited;

@@ -2,6 +2,7 @@
 
 export interface OfflineProof {
 	id?: number;
+	userId: string;
 	catId: string;
 	taskType: string;
 	photo: Blob;
@@ -42,14 +43,15 @@ export async function addOfflineProof(proof: Omit<OfflineProof, 'id'>): Promise<
 	});
 }
 
-export async function getOfflineProofs(): Promise<OfflineProof[]> {
+export async function getOfflineProofs(userId: string): Promise<OfflineProof[]> {
 	try {
 		const db = await getDB();
 		return new Promise((resolve, reject) => {
 			const transaction = db.transaction(STORE_NAME, 'readonly');
 			const store = transaction.objectStore(STORE_NAME);
 			const request = store.getAll();
-			request.onsuccess = () => resolve(request.result as OfflineProof[]);
+			request.onsuccess = () =>
+				resolve((request.result as OfflineProof[]).filter((proof) => proof.userId === userId));
 			request.onerror = () => reject(request.error);
 		});
 	} catch {

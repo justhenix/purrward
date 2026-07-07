@@ -21,7 +21,7 @@ export const actions: Actions = {
 			database: db,
 			scope: 'reset',
 			clientAddress: getClientAddress(),
-			limit: 8
+			limit: 5
 		});
 		const formData = await request.formData();
 		const password = readPassword(formData);

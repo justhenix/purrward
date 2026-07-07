@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	sanitize,
 	stripImageMetadata,
 	stripWebpMetadata,
 	validateTaskType,
@@ -33,6 +34,10 @@ function buildWebp(chunks: { id: string; data: number[] }[]): Uint8Array {
 }
 
 describe('security helpers', () => {
+	it('sanitizes public text without flattening line breaks', () => {
+		expect(sanitize('cat\tcare\n<script>')).toBe('cat care\nscript');
+	});
+
 	it('validates known task types', () => {
 		expect(validateTaskType('feeding')).toBe('feeding');
 		expect(validateTaskType('bad')).toBeNull();
