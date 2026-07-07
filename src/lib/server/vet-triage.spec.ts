@@ -57,7 +57,7 @@ Vet now: Collapse, blood, or repeated vomiting.`);
 Watch: Frequency of vomiting, appetite, and energy.
 Vet now: Collapse, blood, or repeated vomiting.`);
 
-		expect(reply?.split('\n')[0]).toBe("Aw, poor Mochi. Here's what I'm thinking:");
+		expect(reply?.split('\n')[0]).toBe("Here's what I'm thinking:");
 	});
 
 	it('returns cleaned provider text', async () => {

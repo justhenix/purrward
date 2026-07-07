@@ -57,8 +57,8 @@
 
 	<div class="password-card">
 		<div class="password-heading">
-			<p>Email account</p>
 			<h1 id="new-password-title">New password</h1>
+			<p>Email account</p>
 		</div>
 
 		<form
@@ -134,9 +134,15 @@
 <style>
 	.new-password-screen {
 		display: grid;
-		min-height: calc(100dvh - 36px);
+		min-height: calc(100svh - 36px);
 		align-content: center;
 		gap: 16px;
+	}
+
+	@supports (height: 100dvh) {
+		.new-password-screen {
+			min-height: calc(100dvh - 36px);
+		}
 	}
 
 	.back-link {

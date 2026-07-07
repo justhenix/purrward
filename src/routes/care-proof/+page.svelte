@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Camera from '@lucide/svelte/icons/camera';
@@ -8,8 +8,6 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Send from '@lucide/svelte/icons/send';
-	import catPolaroid from '$lib/assets/cats/misc/cat-polaroid.webp';
-	import { getCatAvatar } from '$lib/cat-avatars';
 	import { addOfflineProof } from '$lib/offline-db';
 	import { habitSetFor, type TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
@@ -108,7 +106,6 @@
 
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
-	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
 	let completed = $derived(new Set(data.completedTasks));
 	let nextTask = $derived(tasks.find((task) => !completed.has(task.id)) ?? tasks[0]);
 	let active = $derived(
@@ -259,7 +256,7 @@
 			result = json;
 			if (response.ok && json.verified) {
 				submitted = true;
-				await invalidateAll();
+				await invalidate('app:cat');
 			}
 		} catch {
 			// Fallback: save to IndexedDB on network fetch errors
@@ -304,8 +301,8 @@
 			<ArrowLeft size={18} strokeWidth={2.4} aria-hidden="true" />
 		</a>
 		<div>
-			<p>{active.need}</p>
 			<h1>Care Proof</h1>
+			<p>{active.need}</p>
 			<span>
 				{data.preferences.sandboxMode
 					? 'Sandbox proof auto-passes for +1000 Purrpoints.'
@@ -346,14 +343,6 @@
 
 		{#if submitted && result?.verified}
 			<section bind:this={successCard} class="success-card" aria-label="Proof verified">
-				<span class="success-polaroid" aria-hidden="true">
-					{#if activeCatAvatar}<img
-							class="polaroid-subject"
-							src={activeCatAvatar.src}
-							alt=""
-						/>{/if}
-					<img class="polaroid-frame" src={catPolaroid} alt="" />
-				</span>
 				<span class="success-badge" aria-hidden="true">
 					<Check size={26} strokeWidth={3} />
 				</span>
@@ -559,33 +548,6 @@
 		border-radius: 50%;
 		background: var(--color-success-bg);
 		color: var(--color-success-text);
-	}
-
-	.success-polaroid {
-		position: relative;
-		display: block;
-		width: 88px;
-		aspect-ratio: 3 / 4;
-		filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--color-charcoal) 12%, transparent));
-	}
-
-	.polaroid-frame,
-	.polaroid-subject {
-		position: absolute;
-		object-fit: contain;
-	}
-
-	.polaroid-frame {
-		inset: 0;
-		width: 100%;
-		height: 100%;
-	}
-
-	.polaroid-subject {
-		top: 18%;
-		left: 18%;
-		width: 64%;
-		height: 48%;
 	}
 
 	.success-card h2 {

@@ -43,8 +43,8 @@
 
 	<div class="reset-card">
 		<div class="reset-heading">
-			<p>Email account</p>
 			<h1 id="reset-title">Forgot password?</h1>
+			<p>Email account</p>
 		</div>
 
 		<form
@@ -93,9 +93,15 @@
 <style>
 	.reset-screen {
 		display: grid;
-		min-height: calc(100dvh - 36px);
+		min-height: calc(100svh - 36px);
 		align-content: center;
 		gap: 16px;
+	}
+
+	@supports (height: 100dvh) {
+		.reset-screen {
+			min-height: calc(100dvh - 36px);
+		}
 	}
 
 	.back-link {

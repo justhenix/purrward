@@ -19,6 +19,7 @@ const BULLET_EMOJI: Record<(typeof BULLET_LABELS)[number], string> = {
 };
 // Used when the model skips the conversational opener line.
 function fallbackIntro(catName: string): string {
+	if (catName === 'the cat') return "Here's what I'm thinking:";
 	return `Aw, poor ${catName}. Here's what I'm thinking:`;
 }
 
@@ -117,7 +118,7 @@ function normalizeBulletReply(value: string, catName: string): string | null {
 	return `${intro || fallbackIntro(catName)}\n${bulletBlock}`;
 }
 
-export function cleanVetReply(value: string, catName = 'Mochi'): string | null {
+export function cleanVetReply(value: string, catName = 'the cat'): string | null {
 	const cleaned = sanitize(value)
 		.replace(/\*\*/g, '')
 		.replace(/^\s*\*\s+/gm, '- ')
@@ -183,7 +184,7 @@ export async function triageVetQuestion(input: {
 	const question = cleanVetQuestion(input.question);
 	if (!question) return { status: 400, body: { error: 'Ask a short cat health question.' } };
 
-	const catName = input.catName ?? 'Mochi';
+	const catName = input.catName ?? 'the cat';
 	const model = input.model ?? DEFAULT_GEMINI_MODEL;
 	const response = await input.fetcher(
 		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,

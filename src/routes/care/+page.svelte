@@ -120,8 +120,8 @@
 			<ChevronLeft size={22} strokeWidth={2.3} aria-hidden="true" />
 		</a>
 		<div>
-			<p>Daily routines</p>
 			<h1>Care</h1>
+			<p>Daily routines</p>
 		</div>
 	</header>
 

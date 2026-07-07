@@ -61,7 +61,7 @@ export function parseGeminiVerification(payload: unknown): GeminiVerification | 
 	}
 }
 
-function extractGeminiText(payload: unknown): string | null {
+export function extractGeminiText(payload: unknown): string | null {
 	if (!payload || typeof payload !== 'object') return null;
 	const record = payload as Record<string, unknown>;
 	if (typeof record.output_text === 'string') return record.output_text;

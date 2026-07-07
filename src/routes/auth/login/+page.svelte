@@ -64,8 +64,8 @@
 
 	<div class="auth-card">
 		<div class="auth-heading">
-			<p>{mode === 'login' ? 'Welcome back' : 'Start saving care'}</p>
 			<h1 id="auth-title">{title}</h1>
+			<p>{mode === 'login' ? 'Welcome back' : 'Start saving care'}</p>
 		</div>
 
 		<div class="mode-switch" role="tablist" aria-label="Choose auth mode">
@@ -179,10 +179,16 @@
 <style>
 	.auth-screen {
 		display: grid;
-		min-height: 100%;
-		align-content: start;
+		min-height: calc(100svh - 36px);
+		align-content: center;
 		gap: 10px;
-		padding-block: clamp(10px, 4dvh, 28px);
+		padding-block: clamp(10px, 3dvh, 24px);
+	}
+
+	@supports (height: 100dvh) {
+		.auth-screen {
+			min-height: calc(100dvh - 36px);
+		}
 	}
 
 	.cat-badge {
