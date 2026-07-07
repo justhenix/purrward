@@ -8,6 +8,8 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Send from '@lucide/svelte/icons/send';
+	import catPolaroid from '$lib/assets/cats/misc/cat-polaroid.webp';
+	import { getCatAvatar } from '$lib/cat-avatars';
 	import { addOfflineProof } from '$lib/offline-db';
 	import { habitSetFor, type TaskType } from '$lib/tasks';
 	import type { PageProps } from './$types';
@@ -101,10 +103,12 @@
 	let capturedUrl = $state('');
 	let stream = $state<MediaStream | null>(null);
 	let videoElement = $state<HTMLVideoElement | null>(null);
+	let successCard = $state<HTMLElement | null>(null);
 	let isOfflineDraft = $state(false);
 
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
+	let activeCatAvatar = $derived(data.activeCat ? getCatAvatar(data.activeCat.avatarId) : null);
 	let completed = $derived(new Set(data.completedTasks));
 	let nextTask = $derived(tasks.find((task) => !completed.has(task.id)) ?? tasks[0]);
 	let active = $derived(
@@ -121,6 +125,10 @@
 		if (result?.error) return result.error;
 		if (capturedPhoto) return 'Photo ready';
 		return 'No photo captured yet';
+	});
+
+	$effect(() => {
+		if (submitted && result?.verified) successCard?.scrollIntoView({ block: 'center' });
 	});
 
 	function revokeCapturedUrl() {
@@ -337,7 +345,15 @@
 		{/if}
 
 		{#if submitted && result?.verified}
-			<section class="success-card" aria-label="Proof verified">
+			<section bind:this={successCard} class="success-card" aria-label="Proof verified">
+				<span class="success-polaroid" aria-hidden="true">
+					{#if activeCatAvatar}<img
+							class="polaroid-subject"
+							src={activeCatAvatar.src}
+							alt=""
+						/>{/if}
+					<img class="polaroid-frame" src={catPolaroid} alt="" />
+				</span>
 				<span class="success-badge" aria-hidden="true">
 					<Check size={26} strokeWidth={3} />
 				</span>
@@ -543,6 +559,33 @@
 		border-radius: 50%;
 		background: var(--color-success-bg);
 		color: var(--color-success-text);
+	}
+
+	.success-polaroid {
+		position: relative;
+		display: block;
+		width: 88px;
+		aspect-ratio: 3 / 4;
+		filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--color-charcoal) 12%, transparent));
+	}
+
+	.polaroid-frame,
+	.polaroid-subject {
+		position: absolute;
+		object-fit: contain;
+	}
+
+	.polaroid-frame {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.polaroid-subject {
+		top: 18%;
+		left: 18%;
+		width: 64%;
+		height: 48%;
 	}
 
 	.success-card h2 {

@@ -1,8 +1,8 @@
-<!-- Full-bleed park scene: bg_park artwork as the cat's world with floating bubble overlays. -->
+<!-- Full-bleed room scene: artist room artwork as the cat's world with floating bubble overlays. -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import bgPark from '$lib/assets/bg/bg_park.webp';
-	import bgParkNight from '$lib/assets/bg/bg_park_night.webp';
+	import bgRoom from '$lib/assets/bg/bg-room.webp';
+	import bgRoomDark from '$lib/assets/bg/bg-room-dark.webp';
 	import CatAvatar from '$lib/cat/CatAvatar.svelte';
 	import type { HomepageCatLayer } from '$lib/cat/homepage-avatar';
 
@@ -27,7 +27,7 @@
 
 <section
 	class={['scene', !showCat && 'guest']}
-	style={`--scene-bg-light: url(${bgPark}); --scene-bg-dark: url(${bgParkNight});`}
+	style={`--scene-bg-light: url(${bgRoom}); --scene-bg-dark: url(${bgRoomDark});`}
 >
 	<div class="scene-veil" aria-hidden="true"></div>
 

@@ -138,7 +138,7 @@
 		<PetScene
 			catLayers={heroCat.renderStack}
 			catWarnings={heroCat.warnings}
-			catLabel={`${catName} in the park`}
+			catLabel={`${catName} in the room`}
 			showCat={signedIn}
 		>
 			{#snippet top()}
@@ -294,7 +294,7 @@
 	</div>
 {/if}
 
-<!-- Home screen as a full pet scene: Mochi in the park, care bubbles floating on top. -->
+<!-- Home screen as a full pet scene: Mochi in the room, care bubbles floating on top. -->
 
 <style>
 	.home {
@@ -517,7 +517,7 @@
 	}
 
 	.task-eyebrow {
-		display: none;
+		display: block;
 		color: var(--color-muted);
 		font-size: 0.72rem;
 		font-weight: 850;
@@ -571,7 +571,7 @@
 	.scan-cta {
 		display: inline-flex;
 		width: 100%;
-		min-height: 48px;
+		min-height: 56px;
 		align-items: center;
 		justify-content: center;
 		gap: 10px;
@@ -579,10 +579,10 @@
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
-		font-size: 1rem;
-		font-weight: 800;
+		font-size: 1.04rem;
+		font-weight: 900;
 		text-decoration: none;
-		box-shadow: 0 12px 26px color-mix(in srgb, var(--color-charcoal) 20%, transparent);
+		box-shadow: 0 16px 30px color-mix(in srgb, var(--color-charcoal) 24%, transparent);
 	}
 
 	.mini-progress {
