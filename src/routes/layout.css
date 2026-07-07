@@ -58,6 +58,9 @@
 	--shadow-float: 0 18px 50px rgba(36, 38, 38, 0.16);
 	--ease-mobile: cubic-bezier(0.22, 1, 0.36, 1);
 	--ease-bounce: cubic-bezier(0.18, 1.28, 0.42, 1);
+	--motion-fast: 140ms;
+	--motion-nav: 240ms;
+	--motion-page: 280ms;
 }
 
 /*
@@ -69,6 +72,7 @@
  * deepen so elevation still reads against the dark surface.
  */
 :root[data-theme='dark'] {
+	color-scheme: dark;
 	--color-paper: var(--color-dark-bg);
 	--color-paper-2: var(--color-dark-surface);
 	--color-paper-3: var(--color-dark-surface-2);
@@ -100,6 +104,7 @@
 /* System preference follows the OS, evaluated by the browser before paint. */
 @media (prefers-color-scheme: dark) {
 	:root[data-theme='system'] {
+		color-scheme: dark;
 		--color-paper: var(--color-dark-bg);
 		--color-paper-2: var(--color-dark-surface);
 		--color-paper-3: var(--color-dark-surface-2);
@@ -157,7 +162,10 @@
 	--nav-text: var(--color-paper-2);
 	--nav-active-chip: var(--color-paper-2);
 	--nav-active-glyph: var(--color-charcoal);
+	--native-picker-calendar-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23171a19' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'/%3E%3C/svg%3E");
+	--native-picker-clock-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23171a19' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
 
+	color-scheme: light;
 	font-family: var(--font-sans);
 	color: var(--color-ink);
 	background: var(--color-paper);
@@ -165,6 +173,9 @@
 
 html {
 	min-height: 100%;
+	/* Reserve the scrollbar gutter so locking body scroll for a modal never
+	 * reflows the layout (no horizontal jump when the scrollbar disappears). */
+	scrollbar-gutter: stable;
 	background:
 		radial-gradient(
 			circle at 12% 10%,
@@ -180,11 +191,18 @@ html {
 }
 
 body {
-	min-height: 100vh;
+	min-height: 100svh;
 	margin: 0;
 	background: transparent;
 	-webkit-tap-highlight-color: transparent;
+	-webkit-overflow-scrolling: touch;
 	text-rendering: optimizeLegibility;
+}
+
+/* Body scroll lock used while a modal/sheet is open. Because the gutter is
+ * always reserved above, toggling this does not shift page content. */
+body.is-modal-open {
+	overflow: hidden;
 }
 
 button,
@@ -192,6 +210,47 @@ input,
 select,
 textarea {
 	font-family: var(--font-sans);
+}
+
+input[type='date'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='time'],
+input[type='week'] {
+	color-scheme: light;
+	background-image: var(--native-picker-calendar-icon) !important;
+	background-repeat: no-repeat !important;
+	background-position: right 12px center !important;
+	background-size: 14px 14px !important;
+	padding-inline-end: 34px;
+}
+
+input[type='time'] {
+	background-image: var(--native-picker-clock-icon) !important;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='week']::-webkit-calendar-picker-indicator {
+	opacity: 0;
+}
+
+:root[data-theme='dark']
+	input:is([type='date'], [type='datetime-local'], [type='month'], [type='time'], [type='week']) {
+	--native-picker-calendar-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23f8f1e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'/%3E%3C/svg%3E");
+	--native-picker-clock-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23f8f1e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-theme='system']
+		input:is([type='date'], [type='datetime-local'], [type='month'], [type='time'], [type='week']) {
+		--native-picker-calendar-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23f8f1e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'/%3E%3C/svg%3E");
+		--native-picker-clock-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23f8f1e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+		color-scheme: dark;
+	}
 }
 
 button,
@@ -256,11 +315,11 @@ h3,
 	.avatar
 ) {
 	transition:
-		transform 120ms var(--ease-mobile),
-		box-shadow 120ms var(--ease-mobile),
-		background 120ms ease,
-		color 120ms ease,
-		opacity 120ms ease;
+		transform var(--motion-fast) var(--ease-mobile),
+		box-shadow var(--motion-fast) var(--ease-mobile),
+		background var(--motion-fast) ease,
+		color var(--motion-fast) ease,
+		opacity var(--motion-fast) ease;
 }
 
 :is(
@@ -306,6 +365,71 @@ h3,
 	50% {
 		opacity: 0.78;
 		transform: scaleX(0.88);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.app-content {
+		view-transition-name: purrward-page;
+	}
+
+	/* Root (app shell + fixed bottom nav) stays perfectly static: no fade, no shift.
+	 * Only the page content region cross-fades, so the nav never twitches. */
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+		mix-blend-mode: normal;
+	}
+
+	/* Keep the group height driven by content so a tall outgoing page (e.g. the
+	 * centered Vet sign-in card) is never stretched over the shorter incoming page. */
+	::view-transition-group(purrward-page) {
+		animation-duration: var(--motion-page);
+		animation-timing-function: var(--ease-mobile);
+	}
+
+	::view-transition-old(purrward-page),
+	::view-transition-new(purrward-page) {
+		/* Each snapshot keeps its own captured height (top-anchored) instead of being
+		 * stretched to the animating group height, so a tall outgoing page never
+		 * distorts or drifts over the shorter incoming one. */
+		width: 100%;
+		height: auto;
+		transform-origin: top center;
+	}
+
+	/* Outgoing page leaves fast and up-front so its ghost clears before the
+	 * incoming page settles — kills the mid-transition double-exposure. */
+	::view-transition-old(purrward-page) {
+		animation: purrward-page-out calc(var(--motion-page) * 0.55) var(--ease-mobile) both;
+	}
+
+	/* Incoming page fades/slides in slightly delayed, using only transform + opacity. */
+	::view-transition-new(purrward-page) {
+		animation: purrward-page-in calc(var(--motion-page) * 0.7) var(--ease-mobile)
+			calc(var(--motion-page) * 0.3) both;
+	}
+}
+
+@keyframes purrward-page-out {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+}
+
+@keyframes purrward-page-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 

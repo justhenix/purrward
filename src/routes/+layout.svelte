@@ -1,10 +1,14 @@
 <script lang="ts">
 	import './layout.css';
 	import { onMount } from 'svelte';
-	import { preloadCode, preloadData, invalidateAll } from '$app/navigation';
-	import { navigating, page } from '$app/state';
+	import { onNavigate, preloadCode, preloadData, invalidate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { getOfflineProofs, deleteOfflineProof } from '$lib/offline-db';
+	import blueSplash from '$lib/assets/paint_splash/blue_splash.webp';
+	import pinkSplash from '$lib/assets/paint_splash/pink_splash.webp';
+	import yellowSplash from '$lib/assets/paint_splash/yellow_splash.webp';
+	import pawBlue from '$lib/assets/paw/paw_blue.webp';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Gift from '@lucide/svelte/icons/gift';
 	import Home from '@lucide/svelte/icons/home';
@@ -14,20 +18,41 @@
 
 	const NAV_ROUTES = ['/', '/rewards', '/care-proof', '/vet', '/profile'] as const;
 
+	type ViewTransition = {
+		finished: Promise<void>;
+		ready: Promise<void>;
+		updateCallbackDone: Promise<void>;
+		skipTransition: () => void;
+	};
+	type ViewTransitionDocument = Document & {
+		startViewTransition?: (callback: () => Promise<void> | void) => ViewTransition;
+	};
+
 	let { children, data }: LayoutProps = $props();
 	let isAuthRoute = $derived(page.url.pathname.startsWith('/auth/'));
 	// Onboarding is a pre-app welcome flow: no bottom nav or app chrome until a cat exists.
 	let isOnboardingRoute = $derived(page.url.pathname === '/onboarding');
+	let isDocsRoute = $derived(
+		page.url.pathname.startsWith('/docs') || page.url.pathname.startsWith('/dev-docs')
+	);
+	let isHomeRoute = $derived(page.url.pathname === '/');
+	let isCareProofRoute = $derived(page.url.pathname.startsWith('/care-proof'));
+	let isDevRoute = $derived(page.url.pathname.startsWith('/dev'));
+	let isRewardsRoute = $derived(page.url.pathname.startsWith('/rewards'));
 	let isVetRoute = $derived(page.url.pathname.startsWith('/vet'));
-	let hideChrome = $derived(isAuthRoute || isOnboardingRoute);
+	let hideChrome = $derived(isAuthRoute || isOnboardingRoute || isDocsRoute);
+	let showDecor = $derived(!isHomeRoute && !isCareProofRoute && !isDevRoute);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
-	let tappedPath = $state<string | null>(null);
-	let tapTimer: number | null = null;
-	let skeletonTimer: number | null = null;
-	let showSkeleton = $state(false);
-	let pendingPath = $derived(navigating.to?.url.pathname ?? tappedPath);
-	let isNavigating = $derived(!hideChrome && pendingPath !== null);
-
+	let isHomeNavActive = $derived(
+		page.url.pathname === '/' ||
+			(page.url.pathname.startsWith('/care') && !page.url.pathname.startsWith('/care-proof'))
+	);
+	let isRewardsNavActive = $derived(page.url.pathname.startsWith('/rewards'));
+	let isCareNavActive = $derived(page.url.pathname.startsWith('/care-proof'));
+	let isVetNavActive = $derived(page.url.pathname.startsWith('/vet'));
+	let isProfileNavActive = $derived(
+		page.url.pathname.startsWith('/profile') || page.url.pathname.startsWith('/cats')
+	);
 	function warmRoute(href: string) {
 		void preloadCode(href).catch(() => undefined);
 		void preloadData(href).catch(() => undefined);
@@ -35,15 +60,21 @@
 
 	function cueRoute(href: string) {
 		warmRoute(href);
-		if (href === page.url.pathname) return;
-
-		tappedPath = href;
-		if (tapTimer) window.clearTimeout(tapTimer);
-		tapTimer = window.setTimeout(() => {
-			tappedPath = null;
-			tapTimer = null;
-		}, 220);
 	}
+
+	onNavigate((navigation) => {
+		if (typeof document === 'undefined') return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		const transitionDocument = document as ViewTransitionDocument;
+		if (!transitionDocument.startViewTransition) return;
+
+		return new Promise<void>((resolveTransition) => {
+			transitionDocument.startViewTransition(async () => {
+				resolveTransition();
+				await navigation.complete;
+			});
+		});
+	});
 
 	onMount(() => {
 		void syncOfflineProofs();
@@ -66,33 +97,6 @@
 			window.clearTimeout(timer);
 			window.removeEventListener('online', syncOfflineProofs);
 		};
-	});
-
-	$effect(() => {
-		void page.url.pathname;
-		tappedPath = null;
-		if (tapTimer) {
-			window.clearTimeout(tapTimer);
-			tapTimer = null;
-		}
-	});
-
-	$effect(() => {
-		if (isNavigating) {
-			if (!skeletonTimer) {
-				skeletonTimer = window.setTimeout(() => {
-					showSkeleton = true;
-					skeletonTimer = null;
-				}, 90);
-			}
-			return;
-		}
-
-		showSkeleton = false;
-		if (skeletonTimer) {
-			window.clearTimeout(skeletonTimer);
-			skeletonTimer = null;
-		}
 	});
 
 	let globalToast = $state<string | null>(null);
@@ -133,7 +137,7 @@
 
 			if (successCount > 0) {
 				globalToast = `Synced ${successCount} offline care tasks!`;
-				await invalidateAll();
+				await invalidate('app:cat');
 			} else {
 				globalToast = null;
 			}
@@ -154,229 +158,114 @@
 
 <svelte:head>
 	<link rel="icon" href="/favicon.svg" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 </svelte:head>
 
-<div class="app-shell paper-texture">
-	{#if sandboxMode && !hideChrome}
-		<div class="sandbox-strip" role="status">Sandbox mode</div>
-	{/if}
-	<main class={['app-content', hideChrome && 'auth-content', isVetRoute && 'vet-content']}>
+{#if isDocsRoute}
+	<div class="docs-root">
 		{@render children()}
-	</main>
-	{#if showSkeleton}
-		<div class="route-skeleton" aria-hidden="true">
-			{#if pendingPath === '/' || !pendingPath}
-				<div class="skeleton-top">
-					<span class="skeleton-line short"></span>
-					<span class="skeleton-avatar"></span>
-				</div>
-				<div class="skeleton-hero">
-					<span class="skeleton-cat"></span>
-					<span class="skeleton-line title"></span>
-					<span class="skeleton-line medium"></span>
-					<span class="skeleton-button"></span>
-				</div>
-				<div class="skeleton-list">
-					<span class="skeleton-line medium"></span>
-					<span class="skeleton-row"></span>
-					<span class="skeleton-row"></span>
-					<span class="skeleton-row"></span>
-				</div>
-			{:else if pendingPath.startsWith('/rewards')}
-				<div class="skeleton-store-head">
-					<span class="skeleton-line short"></span>
-					<span class="skeleton-line title"></span>
-				</div>
-				<div class="skeleton-chips">
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-				</div>
-				<div class="skeleton-rewards-grid">
-					{#each [0, 1, 2, 3] as i (i)}
-						<div class="skeleton-reward-card">
-							<span class="skeleton-icon-square"></span>
-							<div class="skeleton-card-body">
-								<span class="skeleton-line medium"></span>
-								<span class="skeleton-line short"></span>
-								<span class="skeleton-line tiny"></span>
-							</div>
-							<span class="skeleton-button-small"></span>
-						</div>
-					{/each}
-				</div>
-			{:else if pendingPath.startsWith('/vet')}
-				<div class="skeleton-vet-header">
-					<div class="skeleton-title-block">
-						<span class="skeleton-line title"></span>
-						<span class="skeleton-line short"></span>
-					</div>
-					<div class="skeleton-vet-actions">
-						<span class="skeleton-btn-circle"></span>
-						<span class="skeleton-btn-circle"></span>
-						<span class="skeleton-btn-circle"></span>
-					</div>
-				</div>
-				<div class="skeleton-mode-switch">
-					<span class="skeleton-switch-tab"></span>
-					<span class="skeleton-switch-tab"></span>
-				</div>
-				<div class="skeleton-vet-conversation">
-					<div class="skeleton-vet-onboarding">
-						<span class="skeleton-onboarding-mark"></span>
-						<span class="skeleton-line title"></span>
-						<span class="skeleton-line medium"></span>
-					</div>
-				</div>
-				<div class="skeleton-vet-suggestions">
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-					<span class="skeleton-chip"></span>
-				</div>
-				<div class="skeleton-vet-composer"></div>
-			{:else if pendingPath.startsWith('/profile')}
-				<div class="skeleton-profile-header">
-					<span class="skeleton-line title"></span>
-					<span class="skeleton-avatar"></span>
-				</div>
-				<div class="skeleton-profile-cat-card">
-					<span class="skeleton-avatar-large"></span>
-					<div class="skeleton-card-body">
-						<span class="skeleton-line short"></span>
-						<span class="skeleton-line medium"></span>
-					</div>
-				</div>
-				<div class="skeleton-profile-section-label"></div>
-				<div class="skeleton-profile-manage">
-					<span class="skeleton-profile-row"></span>
-					<span class="skeleton-profile-row"></span>
-					<span class="skeleton-profile-row"></span>
-					<span class="skeleton-profile-row"></span>
-					<span class="skeleton-profile-row"></span>
-				</div>
-			{:else if pendingPath.startsWith('/care-proof')}
-				<div class="skeleton-proof-top">
-					<span class="skeleton-btn-circle"></span>
-					<div class="skeleton-proof-title">
-						<span class="skeleton-line short"></span>
-						<span class="skeleton-line title"></span>
-						<span class="skeleton-line medium"></span>
-					</div>
-				</div>
-				<div class="skeleton-proof-preview"></div>
-				<div class="skeleton-proof-status"></div>
-				<div class="skeleton-proof-actions">
-					<span class="skeleton-button"></span>
-					<span class="skeleton-button"></span>
-				</div>
-			{:else if pendingPath.startsWith('/care') || pendingPath.startsWith('/cats')}
-				<div class="skeleton-care-header">
-					<span class="skeleton-btn-circle"></span>
-					<div class="skeleton-care-title">
-						<span class="skeleton-line short"></span>
-						<span class="skeleton-line title"></span>
-					</div>
-				</div>
-				<div class="skeleton-care-hero">
-					<span class="skeleton-line short"></span>
-					<span class="skeleton-line title"></span>
-					<span class="skeleton-line medium"></span>
-				</div>
-				<div class="skeleton-care-detail"></div>
-				<div class="skeleton-care-list">
-					<span class="skeleton-care-row"></span>
-					<span class="skeleton-care-row"></span>
-					<span class="skeleton-care-row"></span>
-					<span class="skeleton-care-row"></span>
-					<span class="skeleton-care-row"></span>
-				</div>
-			{:else}
-				<div class="skeleton-top">
-					<span class="skeleton-line short"></span>
-					<span class="skeleton-avatar"></span>
-				</div>
-				<div class="skeleton-hero">
-					<span class="skeleton-line title"></span>
-					<span class="skeleton-line medium"></span>
-				</div>
-				<div class="skeleton-list">
-					<span class="skeleton-row"></span>
-					<span class="skeleton-row"></span>
-					<span class="skeleton-row"></span>
-				</div>
-			{/if}
-		</div>
-	{/if}
-</div>
+	</div>
+{:else}
+	<div
+		class="app-shell paper-texture"
+		style={`--splash-blue: url(${blueSplash}); --splash-pink: url(${pinkSplash}); --splash-yellow: url(${yellowSplash}); --paw-blue: url(${pawBlue});`}
+	>
+		{#if sandboxMode && !hideChrome}
+			<div class="sandbox-strip" role="status">Sandbox mode</div>
+		{/if}
+		{#if showDecor}
+			<div
+				class={[
+					'page-decor',
+					isOnboardingRoute ? 'page-decor-playful' : 'page-decor-soft',
+					isAuthRoute && 'page-decor-auth',
+					isRewardsRoute && 'page-decor-rewards',
+					isVetRoute && 'page-decor-vet'
+				]}
+				aria-hidden="true"
+			></div>
+		{/if}
+		<main class={['app-content', hideChrome && 'auth-content', isVetRoute && 'vet-content']}>
+			{@render children()}
+		</main>
+	</div>
+{/if}
 
 {#if !hideChrome}
-	<nav
-		class="bottom-nav"
-		aria-label="Main navigation"
-		aria-busy={isNavigating}
-		data-sveltekit-preload-data="tap"
-	>
+	<nav class="bottom-nav" aria-label="Main navigation" data-sveltekit-preload-data="tap">
 		<a
-			aria-current={page.url.pathname === '/' ||
-			(page.url.pathname.startsWith('/care') && !page.url.pathname.startsWith('/care-proof'))
-				? 'page'
-				: undefined}
+			aria-current={isHomeNavActive ? 'page' : undefined}
 			href={resolve('/')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/'))}
 		>
 			<span class="nav-icon" aria-hidden="true">
-				<Home size={18} strokeWidth={2.15} />
+				<Home
+					size={23}
+					strokeWidth={isHomeNavActive ? 2.7 : 2.15}
+					fill={isHomeNavActive ? 'currentColor' : 'none'}
+				/>
 			</span>
 			<span>Home</span>
 		</a>
 		<a
-			aria-current={page.url.pathname.startsWith('/rewards') ? 'page' : undefined}
+			aria-current={isRewardsNavActive ? 'page' : undefined}
 			href={resolve('/rewards')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/rewards'))}
 		>
 			<span class="nav-icon" aria-hidden="true">
-				<Gift size={18} strokeWidth={2.15} />
+				<Gift
+					size={23}
+					strokeWidth={isRewardsNavActive ? 2.7 : 2.15}
+					fill={isRewardsNavActive ? 'currentColor' : 'none'}
+				/>
 			</span>
 			<span>Rewards</span>
 		</a>
 		<a
-			aria-current={page.url.pathname.startsWith('/care-proof') ? 'page' : undefined}
+			aria-current={isCareNavActive ? 'page' : undefined}
 			href={resolve('/care-proof')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/care-proof'))}
 		>
 			<span class="nav-icon" aria-hidden="true">
-				<Camera size={18} strokeWidth={2.15} />
+				<Camera
+					size={23}
+					strokeWidth={isCareNavActive ? 2.7 : 2.15}
+					fill={isCareNavActive ? 'currentColor' : 'none'}
+				/>
 			</span>
-			<span>Scan</span>
+			<span>Care</span>
 		</a>
 		<a
-			aria-current={page.url.pathname.startsWith('/vet') ? 'page' : undefined}
+			aria-current={isVetNavActive ? 'page' : undefined}
 			href={resolve('/vet')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/vet'))}
 		>
 			<span class="nav-icon" aria-hidden="true">
-				<Stethoscope size={18} strokeWidth={2.15} />
+				<Stethoscope
+					size={23}
+					strokeWidth={isVetNavActive ? 2.7 : 2.15}
+					fill={isVetNavActive ? 'currentColor' : 'none'}
+				/>
 			</span>
 			<span>Vet</span>
 		</a>
 		<a
-			aria-current={page.url.pathname.startsWith('/profile') ||
-			page.url.pathname.startsWith('/cats')
-				? 'page'
-				: undefined}
+			aria-current={isProfileNavActive ? 'page' : undefined}
 			href={resolve('/profile')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/profile'))}
 		>
 			<span class="nav-icon" aria-hidden="true">
-				<UserRound size={18} strokeWidth={2.15} />
+				<UserRound
+					size={23}
+					strokeWidth={isProfileNavActive ? 2.7 : 2.15}
+					fill={isProfileNavActive ? 'currentColor' : 'none'}
+				/>
 			</span>
 			<span>Profile</span>
 		</a>
@@ -392,18 +281,107 @@
 <style>
 	.app-shell {
 		width: min(100%, 430px);
-		min-height: 100dvh;
+		min-height: 100svh;
 		margin: 0 auto;
 		background: var(--color-paper);
 		position: relative;
+		overflow-x: hidden;
+		isolation: isolate;
+	}
+
+	.docs-root {
+		width: 100%;
+		min-height: 100svh;
+		background: var(--color-paper);
+	}
+
+	.page-decor {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
 		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.page-decor::before,
+	.page-decor::after {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background-repeat: no-repeat;
+		content: '';
+	}
+
+	.page-decor::before {
+		background-image: var(--splash-blue), var(--splash-yellow), var(--splash-pink);
+		background-position:
+			left -120px top 150px,
+			right -130px top 72px,
+			right -122px bottom 128px;
+		background-size:
+			clamp(200px, 58vw, 300px) auto,
+			clamp(160px, 46vw, 240px) auto,
+			clamp(220px, 64vw, 320px) auto;
+		opacity: 0.07;
+	}
+
+	.page-decor::after {
+		display: none;
+	}
+
+	.page-decor-auth::before {
+		background-position:
+			left -124px top 84px,
+			right -136px top 18px,
+			right -128px bottom 64px;
+		opacity: 0.065;
+	}
+
+	.page-decor-rewards::before {
+		opacity: 0.065;
+	}
+
+	.page-decor-vet::before {
+		background-image: var(--splash-blue), var(--splash-yellow);
+		background-position:
+			left -130px top 116px,
+			right -132px top 48px;
+		background-size:
+			clamp(180px, 50vw, 260px) auto,
+			clamp(160px, 42vw, 220px) auto;
+		opacity: 0.045;
+	}
+
+	.page-decor-playful::before {
+		background-image: var(--splash-blue), var(--splash-yellow);
+		background-position:
+			left -136px bottom 36px,
+			right -132px top 8px;
+		background-size:
+			clamp(190px, 50vw, 260px) auto,
+			clamp(160px, 42vw, 220px) auto;
+		opacity: 0.055;
+	}
+
+	.page-decor-playful::after {
+		display: block;
+		background-image: var(--paw-blue), var(--paw-blue);
+		background-position:
+			left 18px top 122px,
+			right 28px bottom 44px;
+		background-size:
+			clamp(24px, 7vw, 36px) auto,
+			clamp(24px, 6vw, 32px) auto;
+		opacity: 0.1;
 	}
 
 	.app-content {
+		position: relative;
+		z-index: 1;
 		box-sizing: border-box;
-		min-height: 100dvh;
-		overflow-y: auto;
+		min-height: 100svh;
 		padding: 18px 20px var(--app-page-bottom);
+		-webkit-overflow-scrolling: touch;
 	}
 
 	.app-content.auth-content {
@@ -414,6 +392,13 @@
 		height: 100dvh;
 		overflow: hidden;
 		padding-bottom: var(--app-safe-bottom);
+	}
+
+	@supports (height: 100dvh) {
+		.app-shell,
+		.app-content {
+			min-height: 100dvh;
+		}
 	}
 
 	.sandbox-strip {
@@ -431,464 +416,77 @@
 		box-shadow: 0 8px 18px color-mix(in srgb, var(--color-charcoal) 8%, transparent);
 	}
 
-	.route-skeleton {
-		position: absolute;
-		inset: 0;
-		z-index: 40;
-		display: grid;
-		align-content: start;
-		gap: 18px;
-		padding: 18px 20px var(--app-page-bottom);
-		background: var(--color-paper);
-		pointer-events: none;
-	}
-
-	.skeleton-top {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-	}
-
-	.skeleton-hero,
-	.skeleton-list {
-		display: grid;
-		gap: 13px;
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-card-lg);
-		background: var(--color-paper-2);
-		padding: 18px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-hero {
-		justify-items: center;
-		min-height: 250px;
-		align-content: center;
-		background:
-			radial-gradient(
-				circle at 50% 20%,
-				color-mix(in srgb, var(--color-peach-soft) 44%, transparent),
-				transparent 56%
-			),
-			var(--color-paper-2);
-	}
-
-	.skeleton-list {
-		border-radius: var(--radius-card);
-	}
-
-	.skeleton-line,
-	.skeleton-avatar,
-	.skeleton-cat,
-	.skeleton-button,
-	.skeleton-row,
-	.skeleton-chip,
-	.skeleton-icon-square,
-	.skeleton-btn-circle,
-	.skeleton-avatar-large,
-	.skeleton-profile-row,
-	.skeleton-care-row,
-	.skeleton-proof-preview,
-	.skeleton-proof-status,
-	.skeleton-onboarding-mark,
-	.skeleton-button-small {
-		position: relative;
-		overflow: hidden;
-		background: color-mix(in srgb, var(--color-line) 58%, var(--color-paper-2));
-	}
-
-	.skeleton-line::after,
-	.skeleton-avatar::after,
-	.skeleton-cat::after,
-	.skeleton-button::after,
-	.skeleton-row::after,
-	.skeleton-chip::after,
-	.skeleton-icon-square::after,
-	.skeleton-btn-circle::after,
-	.skeleton-avatar-large::after,
-	.skeleton-profile-row::after,
-	.skeleton-care-row::after,
-	.skeleton-proof-preview::after,
-	.skeleton-proof-status::after,
-	.skeleton-onboarding-mark::after,
-	.skeleton-button-small::after {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(
-			100deg,
-			transparent 0%,
-			color-mix(in srgb, var(--color-paper-2) 72%, transparent) 46%,
-			transparent 78%
-		);
-		animation: skeleton-shimmer 1.15s ease-in-out infinite;
-		content: '';
-		transform: translateX(-100%);
-	}
-
-	.skeleton-line {
-		display: block;
-		width: 72%;
-		height: 13px;
-		border-radius: var(--radius-pill);
-	}
-
-	.skeleton-line.short {
-		width: 46%;
-		height: 28px;
-	}
-
-	.skeleton-line.title {
-		width: 68%;
-		height: 24px;
-	}
-
-	.skeleton-line.medium {
-		width: 54%;
-	}
-
-	.skeleton-line.tiny {
-		width: 34%;
-		height: 10px;
-	}
-
-	.skeleton-avatar {
-		width: 50px;
-		height: 50px;
-		border-radius: 50%;
-	}
-
-	.skeleton-cat {
-		width: 118px;
-		height: 118px;
-		border-radius: 36px;
-		background:
-			radial-gradient(circle at 50% 34%, var(--color-peach-soft), transparent 48%),
-			color-mix(in srgb, var(--color-line) 48%, var(--color-paper-2));
-	}
-
-	.skeleton-button {
-		width: 100%;
-		height: 52px;
-		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--color-charcoal) 12%, var(--color-paper-2));
-	}
-
-	.skeleton-row {
-		height: 48px;
-		border-radius: 18px;
-	}
-
-	/* Store (Rewards) Skeleton */
-	.skeleton-store-head {
-		display: grid;
-		gap: 6px;
-		padding-top: 4px;
-	}
-
-	.skeleton-chips {
-		display: flex;
-		gap: 8px;
-		overflow-x: hidden;
-		padding-bottom: 2px;
-	}
-
-	.skeleton-chip {
-		flex: none;
-		width: 68px;
-		height: 34px;
-		border-radius: var(--radius-pill);
-	}
-
-	.skeleton-rewards-grid {
-		display: grid;
-		gap: 12px;
-	}
-
-	.skeleton-reward-card {
-		display: grid;
-		grid-template-columns: 48px 1fr auto;
-		gap: 14px;
-		align-items: center;
-		border: 1px solid var(--color-line);
-		border-radius: 24px;
-		background: var(--color-paper-2);
-		padding: 16px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-icon-square {
-		width: 48px;
-		height: 48px;
-		border-radius: 16px;
-	}
-
-	.skeleton-card-body {
-		display: grid;
-		gap: 6px;
-		min-width: 0;
-	}
-
-	.skeleton-button-small {
-		width: 82px;
-		height: 36px;
-		border-radius: var(--radius-pill);
-	}
-
-	/* Vet Skeleton */
-	.skeleton-vet-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 12px;
-		padding-top: 4px;
-	}
-
-	.skeleton-title-block {
-		display: grid;
-		gap: 4px;
-		width: 180px;
-	}
-
-	.skeleton-vet-actions {
-		display: flex;
-		gap: 8px;
-	}
-
-	.skeleton-btn-circle {
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-	}
-
-	.skeleton-mode-switch {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 8px;
-		border: 1px solid var(--color-line);
-		border-radius: 24px;
-		background: var(--color-paper-3);
-		padding: 5px;
-	}
-
-	.skeleton-switch-tab {
-		height: 36px;
-		border-radius: 19px;
-	}
-
-	.skeleton-vet-conversation {
-		flex: 1;
-		min-height: 280px;
-		display: grid;
-		place-items: center;
-	}
-
-	.skeleton-vet-onboarding {
-		display: grid;
-		justify-items: center;
-		gap: 12px;
-		text-align: center;
-	}
-
-	.skeleton-onboarding-mark {
-		width: 64px;
-		height: 64px;
-		border-radius: 24px;
-	}
-
-	.skeleton-vet-suggestions {
-		display: flex;
-		gap: 8px;
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-
-	.skeleton-vet-composer {
-		height: 48px;
-		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--color-charcoal) 6%, var(--color-paper-2));
-		border: 1px solid var(--color-line);
-	}
-
-	/* Profile Skeleton */
-	.skeleton-profile-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-top: 4px;
-	}
-
-	.skeleton-profile-cat-card {
-		display: grid;
-		grid-template-columns: 52px 1fr auto;
-		gap: 12px;
-		align-items: center;
-		border: 1px solid var(--color-line);
-		border-radius: 22px;
-		background: var(--color-paper-2);
-		padding: 16px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-avatar-large {
-		width: 52px;
-		height: 52px;
-		border-radius: 16px;
-	}
-
-	.skeleton-profile-section-label {
-		width: 64px;
-		height: 12px;
-		margin: 6px 0 -4px 4px;
-		border-radius: var(--radius-pill);
-	}
-
-	.skeleton-profile-manage {
-		display: grid;
-		border: 1px solid var(--color-line);
-		border-radius: 24px;
-		background: var(--color-paper-2);
-		overflow: hidden;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-profile-row {
-		height: 54px;
-		border-bottom: 1px solid var(--color-line);
-	}
-
-	.skeleton-profile-row:last-child {
-		border-bottom: 0;
-	}
-
-	/* Care List Skeleton */
-	.skeleton-care-header {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding-top: 4px;
-	}
-
-	.skeleton-care-title {
-		display: grid;
-		gap: 4px;
-		width: 160px;
-	}
-
-	.skeleton-care-hero {
-		border: 1px solid var(--color-line);
-		border-radius: 32px;
-		background: var(--color-paper-2);
-		padding: 22px;
-		display: grid;
-		gap: 8px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-care-detail {
-		height: 82px;
-		border: 1px solid var(--color-line);
-		border-radius: 28px;
-		background: var(--color-paper-2);
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-care-list {
-		display: grid;
-		gap: 10px;
-	}
-
-	.skeleton-care-row {
-		height: 76px;
-		border-radius: 24px;
-		border: 1px solid var(--color-line);
-	}
-
-	/* Care Proof Skeleton */
-	.skeleton-proof-top {
-		display: grid;
-		grid-template-columns: 42px 1fr;
-		gap: 12px;
-		align-items: start;
-	}
-
-	.skeleton-proof-title {
-		display: grid;
-		gap: 4px;
-	}
-
-	.skeleton-proof-preview {
-		width: 100%;
-		aspect-ratio: 3 / 4;
-		max-height: 440px;
-		border: 1px solid var(--color-line);
-		border-radius: 32px;
-		box-shadow: var(--shadow-card);
-	}
-
-	.skeleton-proof-status {
-		height: 46px;
-		border-radius: 20px;
-	}
-
-	.skeleton-proof-actions {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 10px;
-	}
-
 	.bottom-nav {
 		position: fixed;
 		left: 50%;
 		bottom: max(12px, env(safe-area-inset-bottom));
 		z-index: 50;
 		display: grid;
-		width: min(calc(100vw - 40px), 390px);
+		width: min(calc(100vw - 32px), 386px);
 		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 3px;
+		gap: 0;
 		min-height: 76px;
-		padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+		padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
 		transform: translateX(-50%);
-		border: 1px solid color-mix(in srgb, var(--nav-text) 12%, transparent);
-		border-radius: 36px;
-		background: var(--nav-surface);
-		box-shadow:
-			0 12px 28px color-mix(in srgb, var(--color-charcoal) 14%, transparent),
-			0 2px 8px color-mix(in srgb, var(--color-charcoal) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--nav-text) 10%, transparent);
+		border-radius: 30px;
+		background: color-mix(in srgb, var(--nav-surface) 96%, transparent);
+		box-shadow: 0 6px 16px color-mix(in srgb, var(--color-charcoal) 10%, transparent);
+		isolation: isolate;
 	}
 
 	.bottom-nav a {
+		position: relative;
 		display: grid;
-		grid-template-rows: 31px auto;
+		grid-template-rows: 24px auto;
 		align-items: center;
 		justify-content: center;
 		justify-items: center;
-		gap: 2px;
+		gap: 4px;
 		min-width: 0;
-		min-height: 52px;
+		min-height: 56px;
+		padding: 6px 2px 8px;
 		border-radius: var(--radius-pill);
-		color: color-mix(in srgb, var(--nav-text) 72%, transparent);
-		font-size: 0.62rem;
-		font-weight: 800;
+		color: color-mix(in srgb, var(--nav-text) 62%, transparent);
+		font-size: 0.7rem;
+		font-weight: 500;
 		line-height: 1;
 		text-decoration: none;
 		transition:
-			background 160ms ease,
-			color 160ms ease,
-			transform 160ms var(--ease-mobile);
+			color 180ms ease,
+			opacity 180ms ease,
+			transform 180ms ease;
 		will-change: transform;
 	}
 
+	.bottom-nav a::after {
+		position: absolute;
+		bottom: 2px;
+		left: 50%;
+		width: 14px;
+		height: 2px;
+		border-radius: var(--radius-pill);
+		background: var(--nav-active-chip);
+		content: '';
+		opacity: 0;
+		transform: translateX(-50%);
+		transition: opacity 180ms ease;
+	}
+
 	.bottom-nav a:active {
-		transform: translateY(1px) scale(0.96);
+		transform: translateY(1px);
+	}
+
+	.bottom-nav a:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--nav-active-chip) 52%, transparent);
+		outline-offset: 2px;
 	}
 
 	.nav-icon {
 		display: grid;
-		width: 26px;
-		height: 26px;
+		width: 24px;
+		height: 24px;
 		place-items: center;
-		border-radius: 50%;
 		color: inherit;
 	}
 
@@ -897,50 +495,61 @@
 	}
 
 	.bottom-nav a[aria-current='page'] {
-		background: transparent;
-		color: var(--nav-text);
-		box-shadow: none;
+		color: var(--nav-active-chip);
+		font-weight: 700;
 	}
 
-	.bottom-nav a[aria-current='page'] .nav-icon {
-		width: 34px;
-		height: 34px;
-		background: color-mix(in srgb, var(--nav-active-chip) 82%, transparent);
-		color: var(--nav-active-glyph);
-		box-shadow: 0 5px 12px color-mix(in srgb, var(--color-charcoal) 9%, transparent);
-		animation: nav-pop 170ms var(--ease-bounce) both;
-	}
-
-	@keyframes nav-pop {
-		0% {
-			transform: scale(0.82);
-		}
-		100% {
-			transform: scale(1);
-		}
-	}
-
-	@keyframes skeleton-shimmer {
-		100% {
-			transform: translateX(100%);
-		}
+	.bottom-nav a[aria-current='page']::after {
+		opacity: 0.82;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.bottom-nav a[aria-current='page'] .nav-icon {
-			animation: none;
-		}
-
-		.skeleton-line::after,
-		.skeleton-avatar::after,
-		.skeleton-cat::after,
-		.skeleton-button::after,
-		.skeleton-row::after {
-			animation: none;
+		.bottom-nav a::after {
+			transition: none;
 		}
 
 		.bottom-nav a {
-			transition: none;
+			transition:
+				color 180ms ease,
+				opacity 180ms ease;
+		}
+	}
+
+	:global(:root[data-theme='dark']) .page-decor::before {
+		opacity: 0.045;
+	}
+
+	:global(:root[data-theme='dark']) .page-decor-auth::before,
+	:global(:root[data-theme='dark']) .page-decor-rewards::before {
+		opacity: 0.04;
+	}
+
+	:global(:root[data-theme='dark']) .page-decor-vet::before,
+	:global(:root[data-theme='dark']) .page-decor-playful::before {
+		opacity: 0.03;
+	}
+
+	:global(:root[data-theme='dark']) .page-decor-playful::after {
+		opacity: 0.065;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:global(:root[data-theme='system']) .page-decor::before {
+			opacity: 0.045;
+		}
+
+		:global(:root[data-theme='system']) .page-decor-auth::before,
+		:global(:root[data-theme='system']) .page-decor-rewards::before {
+			opacity: 0.04;
+		}
+
+		:global(:root[data-theme='system']) .page-decor-vet::before,
+		:global(:root[data-theme='system']) .page-decor-playful::before {
+			opacity: 0.03;
+		}
+
+		:global(:root[data-theme='system']) .page-decor-playful::after {
+			opacity: 0.065;
 		}
 	}
 
