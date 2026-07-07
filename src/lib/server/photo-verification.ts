@@ -16,7 +16,7 @@ type Fetcher = typeof fetch;
 const POINTS_PER_VERIFICATION = 10;
 const MAX_UPLOADS_PER_DAY = 20;
 const MAX_VERIFIED_TASKS_PER_DAY = 6;
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 type GeminiVerification = {
 	verified: boolean;
@@ -141,6 +141,9 @@ export function buildGeminiVerificationRequest(input: {
 			}
 		],
 		generationConfig: {
+			maxOutputTokens: 128,
+			temperature: 0,
+			thinkingConfig: { thinkingBudget: 0 },
 			responseMimeType: 'application/json',
 			responseSchema: {
 				type: 'object',

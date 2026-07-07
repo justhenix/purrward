@@ -96,6 +96,12 @@
 		chats.push({ sender, text, time });
 	}
 
+	function scrollToBottom() {
+		window.setTimeout(() => {
+			if (listEl) listEl.scrollTop = listEl.scrollHeight;
+		}, 60);
+	}
+
 	function saveHistory(messages: ChatMessage[] = chats) {
 		if (messages.length === 0) return;
 
@@ -390,6 +396,7 @@
 				{:else}
 					<div class="human-intro">
 						<h2>See a licensed vet</h2>
+						<span>Mock booking - demo only</span>
 						<p>
 							AI triage is not a diagnosis. Pick a nearby clinic to book an in-person visit, then
 							redeem Purrpoints toward a visit discount.
@@ -491,6 +498,7 @@
 					placeholder="Ask about {catName}…"
 					bind:value={userQuery}
 					aria-invalid={Boolean(composerWarning)}
+					onfocus={scrollToBottom}
 					oninput={() => (composerWarning = undefined)}
 					required
 				/>
@@ -573,7 +581,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
-		min-height: calc(100dvh - 174px);
+		height: 100%;
+		min-height: 0;
 	}
 
 	/* Calm header */
@@ -805,6 +814,7 @@
 		flex: 1;
 		min-height: 0;
 		overflow-y: auto;
+		scroll-padding-bottom: 18px;
 		scrollbar-width: thin;
 	}
 
@@ -878,6 +888,16 @@
 		color: var(--color-ink);
 		font-size: 1.24rem;
 		line-height: 1.12;
+	}
+
+	.human-intro span {
+		justify-self: start;
+		border-radius: var(--radius-pill);
+		background: var(--color-warning-bg);
+		color: var(--color-warning-text);
+		padding: 4px 10px;
+		font-size: 0.72rem;
+		font-weight: 850;
 	}
 
 	.human-intro p {
@@ -1045,11 +1065,11 @@
 	.booking-overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 40;
+		z-index: 70;
 		display: grid;
 		place-items: end center;
-		background: color-mix(in srgb, var(--color-charcoal) 42%, transparent);
-		padding: 16px;
+		background: color-mix(in srgb, var(--color-dark-bg) 42%, transparent);
+		padding: 16px 16px var(--app-safe-bottom);
 	}
 
 	.booking-backdrop {
@@ -1161,7 +1181,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
-		padding: 6px 2px 10px;
+		padding: 6px 2px 18px;
 	}
 
 	.message-row {
@@ -1307,8 +1327,17 @@
 
 	/* Composer dock — the main action */
 	.dock {
+		position: sticky;
+		bottom: 0;
+		z-index: 5;
 		display: grid;
 		gap: 10px;
+		padding-top: 6px;
+		background: linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--color-paper) 0%, transparent),
+			var(--color-paper) 18px
+		);
 	}
 
 	.suggestions {

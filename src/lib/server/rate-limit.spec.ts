@@ -7,6 +7,7 @@ import { createClient, type Client } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './db/schema';
 import { checkRateLimit } from './rate-limit';
+import { parsePositiveInt } from './rate-limit-config';
 
 type Database = Parameters<typeof checkRateLimit>[0]['database'];
 
@@ -90,5 +91,14 @@ describe('checkRateLimit', () => {
 		});
 		expect(next.allowed).toBe(true);
 		expect(next.remaining).toBe(2);
+	});
+});
+
+describe('parsePositiveInt', () => {
+	it('uses only positive safe integers', () => {
+		expect(parsePositiveInt('7', 3)).toBe(7);
+		expect(parsePositiveInt('0', 3)).toBe(3);
+		expect(parsePositiveInt('2.5', 3)).toBe(3);
+		expect(parsePositiveInt(undefined, 3)).toBe(3);
 	});
 });

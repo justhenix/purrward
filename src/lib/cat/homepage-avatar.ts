@@ -24,6 +24,7 @@ export type HomepageCatInput = {
 	mood: CatMood;
 	preferredPose?: CatPose;
 	accessory?: string | null;
+	accessories?: readonly string[];
 };
 
 export type HomepageCatLayer = { id: string; src: string; alt: string; zIndex: number };
@@ -218,13 +219,15 @@ export function resolveHomepageCatAvatar(input: HomepageCatInput): HomepageCatAv
 		warnings.push(`no compatible face for ${coat} ${pose}`);
 	}
 
-	// 4. Optional accessory on top.
-	if (input.accessory) {
-		const accessory = getAssetById(input.accessory);
+	// 4. Optional accessories on top. Full-canvas artist overlays carry their own placement.
+	const accessories = [...(input.accessories ?? []), ...(input.accessory ? [input.accessory] : [])];
+	for (const accessoryId of [...new Set(accessories)]) {
+		if (!accessoryId) continue;
+		const accessory = getAssetById(accessoryId);
 		if (accessory && accessory.kind === 'accessory') {
 			renderStack.push(layerFromAsset(accessory));
 		} else {
-			warnings.push(`accessory ${input.accessory} unavailable`);
+			warnings.push(`accessory ${accessoryId} unavailable`);
 		}
 	}
 

@@ -72,6 +72,8 @@ describe('photo verification', () => {
 		expect(request.contents[0].parts[1]).toEqual({
 			inlineData: { mimeType: 'image/png', data: 'AQID' }
 		});
+		expect(request.generationConfig.maxOutputTokens).toBe(128);
+		expect(request.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
 		expect(request.generationConfig.responseMimeType).toBe('application/json');
 	});
 

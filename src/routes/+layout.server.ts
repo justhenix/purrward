@@ -4,7 +4,8 @@ import { redirect } from '@sveltejs/kit';
 import { parsePreferences } from '$lib/server/preferences';
 import { getActiveCat, listCats, type CatProfile } from '$lib/server/cats';
 
-export const load: LayoutServerLoad = async ({ cookies, locals, url }) => {
+export const load: LayoutServerLoad = async ({ cookies, locals, url, depends }) => {
+	depends('app:cat');
 	const preferences = parsePreferences(cookies.get('purrward_prefs'));
 	let cats: CatProfile[] = [];
 	let activeCat: CatProfile | null = null;

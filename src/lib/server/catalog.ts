@@ -6,6 +6,14 @@ export type ItemKind = 'accessory' | 'background' | 'coupon' | 'vet' | 'donation
 
 // Legacy store category retained for reward-kind items so the existing rewards UI keeps working.
 export type RewardCategory = 'vet' | 'treat' | 'toy' | 'shelter';
+export type AccessorySlot = 'head' | 'neck' | 'face';
+export type CosmeticTier = 'common' | 'rare' | 'epic';
+export type AcquisitionMethod = 'purchase' | 'gacha' | 'both';
+export type AccessoryPlacement = {
+	x: string;
+	y: string;
+	scale: number;
+};
 
 export type CatalogItem = {
 	id: string;
@@ -17,6 +25,11 @@ export type CatalogItem = {
 	category?: RewardCategory;
 	// True when the item can be won from the gacha pool (accessory/background only).
 	gacha?: boolean;
+	acquisition?: AcquisitionMethod;
+	slot?: AccessorySlot;
+	tier?: CosmeticTier;
+	assetId?: string;
+	placement?: AccessoryPlacement;
 };
 
 // Default background applied when a cat's backgroundId is null (read-time default, never stored).
@@ -58,28 +71,69 @@ export const CATALOG: CatalogItem[] = [
 	},
 	// Accessories — owned account-wide, gacha-eligible.
 	{
-		id: 'acc_bowtie',
-		title: 'Bow Tie',
-		cost: 60,
-		desc: 'A dapper little bow.',
+		id: 'acc_bandana',
+		title: 'Bandana',
+		cost: 80,
+		desc: 'Dress your cat.',
 		kind: 'accessory',
-		gacha: true
+		gacha: true,
+		acquisition: 'both',
+		slot: 'neck',
+		tier: 'common',
+		assetId: 'bandana',
+		placement: { x: '50%', y: '50%', scale: 1 }
 	},
 	{
-		id: 'acc_scarf',
-		title: 'Cozy Scarf',
-		cost: 60,
-		desc: 'Soft knit for chilly naps.',
+		id: 'acc_bucket_hat',
+		title: 'Bucket Hat',
+		cost: 100,
+		desc: 'Dress your cat.',
 		kind: 'accessory',
-		gacha: true
+		gacha: true,
+		acquisition: 'both',
+		slot: 'head',
+		tier: 'rare',
+		assetId: 'bucket_hat',
+		placement: { x: '50%', y: '50%', scale: 1 }
 	},
 	{
-		id: 'acc_crown',
-		title: 'Tiny Crown',
-		cost: 60,
-		desc: 'For the household royalty.',
+		id: 'acc_flower_crown',
+		title: 'Flower Crown',
+		cost: 120,
+		desc: 'Dress your cat.',
 		kind: 'accessory',
-		gacha: true
+		gacha: true,
+		acquisition: 'both',
+		slot: 'head',
+		tier: 'epic',
+		assetId: 'flower_corn',
+		placement: { x: '50%', y: '50%', scale: 1 }
+	},
+	{
+		id: 'acc_nerd_glasses',
+		title: 'Round Glasses',
+		cost: 90,
+		desc: 'Dress your cat.',
+		kind: 'accessory',
+		gacha: true,
+		acquisition: 'both',
+		slot: 'face',
+		tier: 'common',
+		assetId: 'nerd_glasses',
+		placement: { x: '50%', y: '50%', scale: 1 }
+	},
+	{
+		id: 'acc_sun_glasses',
+		title: 'Sun Glasses',
+		cost: 90,
+		desc: 'Dress your cat.',
+		kind: 'accessory',
+		gacha: true,
+		acquisition: 'both',
+		slot: 'face',
+		tier: 'rare',
+		assetId: 'sun_glasses',
+		placement: { x: '50%', y: '50%', scale: 1 }
 	},
 	// Backgrounds — owned account-wide. bg_home is the free default; not sold, not in gacha.
 	{
@@ -141,3 +195,33 @@ export const GACHA_POOL: CatalogItem[] = CATALOG.filter((item) => item.gacha ===
 export function isPurchasableKind(kind: ItemKind): boolean {
 	return kind === 'accessory' || kind === 'background';
 }
+
+export type AccessoryCatalogItem = CatalogItem & {
+	kind: 'accessory';
+	slot: AccessorySlot;
+	tier: CosmeticTier;
+	assetId: string;
+	placement: AccessoryPlacement;
+};
+
+export function isAccessorySlot(value: unknown): value is AccessorySlot {
+	return value === 'head' || value === 'neck' || value === 'face';
+}
+
+export function isAccessoryItem(item: CatalogItem | null): item is AccessoryCatalogItem {
+	return (
+		item?.kind === 'accessory' &&
+		isAccessorySlot(item.slot) &&
+		typeof item.assetId === 'string' &&
+		item.assetId.length > 0 &&
+		item.tier !== undefined &&
+		item.placement !== undefined
+	);
+}
+
+export function findAccessoryItem(id: unknown): AccessoryCatalogItem | null {
+	const item = findItem(id);
+	return isAccessoryItem(item) ? item : null;
+}
+
+export const ACCESSORIES: AccessoryCatalogItem[] = CATALOG.filter(isAccessoryItem);

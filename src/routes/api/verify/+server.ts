@@ -46,7 +46,7 @@ export const POST: RequestHandler = async ({ cookies, locals, request, fetch, ur
 		database: db,
 		fetcher: fetch,
 		apiKey: env.GEMINI_API_KEY,
-		model: env.GEMINI_MODEL
+		model: env.GEMINI_MODEL || undefined
 	});
 	return Response.json(result.body, { status: result.status });
 };

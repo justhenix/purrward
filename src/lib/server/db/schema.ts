@@ -76,6 +76,30 @@ export const userInventory = sqliteTable(
 	]
 );
 
+// Per-cat cosmetic equip slots. Background stays on cats.background_id; accessories can stack by slot.
+export const catEquippedCosmetics = sqliteTable(
+	'cat_equipped_cosmetics',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id),
+		catId: text('cat_id')
+			.notNull()
+			.references(() => cats.id),
+		slot: text('slot').notNull(), // allowlisted accessory slot from catalog.ts
+		itemId: text('item_id').notNull(), // allowlisted accessory catalog id
+		equippedAt: integer('equipped_at').notNull()
+	},
+	(table) => [
+		// SECURITY: one equipped accessory per slot on one owned cat.
+		uniqueIndex('cat_equipped_cosmetics_cat_slot_idx').on(table.catId, table.slot),
+		index('cat_equipped_cosmetics_user_cat_idx').on(table.userId, table.catId)
+	]
+);
+
 // Redeemed coupons/vet/donations that produce a server-owned code (not owned items).
 export const rewardRedemptions = sqliteTable(
 	'reward_redemptions',

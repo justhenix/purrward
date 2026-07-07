@@ -1,20 +1,23 @@
 // Coverage for the server-owned economy catalog and its allowlist guards.
 import { describe, expect, it } from 'vitest';
 import {
+	ACCESSORIES,
 	CATALOG,
+	findAccessoryItem,
 	findItem,
 	isAccessoryId,
 	isBackgroundId,
 	isGachaEligible,
 	type ItemKind
 } from './catalog';
+import { getAssetById } from '$lib/assets/cats/cat-assets';
 import { REWARDS } from './rewards';
 
 const KINDS: ItemKind[] = ['accessory', 'background', 'coupon', 'vet', 'donation'];
 
 describe('findItem', () => {
 	it('returns a known item by id', () => {
-		expect(findItem('acc_bowtie')?.id).toBe('acc_bowtie');
+		expect(findItem('acc_bandana')?.id).toBe('acc_bandana');
 		expect(findItem('bg_park')?.kind).toBe('background');
 	});
 
@@ -26,7 +29,7 @@ describe('findItem', () => {
 		expect(findItem(undefined)).toBeNull();
 		expect(findItem(null)).toBeNull();
 		expect(findItem(42)).toBeNull();
-		expect(findItem({ id: 'acc_bowtie' })).toBeNull();
+		expect(findItem({ id: 'acc_bandana' })).toBeNull();
 	});
 });
 
@@ -45,11 +48,20 @@ describe('catalog shape', () => {
 		const ids = CATALOG.map((item) => item.id);
 		expect(new Set(ids).size).toBe(ids.length);
 	});
+
+	it('maps accessory catalog items to real artist assets and slots', () => {
+		expect(findAccessoryItem('acc_bandana')?.slot).toBe('neck');
+		expect(ACCESSORIES).toHaveLength(5);
+		for (const item of ACCESSORIES) {
+			expect(getAssetById(item.assetId)?.kind).toBe('accessory');
+			expect(['head', 'neck', 'face']).toContain(item.slot);
+		}
+	});
 });
 
 describe('allowlist guards', () => {
 	it('isAccessoryId accepts accessories only', () => {
-		expect(isAccessoryId('acc_bowtie')).toBe(true);
+		expect(isAccessoryId('acc_bandana')).toBe(true);
 		expect(isAccessoryId('bg_park')).toBe(false);
 		expect(isAccessoryId('vet_discount')).toBe(false);
 		expect(isAccessoryId('acc_unknown')).toBe(false);
@@ -60,7 +72,7 @@ describe('allowlist guards', () => {
 	it('isBackgroundId accepts backgrounds only', () => {
 		expect(isBackgroundId('bg_home')).toBe(true);
 		expect(isBackgroundId('bg_park')).toBe(true);
-		expect(isBackgroundId('acc_bowtie')).toBe(false);
+		expect(isBackgroundId('acc_bandana')).toBe(false);
 		expect(isBackgroundId('shelter_don')).toBe(false);
 		expect(isBackgroundId('bg_unknown')).toBe(false);
 	});
@@ -72,7 +84,7 @@ describe('allowlist guards', () => {
 			}
 		}
 		// And at least the accessories are eligible.
-		expect(isGachaEligible('acc_bowtie')).toBe(true);
+		expect(isGachaEligible('acc_bandana')).toBe(true);
 	});
 });
 

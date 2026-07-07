@@ -18,6 +18,7 @@
 	let isAuthRoute = $derived(page.url.pathname.startsWith('/auth/'));
 	// Onboarding is a pre-app welcome flow: no bottom nav or app chrome until a cat exists.
 	let isOnboardingRoute = $derived(page.url.pathname === '/onboarding');
+	let isVetRoute = $derived(page.url.pathname.startsWith('/vet'));
 	let hideChrome = $derived(isAuthRoute || isOnboardingRoute);
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let tappedPath = $state<string | null>(null);
@@ -159,7 +160,7 @@
 	{#if sandboxMode && !hideChrome}
 		<div class="sandbox-strip" role="status">Sandbox mode</div>
 	{/if}
-	<main class={['app-content', hideChrome && 'auth-content']}>
+	<main class={['app-content', hideChrome && 'auth-content', isVetRoute && 'vet-content']}>
 		{@render children()}
 	</main>
 	{#if showSkeleton}
@@ -344,14 +345,13 @@
 			<span>Rewards</span>
 		</a>
 		<a
-			class="nav-cta"
 			aria-current={page.url.pathname.startsWith('/care-proof') ? 'page' : undefined}
 			href={resolve('/care-proof')}
 			data-sveltekit-preload-code="viewport"
 			onpointerdown={() => cueRoute(resolve('/care-proof'))}
 		>
-			<span class="nav-cta-icon" aria-hidden="true">
-				<Camera size={20} strokeWidth={2.35} />
+			<span class="nav-icon" aria-hidden="true">
+				<Camera size={18} strokeWidth={2.15} />
 			</span>
 			<span>Scan</span>
 		</a>
@@ -400,13 +400,20 @@
 	}
 
 	.app-content {
+		box-sizing: border-box;
 		min-height: 100dvh;
 		overflow-y: auto;
-		padding: 18px 20px 168px;
+		padding: 18px 20px var(--app-page-bottom);
 	}
 
 	.app-content.auth-content {
 		padding-bottom: 18px;
+	}
+
+	.app-content.vet-content {
+		height: 100dvh;
+		overflow: hidden;
+		padding-bottom: var(--app-safe-bottom);
 	}
 
 	.sandbox-strip {
@@ -431,7 +438,7 @@
 		display: grid;
 		align-content: start;
 		gap: 18px;
-		padding: 18px 20px 168px;
+		padding: 18px 20px var(--app-page-bottom);
 		background: var(--color-paper);
 		pointer-events: none;
 	}
@@ -885,8 +892,7 @@
 		color: inherit;
 	}
 
-	.nav-icon :global(svg),
-	.nav-cta-icon :global(svg) {
+	.nav-icon :global(svg) {
 		display: block;
 	}
 
@@ -903,39 +909,6 @@
 		color: var(--nav-active-glyph);
 		box-shadow: 0 5px 12px color-mix(in srgb, var(--color-charcoal) 9%, transparent);
 		animation: nav-pop 170ms var(--ease-bounce) both;
-	}
-
-	.bottom-nav .nav-cta {
-		position: relative;
-		margin-top: -18px;
-		min-height: 70px;
-		color: var(--nav-text);
-		transform: translateY(-2px);
-	}
-
-	.nav-cta-icon {
-		display: grid;
-		width: 50px;
-		height: 50px;
-		place-items: center;
-		border: 1px solid color-mix(in srgb, var(--color-line) 84%, transparent);
-		border-radius: 50%;
-		background:
-			radial-gradient(
-				circle at 50% 28%,
-				color-mix(in srgb, var(--color-peach) 40%, transparent),
-				transparent 62%
-			),
-			var(--nav-active-chip);
-		color: var(--nav-active-glyph);
-		box-shadow:
-			0 10px 18px color-mix(in srgb, var(--color-charcoal) 14%, transparent),
-			0 1px 0 color-mix(in srgb, var(--nav-active-chip) 60%, transparent) inset;
-		transition: transform 180ms var(--ease-mobile);
-	}
-
-	.bottom-nav .nav-cta:active .nav-cta-icon {
-		transform: scale(0.92);
 	}
 
 	@keyframes nav-pop {
@@ -966,15 +939,9 @@
 			animation: none;
 		}
 
-		.bottom-nav a,
-		.nav-cta-icon {
+		.bottom-nav a {
 			transition: none;
 		}
-	}
-
-	.bottom-nav .nav-cta span:last-child {
-		margin-top: 3px;
-		color: color-mix(in srgb, var(--nav-text) 86%, transparent);
 	}
 
 	@media (min-width: 768px) {
@@ -1006,7 +973,7 @@
 	.toast {
 		position: fixed;
 		left: 50%;
-		bottom: calc(96px + env(safe-area-inset-bottom));
+		bottom: var(--app-safe-bottom);
 		z-index: 60;
 		max-width: min(88vw, 340px);
 		transform: translateX(-50%);

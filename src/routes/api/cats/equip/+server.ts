@@ -1,8 +1,9 @@
 // SECURITY: authenticated equip endpoint; cat ownership and item ownership are server-verified.
 import type { RequestHandler } from './$types';
 import { equipItem } from '$lib/server/inventory';
+import { parsePreferences } from '$lib/server/preferences';
 
-export const POST: RequestHandler = async ({ locals, request }) => {
+export const POST: RequestHandler = async ({ cookies, locals, request }) => {
 	if (!locals.user) return Response.json({ error: 'Authentication required.' }, { status: 401 });
 
 	const formData = await request.formData();
@@ -16,7 +17,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		userId: locals.user.id,
 		catId: formData.get('catId'),
 		slot: formData.get('slot'),
-		itemId
+		itemId,
+		// Sandbox mode mirrors home-scene behavior: allow equip of allowlisted cosmetics without owning.
+		skipOwnership: parsePreferences(cookies.get('purrward_prefs')).sandboxMode
 	});
 
 	if (!result.ok) return Response.json({ error: result.error }, { status: result.status });

@@ -179,17 +179,18 @@
 <style>
 	.auth-screen {
 		display: grid;
-		min-height: calc(100dvh - 36px);
-		align-content: center;
-		gap: 14px;
+		min-height: 100%;
+		align-content: start;
+		gap: 10px;
+		padding-block: clamp(10px, 4dvh, 28px);
 	}
 
 	.cat-badge {
 		position: relative;
 		z-index: 1;
 		display: grid;
-		width: 82px;
-		height: 82px;
+		width: 76px;
+		height: 76px;
 		justify-self: center;
 		place-items: center;
 		border: 1px solid color-mix(in srgb, var(--color-line) 86%, transparent);
@@ -205,15 +206,15 @@
 	}
 
 	.cat-badge img {
-		width: 68px;
-		height: 68px;
+		width: 62px;
+		height: 62px;
 		object-fit: contain;
-		mix-blend-mode: multiply;
+		filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--color-charcoal) 16%, transparent));
 	}
 
 	.auth-card {
 		display: grid;
-		gap: 16px;
+		gap: 12px;
 		border: 1px solid var(--color-line);
 		border-radius: 34px;
 		background:
@@ -228,7 +229,7 @@
 				transparent 34%
 			),
 			var(--color-paper-2);
-		padding: 24px 18px 20px;
+		padding: 18px 18px 16px;
 		box-shadow: var(--shadow-float);
 	}
 
@@ -248,7 +249,7 @@
 	.auth-heading h1 {
 		margin: 0;
 		color: var(--color-ink);
-		font-size: clamp(1.8rem, 8vw, 2.18rem);
+		font-size: clamp(1.72rem, 7vw, 2.08rem);
 		line-height: 1.02;
 	}
 
@@ -263,7 +264,7 @@
 	}
 
 	.mode-switch button {
-		min-height: 38px;
+		min-height: 36px;
 		border: 0;
 		border-radius: var(--radius-pill);
 		background: transparent;
@@ -283,7 +284,7 @@
 	.submit-button {
 		display: inline-flex;
 		width: 100%;
-		min-height: 50px;
+		min-height: 46px;
 		align-items: center;
 		justify-content: center;
 		gap: 10px;
@@ -339,7 +340,7 @@
 
 	.email-form {
 		display: grid;
-		gap: 12px;
+		gap: 10px;
 	}
 
 	.field {
@@ -358,7 +359,7 @@
 		grid-template-columns: 22px 1fr auto;
 		gap: 9px;
 		align-items: center;
-		min-height: 50px;
+		min-height: 46px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 92%, transparent);
 		border-radius: 18px;
 		background: var(--color-paper);
@@ -415,7 +416,7 @@
 	}
 
 	.submit-button {
-		margin-top: 2px;
+		margin-top: 0;
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
 		box-shadow: 0 12px 26px color-mix(in srgb, var(--color-charcoal) 18%, transparent);
@@ -438,6 +439,40 @@
 		.google-button,
 		.submit-button {
 			font-size: 0.9rem;
+		}
+	}
+
+	@media (max-height: 640px) {
+		.auth-screen {
+			gap: 8px;
+			padding-block: 8px;
+		}
+
+		.cat-badge {
+			width: 62px;
+			height: 62px;
+			border-radius: 24px;
+		}
+
+		.cat-badge img {
+			width: 52px;
+			height: 52px;
+		}
+
+		.auth-card {
+			gap: 9px;
+			padding-block: 14px;
+		}
+
+		.auth-heading h1 {
+			font-size: 1.58rem;
+		}
+
+		.mode-switch button,
+		.google-button,
+		.submit-button,
+		.input-wrap {
+			min-height: 42px;
 		}
 	}
 </style>

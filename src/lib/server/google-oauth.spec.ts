@@ -58,6 +58,15 @@ describe('google oauth callback', () => {
 		).toBeNull();
 	});
 
+	it('does not canonicalize public callback origins behind tunnels', () => {
+		expect(
+			getOAuthStartRedirect(
+				new URL('http://localhost:5174/auth/google'),
+				'https://example.trycloudflare.com/auth/callback'
+			)
+		).toBeNull();
+	});
+
 	it('creates user and session from valid Google responses', async () => {
 		const inserts: unknown[] = [];
 		let calls = 0;

@@ -13,6 +13,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	if (canonicalStart)
 		return new Response(null, { status: 302, headers: { Location: canonicalStart } });
 
+	const redirectUrl = new URL(env.GOOGLE_REDIRECT_URI);
 	const state = crypto.randomUUID();
 	const googleUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
 	googleUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
@@ -24,7 +25,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	googleUrl.searchParams.set('prompt', 'select_account');
 
 	const headers = new Headers({ Location: googleUrl.toString() });
-	headers.append('Set-Cookie', createOAuthStateCookie(state, shouldUseSecureCookie(url)));
+	headers.append('Set-Cookie', createOAuthStateCookie(state, shouldUseSecureCookie(redirectUrl)));
 
 	return new Response(null, { status: 302, headers });
 };

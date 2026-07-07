@@ -62,7 +62,7 @@ function extractText(payload: unknown): string | null {
 	return null;
 }
 
-function cleanQuestion(value: unknown): string | null {
+export function cleanVetQuestion(value: unknown): string | null {
 	if (typeof value !== 'string') return null;
 	const cleaned = sanitize(value).replace(/\s+/g, ' ').trim();
 	if (cleaned.length < 3 || cleaned.length > 600) return null;
@@ -180,7 +180,7 @@ export async function triageVetQuestion(input: {
 	model?: string;
 	catName?: string;
 }): Promise<VetTriageResponse> {
-	const question = cleanQuestion(input.question);
+	const question = cleanVetQuestion(input.question);
 	if (!question) return { status: 400, body: { error: 'Ask a short cat health question.' } };
 
 	const catName = input.catName ?? 'Mochi';

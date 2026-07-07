@@ -1,12 +1,9 @@
 // SECURITY: authenticated, rate-limited coupon-trade endpoint; status transitions are server-owned.
 import type { RequestHandler } from './$types';
-import { checkRateLimit, hashRateKey } from '$lib/server/rate-limit';
+import { env } from '$env/dynamic/private';
 import { tradeCoupon } from '$lib/server/coupon-trade';
+import { DEFAULT_COUPON_TRADE_DAILY_LIMIT, parsePositiveInt } from '$lib/server/rate-limit-config';
 import { parsePreferences } from '$lib/server/preferences';
-
-// SECURITY: per-user coupon-trade cap. IP-level limiting already runs in hooks.server.ts.
-const TRADE_LIMIT = 20;
-const TRADE_WINDOW_MS = 60 * 60 * 1000;
 
 export const POST: RequestHandler = async ({ cookies, locals, request }) => {
 	// SECURITY: authenticated users only.
@@ -29,28 +26,20 @@ export const POST: RequestHandler = async ({ cookies, locals, request }) => {
 
 	const { db } = await import('$lib/server/db');
 
-	// SECURITY: per-user trade cap (Retry-After on block); key hashed so raw ids are never stored.
-	const limit = await checkRateLimit({
-		database: db,
-		key: await hashRateKey(locals.user.id),
-		action: 'coupon_trade',
-		limit: TRADE_LIMIT,
-		windowMs: TRADE_WINDOW_MS
-	});
-	if (!limit.allowed) {
-		return Response.json(
-			{ error: 'Too many trades. Try again later.' },
-			{ status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
-		);
-	}
-
 	const result = await tradeCoupon({
 		database: db,
 		userId: locals.user.id,
 		redemptionId: formData.get('redemptionId'),
-		partnerId: formData.get('partnerId')
+		partnerId: formData.get('partnerId'),
+		dailyLimit: parsePositiveInt(env.COUPON_TRADE_DAILY_LIMIT, DEFAULT_COUPON_TRADE_DAILY_LIMIT)
 	});
 
-	if (!result.ok) return Response.json({ error: result.error }, { status: result.status });
+	if (!result.ok) {
+		const init: ResponseInit = { status: result.status };
+		if (result.status === 429 && result.retryAfter) {
+			init.headers = { 'Retry-After': String(result.retryAfter) };
+		}
+		return Response.json({ error: result.error }, init);
+	}
 	return Response.json(result);
 };

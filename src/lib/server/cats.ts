@@ -19,6 +19,8 @@ export type CatProfile = {
 	careMode: CareMode;
 	avatarId: CatAvatarId;
 	purrpoints: number;
+	equippedAccessoryId: string | null;
+	backgroundId: string | null;
 	createdAt: number;
 };
 
@@ -53,6 +55,8 @@ function toProfile(row: typeof cats.$inferSelect): CatProfile {
 		careMode: isCareMode(row.careMode) ? row.careMode : 'owned',
 		avatarId: (isCatAvatarId(row.avatarId) ? row.avatarId : 'orange') as CatAvatarId,
 		purrpoints: row.purrpoints,
+		equippedAccessoryId: row.equippedAccessoryId,
+		backgroundId: row.backgroundId,
 		createdAt: row.createdAt
 	};
 }
@@ -146,6 +150,8 @@ export async function createCat(
 			careMode,
 			avatarId: input.avatarId as CatAvatarId,
 			purrpoints: 0,
+			equippedAccessoryId: null,
+			backgroundId: null,
 			createdAt: now
 		}
 	};

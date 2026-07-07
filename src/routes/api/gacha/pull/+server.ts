@@ -25,5 +25,10 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
 
 	const result = await pullGacha({ database: db, userId: locals.user.id });
 	if (!result.ok) return Response.json({ error: result.error }, { status: result.status });
-	return Response.json({ item: result.item, balance: result.balance });
+	return Response.json({
+		item: result.item,
+		balance: result.balance,
+		duplicate: result.duplicate,
+		refund: result.refund
+	});
 };

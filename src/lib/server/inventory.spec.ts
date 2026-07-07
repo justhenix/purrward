@@ -9,7 +9,7 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { eq } from 'drizzle-orm';
 import * as schema from './db/schema';
 import { cats, userInventory, users } from './db/schema';
-import { equipItem } from './inventory';
+import { equipItem, listEquippedAccessories } from './inventory';
 import { findItem } from './catalog';
 
 type Database = ReturnType<typeof drizzle<typeof schema>>;
@@ -99,7 +99,16 @@ beforeEach(async () => {
 				source text NOT NULL,
 				acquired_at integer NOT NULL
 			)`,
-			`CREATE UNIQUE INDEX user_inventory_user_item_idx ON user_inventory (user_id, item_id)`
+			`CREATE UNIQUE INDEX user_inventory_user_item_idx ON user_inventory (user_id, item_id)`,
+			`CREATE TABLE cat_equipped_cosmetics (
+				id text PRIMARY KEY NOT NULL,
+				user_id text NOT NULL,
+				cat_id text NOT NULL,
+				slot text NOT NULL,
+				item_id text NOT NULL,
+				equipped_at integer NOT NULL
+			)`,
+			`CREATE UNIQUE INDEX cat_equipped_cosmetics_cat_slot_idx ON cat_equipped_cosmetics (cat_id, slot)`
 		],
 		'write'
 	);
@@ -119,19 +128,50 @@ describe('equipItem', () => {
 	it('equips an owned accessory onto an owned cat', async () => {
 		await seedUser('u1');
 		await seedCat('c1', 'u1');
-		await ownItem('u1', 'acc_bowtie');
+		await ownItem('u1', 'acc_bandana');
 
 		const result = await equipItem({
 			database: db,
 			userId: 'u1',
 			catId: 'c1',
 			slot: 'accessory',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 
 		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.value.equippedAccessoryId).toBe('acc_bowtie');
-		expect((await equipStateOf('c1')).equippedAccessoryId).toBe('acc_bowtie');
+		if (result.ok) expect(result.value.equippedAccessoryId).toBe('acc_bandana');
+		expect((await equipStateOf('c1')).equippedAccessoryId).toBe('acc_bandana');
+	});
+
+	it('equips one accessory per catalog slot', async () => {
+		await seedUser('u1');
+		await seedCat('c1', 'u1');
+		await ownItem('u1', 'acc_bucket_hat');
+		await ownItem('u1', 'acc_nerd_glasses');
+
+		expect(
+			await equipItem({
+				database: db,
+				userId: 'u1',
+				catId: 'c1',
+				slot: 'head',
+				itemId: 'acc_bucket_hat'
+			})
+		).toMatchObject({ ok: true });
+		expect(
+			await equipItem({
+				database: db,
+				userId: 'u1',
+				catId: 'c1',
+				slot: 'face',
+				itemId: 'acc_nerd_glasses'
+			})
+		).toMatchObject({ ok: true });
+
+		expect(await listEquippedAccessories(db, 'u1', 'c1')).toEqual([
+			{ slot: 'head', itemId: 'acc_bucket_hat', assetId: 'bucket_hat' },
+			{ slot: 'face', itemId: 'acc_nerd_glasses', assetId: 'nerd_glasses' }
+		]);
 	});
 
 	it('equips an owned background onto an owned cat', async () => {
@@ -155,13 +195,13 @@ describe('equipItem', () => {
 	it('unequips the accessory slot when itemId is null', async () => {
 		await seedUser('u1');
 		await seedCat('c1', 'u1');
-		await ownItem('u1', 'acc_bowtie');
+		await ownItem('u1', 'acc_bandana');
 		await equipItem({
 			database: db,
 			userId: 'u1',
 			catId: 'c1',
 			slot: 'accessory',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 
 		const result = await equipItem({
@@ -220,14 +260,14 @@ describe('equipItem', () => {
 		await seedUser('u1');
 		await seedUser('u2');
 		await seedCat('c2', 'u2');
-		await ownItem('u1', 'acc_bowtie');
+		await ownItem('u1', 'acc_bandana');
 
 		const result = await equipItem({
 			database: db,
 			userId: 'u1',
 			catId: 'c2',
 			slot: 'accessory',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 		expect(result).toMatchObject({ ok: false, status: 403 });
 		expect((await equipStateOf('c2')).equippedAccessoryId).toBeNull();
@@ -241,7 +281,7 @@ describe('equipItem', () => {
 			userId: 'u1',
 			catId: 'c1',
 			slot: 'accessory',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 		expect(result).toMatchObject({ ok: false, status: 403 });
 		expect((await equipStateOf('c1')).equippedAccessoryId).toBeNull();
@@ -277,7 +317,7 @@ describe('equipItem', () => {
 		await seedUser('u1');
 		await seedCat('c1', 'u1');
 		await ownItem('u1', 'bg_park');
-		await ownItem('u1', 'acc_bowtie');
+		await ownItem('u1', 'acc_bandana');
 
 		// Background id into the accessory slot.
 		const intoAccessory = await equipItem({
@@ -295,7 +335,7 @@ describe('equipItem', () => {
 			userId: 'u1',
 			catId: 'c1',
 			slot: 'background',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 		expect(intoBackground).toMatchObject({ ok: false, status: 400 });
 
@@ -322,17 +362,17 @@ describe('equipItem', () => {
 		await seedUser('u2');
 		await seedCat('c1', 'u1');
 		await seedCat('c2', 'u2');
-		await ownItem('u1', 'acc_bowtie');
+		await ownItem('u1', 'acc_bandana');
 
 		await equipItem({
 			database: db,
 			userId: 'u1',
 			catId: 'c1',
 			slot: 'accessory',
-			itemId: 'acc_bowtie'
+			itemId: 'acc_bandana'
 		});
 
-		expect((await equipStateOf('c1')).equippedAccessoryId).toBe('acc_bowtie');
+		expect((await equipStateOf('c1')).equippedAccessoryId).toBe('acc_bandana');
 		// The other user's cat is untouched.
 		expect((await equipStateOf('c2')).equippedAccessoryId).toBeNull();
 	});

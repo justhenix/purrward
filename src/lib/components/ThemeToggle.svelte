@@ -7,6 +7,7 @@
 
 	type Props = {
 		theme: ThemePreference;
+		compact?: boolean;
 	};
 
 	type Option = {
@@ -20,7 +21,7 @@
 		{ value: 'system', label: 'System' }
 	];
 
-	let { theme }: Props = $props();
+	let { theme, compact = false }: Props = $props();
 
 	// Optimistic UI: track the chosen preference locally so the control updates
 	// instantly, ahead of the persistence round-trip. Seeding from the prop's
@@ -51,7 +52,7 @@
 	}
 </script>
 
-<div class="theme-toggle" role="radiogroup" aria-label="Color theme">
+<div class={['theme-toggle', compact && 'compact']} role="radiogroup" aria-label="Color theme">
 	{#each OPTIONS as option (option.value)}
 		{@const isActive = selected === option.value}
 		<button
@@ -119,6 +120,19 @@
 	.segment-icon {
 		display: grid;
 		place-items: center;
+	}
+
+	.compact {
+		grid-template-columns: repeat(3, 36px);
+	}
+
+	.compact .segment {
+		min-height: 36px;
+		gap: 0;
+	}
+
+	.compact .segment-label {
+		display: none;
 	}
 
 	@media (max-width: 360px) {

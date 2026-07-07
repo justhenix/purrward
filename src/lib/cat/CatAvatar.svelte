@@ -47,6 +47,6 @@
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
-		mix-blend-mode: multiply;
+		filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-charcoal) 16%, transparent));
 	}
 </style>

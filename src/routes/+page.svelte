@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import Camera from '@lucide/svelte/icons/camera';
 	import Cat from '@lucide/svelte/icons/cat';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ImageIcon from '@lucide/svelte/icons/image';
+	import Plus from '@lucide/svelte/icons/plus';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import Star from '@lucide/svelte/icons/star';
 	import { deriveParentName } from '$lib/account-identity';
@@ -12,7 +15,12 @@
 	import { resolveProfileAvatar } from '$lib/profile-avatar';
 	import { deriveCatState } from '$lib/cat-state';
 	import PetScene from '$lib/components/home/PetScene.svelte';
+	import SceneItem from '$lib/components/SceneItem.svelte';
 	import logo from '$lib/assets/logo/logo.svg';
+	import bgRoom from '$lib/assets/bg/bg-room.webp';
+	import bgRoomDark from '$lib/assets/bg/bg-room-dark.webp';
+	import bgPark from '$lib/assets/bg/bg_park.webp';
+	import bgParkDark from '$lib/assets/bg/bg_park_night.webp';
 	import {
 		resolveHomepageCatAvatar,
 		type CatCoat,
@@ -30,6 +38,9 @@
 		proofLabel: string;
 		reward: number;
 	};
+	type SceneActionForm = { sceneError?: string; sceneMessage?: string };
+	type BackgroundScene = PageProps['data']['backgroundScenes'][number];
+	type BackgroundId = BackgroundScene['id'];
 
 	const TASKS: TaskMeta[] = [
 		{
@@ -69,12 +80,31 @@
 		return 'sit';
 	}
 
-	let { data }: PageProps = $props();
+	function greetingName(value: string): string {
+		const trimmed = value.trim();
+		if (!trimmed || trimmed.length > 14 || /\d{7,}/.test(trimmed) || trimmed.startsWith('ga-')) {
+			return '';
+		}
+		return trimmed;
+	}
+
+	let { data, form }: PageProps = $props();
 
 	let switcherOpen = $state(false);
+	let sceneSheetOpen = $state(false);
+	let dismissedSceneAction = $state(false);
 	let signedIn = $derived(Boolean(data.user));
 	let cats = $derived(data.cats ?? []);
-	let canSwitch = $derived(cats.length > 1);
+	let sceneAction = $derived((form ?? {}) as SceneActionForm);
+	let sceneError = $derived(sceneAction.sceneError ?? '');
+	let sceneMessage = $derived(sceneAction.sceneMessage ?? '');
+	let sceneActionOpen = $derived(Boolean(sceneError || sceneMessage));
+	let showSceneMessage = $derived(sceneActionOpen && !dismissedSceneAction);
+	let showSceneSheet = $derived(sceneSheetOpen || (sceneActionOpen && !dismissedSceneAction));
+	let equippedScene = $derived(
+		data.backgroundScenes.find((scene) => scene.equipped) ?? data.backgroundScenes[0]
+	);
+	let visibleScene = $derived(equippedScene);
 
 	let habitSet = $derived(habitSetFor(data.activeCat?.careMode ?? 'owned'));
 	let tasks = $derived(TASKS.filter((task) => habitSet.includes(task.id)));
@@ -88,7 +118,7 @@
 	let active = $derived(tasks.find((task) => task.id === requestedTask) ?? nextTask);
 
 	let profileAvatar = $derived(resolveProfileAvatar(data.user, data.preferences.avatarChoice));
-	let firstName = $derived(deriveParentName(data.user).split(' ')[0]);
+	let firstName = $derived(greetingName(deriveParentName(data.user).split(' ')[0] ?? ''));
 	let catName = $derived(data.activeCat?.name ?? 'Mochi');
 	let sandboxMode = $derived(data.preferences.sandboxMode);
 	let balance = $derived(sandboxMode ? 999999 : (data.user?.purrpoints ?? 0));
@@ -120,9 +150,46 @@
 						? 'sit'
 						: poseForTask(active.id)
 	);
-	let heroCat = $derived(resolveHomepageCatAvatar({ coat, mood: catMood, preferredPose }));
+	let equippedAccessoryAssets = $derived(data.equippedAccessories.map((item) => item.assetId));
+	let heroCat = $derived(
+		resolveHomepageCatAvatar({
+			coat,
+			mood: catMood,
+			preferredPose,
+			accessories: equippedAccessoryAssets
+		})
+	);
 
 	let rewardPoints = $derived(sandboxMode ? 1000 : active.reward);
+
+	function openSceneSheet() {
+		switcherOpen = false;
+		dismissedSceneAction = true;
+		sceneSheetOpen = true;
+	}
+
+	function closeSceneSheet() {
+		sceneSheetOpen = false;
+		dismissedSceneAction = true;
+	}
+
+	function sceneThumbStyle(id: BackgroundId): string {
+		const thumb =
+			id === 'bg_park' ? { light: bgPark, dark: bgParkDark } : { light: bgRoom, dark: bgRoomDark };
+		const position = id === 'bg_park' ? '50% 58%' : '50% 76%';
+		return `--scene-thumb-light: url(${thumb.light}); --scene-thumb-dark: url(${thumb.dark}); --scene-thumb-position: ${position};`;
+	}
+
+	const sceneEnhance: SubmitFunction = () => {
+		return async ({ result, update }) => {
+			await update();
+			if (result.type === 'success') {
+				closeSceneSheet();
+			} else {
+				dismissedSceneAction = false;
+			}
+		};
+	};
 </script>
 
 <svelte:head>
@@ -134,49 +201,49 @@
 </svelte:head>
 
 <div class="home">
-	<div class="scene-bleed">
+	<div class={['scene-bleed', showSceneSheet && 'scene-bleed-picker']}>
 		<PetScene
 			catLayers={heroCat.renderStack}
 			catWarnings={heroCat.warnings}
-			catLabel={`${catName} in the room`}
+			catLabel={`${catName} in the ${visibleScene?.title.toLowerCase() ?? 'room'}`}
+			sceneId={visibleScene?.id}
 			showCat={signedIn}
 		>
 			{#snippet top()}
 				{#if signedIn}
 					<div class="overlay-head">
 						<div class="pet-hud">
-							<p>Hi, {firstName}</p>
+							<p>{firstName ? `Hi, ${firstName}` : 'Hi'}</p>
 							<button
 								type="button"
 								class="cat-pill"
-								aria-haspopup="true"
+								aria-haspopup="dialog"
 								aria-expanded={switcherOpen}
-								onclick={() => (switcherOpen = !switcherOpen)}
+								onclick={() => {
+									closeSceneSheet();
+									switcherOpen = !switcherOpen;
+								}}
 							>
 								<Cat size={15} strokeWidth={2.5} aria-hidden="true" />
 								<span class="cat-pill-name">{catName}</span>
-								{#if canSwitch}
-									<ChevronDown size={16} strokeWidth={2.4} aria-hidden="true" />
-								{/if}
+								<ChevronDown size={16} strokeWidth={2.4} aria-hidden="true" />
 							</button>
 						</div>
-						<div class="hud-actions">
-							<a class="points-hud" href={resolve('/rewards')} aria-label="Open rewards">
-								<Star size={15} strokeWidth={2.5} aria-hidden="true" />
-								<span>{balance} pts</span>
-							</a>
-							<a class="profile" href={resolve('/profile')} aria-label="Profile and settings">
-								{#if profileAvatar.kind === 'image'}
-									<img
-										class={profileAvatar.cat ? 'profile-cat' : undefined}
-										src={profileAvatar.src}
-										alt=""
-									/>
-								{:else}
-									<span>{profileAvatar.letter}</span>
-								{/if}
-							</a>
-						</div>
+						<a class="points-hud" href={resolve('/rewards')} aria-label="Open rewards">
+							<Star size={15} strokeWidth={2.5} aria-hidden="true" />
+							<span>{balance} pts</span>
+						</a>
+						<a class="profile" href={resolve('/profile')} aria-label="Profile and settings">
+							{#if profileAvatar.kind === 'image'}
+								<img
+									class={profileAvatar.cat ? 'profile-cat' : undefined}
+									src={profileAvatar.src}
+									alt=""
+								/>
+							{:else}
+								<span>{profileAvatar.letter}</span>
+							{/if}
+						</a>
 					</div>
 				{:else}
 					<div class="overlay-head">
@@ -188,14 +255,40 @@
 				{/if}
 			{/snippet}
 
+			{#snippet sceneControl()}
+				{#if signedIn}
+					<button
+						type="button"
+						class="scene-chip"
+						aria-haspopup="dialog"
+						aria-expanded={showSceneSheet}
+						onclick={openSceneSheet}
+					>
+						<ImageIcon size={15} strokeWidth={2.4} aria-hidden="true" />
+						<span>Scene</span>
+					</button>
+				{/if}
+			{/snippet}
+
 			{#snippet status()}
 				{#if signedIn && allDone}
 					<span class="status-bubble is-happy">
 						<Sparkles size={14} strokeWidth={2.4} aria-hidden="true" />
-						All care done today
+						Done today
 					</span>
-				{:else if signedIn}
-					<span class="status-bubble">Waiting for {active.proofLabel}</span>
+				{/if}
+			{/snippet}
+
+			{#snippet care()}
+				{#if signedIn && !allDone}
+					<div class="care-action-bubble">
+						<strong>{active.heroTitle}</strong>
+						<span class="reward-chip">+{rewardPoints} pts</span>
+						<a class="scan-chip" href={resolve(`/care-proof?task=${active.id}`)}>
+							<Camera size={14} strokeWidth={2.4} aria-hidden="true" />
+							<span>Scan</span>
+						</a>
+					</div>
 				{/if}
 			{/snippet}
 
@@ -214,55 +307,13 @@
 							<p class="welcome-note">Photo proof keeps Purrpoints fair.</p>
 						</div>
 					</div>
-				{:else if allDone}
-					<div class="dock-stack">
-						<div class="task-bubble rest">
-							<div class="task-copy">
-								<span class="task-eyebrow">Done today</span>
-								<strong>{catName} is happy</strong>
-							</div>
-							<p class="rest-note">Come back tomorrow to keep the streak going.</p>
-							<div class="mini-progress" aria-labelledby="progress-title">
-								<div class="mini-progress-head">
-									<span id="progress-title">{doneCount}/{tasks.length} care done</span>
-									<a href={resolve('/care')} aria-label="Open full care plan">
-										View tasks <ChevronRight size={14} strokeWidth={2.3} aria-hidden="true" />
-									</a>
-								</div>
-							</div>
-						</div>
-					</div>
-				{:else}
-					<div class="dock-stack">
-						<div class="task-bubble">
-							<div class="task-row">
-								<div class="task-copy">
-									<span class="task-eyebrow">Next care</span>
-									<strong>{active.heroTitle}</strong>
-								</div>
-								<span class="task-reward">+{rewardPoints} Purrpoints</span>
-							</div>
-							<a class="scan-cta" href={resolve(`/care-proof?task=${active.id}`)}>
-								<Camera size={20} strokeWidth={2.3} aria-hidden="true" />
-								<span>Scan {active.proofLabel} photo</span>
-							</a>
-							<div class="mini-progress" aria-labelledby="progress-title">
-								<div class="mini-progress-head">
-									<span id="progress-title">{doneCount}/{tasks.length} care done</span>
-									<a href={resolve('/care')} aria-label="Open full care plan">
-										View tasks <ChevronRight size={14} strokeWidth={2.3} aria-hidden="true" />
-									</a>
-								</div>
-							</div>
-						</div>
-					</div>
 				{/if}
 			{/snippet}
 		</PetScene>
 	</div>
 </div>
 
-{#if signedIn && switcherOpen && canSwitch}
+{#if signedIn && switcherOpen}
 	<button
 		type="button"
 		class="sheet-backdrop"
@@ -282,7 +333,12 @@
 							<span class="sheet-avatar" aria-hidden="true">
 								{#if avatar}<img src={avatar.src} alt="" />{/if}
 							</span>
-							<span class="sheet-name">{cat.name}</span>
+							<span class="sheet-name">
+								{cat.name}
+								<span class="sheet-mode"
+									>({cat.careMode === 'community' ? 'community' : 'pet'})</span
+								>
+							</span>
 							{#if isActive}
 								<Check size={17} strokeWidth={3} aria-hidden="true" />
 							{/if}
@@ -290,7 +346,70 @@
 					</form>
 				</li>
 			{/each}
+			<li>
+				<a class="sheet-row add-cat-row" href={resolve('/cats')}>
+					<span class="sheet-avatar add-avatar" aria-hidden="true">
+						<Plus size={19} strokeWidth={2.5} />
+					</span>
+					<span class="sheet-name">Add cat</span>
+				</a>
+			</li>
 		</ul>
+	</div>
+{/if}
+
+{#if signedIn && showSceneSheet}
+	<button
+		type="button"
+		class="sheet-backdrop scene-backdrop"
+		aria-label="Close scene picker"
+		onclick={closeSceneSheet}
+	></button>
+	<div class="sheet scene-sheet" role="dialog" aria-label="Scene">
+		<div class="sheet-heading">
+			<p class="sheet-title">Scene</p>
+		</div>
+		{#if showSceneMessage}
+			<p class={['scene-message', sceneError && 'warn']}>{sceneError || sceneMessage}</p>
+		{/if}
+		<ul class="sheet-list scene-list">
+			{#each data.backgroundScenes as scene (scene.id)}
+				<li>
+					<SceneItem
+						name={scene.title}
+						thumbnailStyle={sceneThumbStyle(scene.id)}
+						owned={scene.owned || scene.equipped}
+						equipped={scene.equipped}
+						price={scene.cost}
+					>
+						{#if scene.equipped}
+							<button type="button" class="scene-row-btn" disabled>Equipped</button>
+						{:else if scene.owned && data.activeCat}
+							<form
+								class="scene-row-form"
+								method="POST"
+								action="?/equipScene"
+								use:enhance={sceneEnhance}
+							>
+								<input type="hidden" name="itemId" value={scene.id} />
+								<button type="submit" class="scene-row-btn primary">Use</button>
+							</form>
+						{:else}
+							<form
+								class="scene-row-form"
+								method="POST"
+								action="?/unlockScene"
+								use:enhance={sceneEnhance}
+							>
+								<input type="hidden" name="itemId" value={scene.id} />
+								<button type="submit" class="scene-row-btn primary">Unlock</button>
+							</form>
+						{/if}
+					</SceneItem>
+				</li>
+			{/each}
+		</ul>
+		<button type="button" class="cancel-btn" onclick={closeSceneSheet}>Cancel</button>
 	</div>
 {/if}
 
@@ -303,23 +422,30 @@
 
 	/* Break out of app padding so the park is the Home world, including behind the nav. */
 	.scene-bleed {
-		margin: -18px -20px -168px;
+		margin: -18px -20px calc(0px - var(--app-page-bottom));
+	}
+
+	.scene-bleed-picker :global(.scene-cat) {
+		top: 62%;
 	}
 
 	.overlay-head {
-		display: flex;
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 46px;
 		align-items: flex-start;
-		justify-content: space-between;
 		gap: 14px;
+		min-height: 48px;
 	}
 
 	.pet-hud {
 		display: grid;
 		gap: 7px;
+		max-width: 126px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
 		border-radius: 22px;
 		background: color-mix(in srgb, var(--color-paper-2) 82%, transparent);
-		padding: 9px 10px 10px;
+		padding: 8px 9px 9px;
 		backdrop-filter: blur(8px);
 		box-shadow: var(--shadow-card);
 	}
@@ -329,10 +455,15 @@
 		color: var(--color-charcoal);
 		font-size: 0.78rem;
 		font-weight: 800;
+		line-height: 1.12;
+		overflow-wrap: anywhere;
 	}
 
 	.brand-hud {
 		display: inline-flex;
+		width: max-content;
+		max-width: 100%;
+		justify-self: start;
 		align-items: center;
 		gap: 9px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
@@ -358,13 +489,11 @@
 		line-height: 1;
 	}
 
-	.hud-actions {
-		display: grid;
-		justify-items: end;
-		gap: 8px;
-	}
-
 	.points-hud {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		z-index: 2;
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
@@ -378,13 +507,20 @@
 		text-decoration: none;
 		backdrop-filter: blur(8px);
 		box-shadow: var(--shadow-card);
+		transform: translateX(-50%);
+		white-space: nowrap;
+	}
+
+	.points-hud:active {
+		transform: translateX(-50%) translateY(1px) scale(0.98);
 	}
 
 	.profile {
 		display: grid;
-		width: 46px;
-		height: 46px;
+		width: 44px;
+		height: 44px;
 		flex: 0 0 auto;
+		justify-self: end;
 		place-items: center;
 		overflow: hidden;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
@@ -411,6 +547,7 @@
 
 	.cat-pill {
 		display: inline-flex;
+		max-width: 100%;
 		align-items: center;
 		gap: 8px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
@@ -421,6 +558,12 @@
 		font-size: 0.9rem;
 		font-weight: 800;
 		cursor: pointer;
+	}
+
+	.cat-pill-name {
+		min-width: 0;
+		line-height: 1.1;
+		overflow-wrap: anywhere;
 	}
 
 	.cat-pill :global(svg) {
@@ -449,21 +592,69 @@
 		color: var(--color-success-text);
 	}
 
-	.task-bubble {
-		display: grid;
-		gap: 10px;
-		min-height: 112px;
+	.care-action-bubble {
+		display: flex;
+		width: max-content;
+		max-width: min(86vw, 292px);
+		min-height: 38px;
+		align-items: center;
+		gap: 7px;
 		border: 1px solid color-mix(in srgb, var(--color-line) 68%, transparent);
-		border-radius: var(--radius-card);
-		background: color-mix(in srgb, var(--color-paper-2) 86%, transparent);
-		padding: 14px 15px 12px;
-		backdrop-filter: blur(9px);
-		box-shadow: var(--shadow-float);
+		border-radius: var(--radius-pill);
+		background: color-mix(in srgb, var(--color-paper-2) 94%, transparent);
+		padding: 5px 6px 5px 12px;
+		color: var(--color-ink);
+		box-shadow: none;
+	}
+
+	.care-action-bubble strong {
+		min-width: 0;
+		color: var(--color-ink);
+		font-family: var(--font-display);
+		font-size: 0.92rem;
+		font-weight: 800;
+		line-height: 1.05;
+		overflow-wrap: anywhere;
+	}
+
+	.reward-chip {
+		flex: none;
+		border-radius: var(--radius-pill);
+		background: var(--color-butter);
+		color: var(--color-charcoal);
+		padding: 4px 7px;
+		font-size: 0.7rem;
+		font-weight: 850;
+		white-space: nowrap;
 	}
 
 	.dock-stack {
 		display: grid;
 		gap: 8px;
+		justify-items: stretch;
+	}
+
+	.scene-chip {
+		justify-self: end;
+		display: inline-flex;
+		min-height: 28px;
+		align-items: center;
+		gap: 4px;
+		border: 1px solid color-mix(in srgb, var(--color-line) 62%, transparent);
+		border-radius: var(--radius-pill);
+		background: color-mix(in srgb, var(--color-paper-2) 72%, transparent);
+		color: var(--color-muted);
+		padding: 0 9px;
+		font-size: 0.72rem;
+		font-weight: 800;
+		box-shadow: none;
+		cursor: pointer;
+	}
+
+	.scene-chip :global(svg) {
+		flex: none;
+		width: 13px;
+		height: 13px;
 	}
 
 	.dock-stack.signed-out {
@@ -503,48 +694,6 @@
 		line-height: 1.36;
 	}
 
-	.task-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-
-	.task-copy {
-		display: grid;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	.task-eyebrow {
-		display: block;
-		color: var(--color-muted);
-		font-size: 0.72rem;
-		font-weight: 850;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-
-	.task-copy strong {
-		overflow: hidden;
-		color: var(--color-ink);
-		font-family: var(--font-display);
-		font-size: 1.2rem;
-		font-weight: 700;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.task-reward {
-		flex: none;
-		border-radius: var(--radius-pill);
-		background: var(--color-butter);
-		color: var(--color-charcoal);
-		padding: 5px 11px;
-		font-size: 0.76rem;
-		font-weight: 850;
-	}
-
 	.welcome-sub {
 		margin: 0;
 		color: var(--color-charcoal);
@@ -560,52 +709,35 @@
 		font-weight: 650;
 	}
 
-	.rest-note {
-		margin: 0;
-		color: var(--color-muted);
-		font-size: 0.84rem;
-		font-weight: 650;
-		line-height: 1.36;
-	}
-
 	.scan-cta {
 		display: inline-flex;
 		width: 100%;
-		min-height: 56px;
+		min-height: 34px;
 		align-items: center;
 		justify-content: center;
-		gap: 10px;
+		gap: 5px;
 		border: 0;
 		border-radius: var(--radius-pill);
 		background: var(--color-charcoal);
 		color: var(--color-paper-2);
-		font-size: 1.04rem;
+		font-size: 0.82rem;
 		font-weight: 900;
 		text-decoration: none;
-		box-shadow: 0 16px 30px color-mix(in srgb, var(--color-charcoal) 24%, transparent);
+		box-shadow: none;
 	}
 
-	.mini-progress {
-		display: grid;
-		gap: 0;
-		padding-top: 0;
-	}
-
-	.mini-progress-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		color: var(--color-muted);
-		font-size: 0.78rem;
-		font-weight: 800;
-	}
-
-	.mini-progress-head a {
+	.scan-chip {
 		display: inline-flex;
 		align-items: center;
-		gap: 2px;
-		color: inherit;
+		justify-content: center;
+		gap: 4px;
+		min-height: 30px;
+		border-radius: var(--radius-pill);
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		padding: 0 10px;
+		font-size: 0.78rem;
+		font-weight: 900;
 		text-decoration: none;
 		white-space: nowrap;
 	}
@@ -615,29 +747,60 @@
 		inset: 0;
 		z-index: 60;
 		border: 0;
-		background: color-mix(in srgb, var(--color-charcoal) 32%, transparent);
+		background: color-mix(in srgb, var(--color-dark-bg) 32%, transparent);
 		cursor: pointer;
+	}
+
+	.scene-backdrop {
+		background: transparent;
 	}
 
 	.sheet {
 		position: fixed;
 		left: 50%;
-		bottom: 0;
+		bottom: calc(var(--app-safe-bottom) - 8px);
 		z-index: 61;
-		width: min(100%, 430px);
+		width: min(calc(100% - 24px), 406px);
+		max-height: calc(100dvh - var(--app-safe-bottom) - 32px);
 		transform: translateX(-50%);
-		border-radius: 28px 28px 0 0;
+		border: 1px solid var(--color-line);
+		border-radius: 24px;
 		background: var(--color-paper-2);
-		padding: 16px 18px calc(20px + env(safe-area-inset-bottom));
-		box-shadow: 0 -14px 40px color-mix(in srgb, var(--color-charcoal) 16%, transparent);
+		padding: 12px 14px 14px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.scene-sheet {
+		bottom: var(--app-safe-bottom);
+		width: min(calc(100% - 24px), 406px);
+		border: 1px solid var(--color-line);
+		border-radius: 22px;
+		padding: 10px;
+		box-shadow: none;
+	}
+
+	.sheet-heading {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		margin: 2px 0 10px;
 	}
 
 	.sheet-title {
-		margin: 4px 0 12px;
+		margin: 0;
 		color: var(--color-muted);
 		font-size: 0.82rem;
 		font-weight: 800;
 		text-align: center;
+	}
+
+	.scene-sheet .sheet-heading {
+		margin: 0 0 8px;
+	}
+
+	.scene-sheet .sheet-list {
+		max-height: min(52vh, 360px);
 	}
 
 	.sheet-list {
@@ -648,6 +811,62 @@
 		max-height: 52vh;
 		overflow-y: auto;
 		list-style: none;
+	}
+
+	.scene-list {
+		gap: 7px;
+	}
+
+	.scene-message {
+		margin: 0 0 10px;
+		border-radius: 16px;
+		background: var(--color-success-bg);
+		color: var(--color-success-text);
+		padding: 10px 12px;
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-align: center;
+	}
+
+	.scene-message.warn {
+		background: var(--color-warning-bg);
+		color: var(--color-warning-text);
+	}
+
+	.scene-row-form {
+		margin: 0;
+	}
+
+	.scene-row-btn {
+		min-height: 34px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper-3);
+		color: var(--color-muted);
+		padding: 0 12px;
+		font-size: 0.78rem;
+		font-weight: 850;
+		white-space: nowrap;
+	}
+
+	.cancel-btn {
+		width: 100%;
+		min-height: 34px;
+		margin-top: 7px;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-pill);
+		background: var(--color-paper);
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 850;
+		cursor: pointer;
+	}
+
+	.scene-row-btn.primary {
+		border: 0;
+		background: var(--color-charcoal);
+		color: var(--color-paper-2);
+		cursor: pointer;
 	}
 
 	.sheet-row {
@@ -671,6 +890,10 @@
 		border-color: color-mix(in srgb, var(--color-success-text) 24%, var(--color-line));
 	}
 
+	.add-cat-row {
+		text-decoration: none;
+	}
+
 	.sheet-avatar {
 		display: grid;
 		width: 40px;
@@ -689,12 +912,21 @@
 		padding: 4px;
 	}
 
+	.add-avatar {
+		background: var(--color-paper-3);
+		color: var(--color-muted);
+	}
+
 	.sheet-name {
 		flex: 1;
-		overflow: hidden;
 		text-align: left;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		overflow-wrap: anywhere;
+	}
+
+	.sheet-mode {
+		color: var(--color-muted);
+		font-size: 0.78rem;
+		font-weight: 800;
 	}
 
 	@media (max-width: 360px) {
@@ -703,7 +935,34 @@
 		}
 
 		.scan-cta {
-			font-size: 0.92rem;
+			font-size: 0.78rem;
+		}
+
+		.care-action-bubble {
+			max-width: calc(100vw - 32px);
+			flex-wrap: wrap;
+			padding: 6px;
+		}
+
+		.scene-row-form,
+		.scene-row-btn {
+			width: 100%;
+		}
+	}
+
+	@media (max-height: 740px) {
+		.scene-bleed-picker :global(.scene-cat) {
+			top: 58%;
+		}
+
+		.care-action-bubble {
+			gap: 5px;
+			min-height: 34px;
+			padding-block: 4px;
+		}
+
+		.care-action-bubble strong {
+			font-size: 0.86rem;
 		}
 	}
 </style>

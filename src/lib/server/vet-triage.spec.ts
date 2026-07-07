@@ -2,12 +2,19 @@
 import { describe, expect, it } from 'vitest';
 import {
 	buildVetTriageRequest,
+	cleanVetQuestion,
 	cleanVetReply,
 	detectEmergency,
 	triageVetQuestion
 } from './vet-triage';
 
 describe('vet triage', () => {
+	it('cleans local questions before quota spend', () => {
+		expect(cleanVetQuestion('  My cat\tis sneezing.  ')).toBe('My cat is sneezing.');
+		expect(cleanVetQuestion('ok')).toBeNull();
+		expect(cleanVetQuestion('x'.repeat(601))).toBeNull();
+	});
+
 	it('asks Gemini for a short plain text reply', () => {
 		const request = buildVetTriageRequest({ question: 'My cat is throwing up.' });
 		const prompt = request.contents[0].parts[0].text;

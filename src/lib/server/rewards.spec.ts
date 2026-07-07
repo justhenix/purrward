@@ -141,7 +141,7 @@ describe('redeemReward', () => {
 
 	it('refuses accessory/background/gacha item ids (not redeemable here)', async () => {
 		await seedUser('u1', 500);
-		for (const itemId of ['acc_bowtie', 'bg_park', 'acc_crown']) {
+		for (const itemId of ['acc_bandana', 'bg_park', 'acc_flower_crown']) {
 			const result = await redeemReward({ database: db, userId: 'u1', rewardId: itemId });
 			expect(result).toMatchObject({ ok: false, status: 400 });
 		}

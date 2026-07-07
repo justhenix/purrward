@@ -15,6 +15,7 @@ export const GET: RequestHandler = async ({ url, cookies, fetch }) => {
 	}
 
 	const { db } = await import('$lib/server/db');
+	const redirectUrl = new URL(env.GOOGLE_REDIRECT_URI);
 	return handleGoogleCallback({
 		code,
 		fetcher: fetch,
@@ -24,6 +25,6 @@ export const GET: RequestHandler = async ({ url, cookies, fetch }) => {
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
 			redirectUri: env.GOOGLE_REDIRECT_URI
 		},
-		secureCookie: shouldUseSecureCookie(url)
+		secureCookie: shouldUseSecureCookie(redirectUrl)
 	});
 };

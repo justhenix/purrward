@@ -135,6 +135,9 @@
  * active theme automatically. Prefer these names in new/edited component CSS.
  */
 :root {
+	--bottom-nav-height: 88px;
+	--app-safe-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 16px);
+	--app-page-bottom: calc(var(--app-safe-bottom) + 48px);
 	--app-bg: var(--color-paper);
 	--surface: var(--color-paper-2);
 	--surface-raised: var(--color-paper-2);

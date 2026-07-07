@@ -104,18 +104,18 @@ afterEach(() => {
 describe('purchaseItem', () => {
 	it('buys an accessory: deducts cost and writes one inventory row matching the returned item', async () => {
 		await seedUser('u1', 100);
-		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bowtie' });
+		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bandana' });
 
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
-		expect(result.balance).toBe(40); // 100 - 60
+		expect(result.balance).toBe(20); // 100 - 80
 
 		const rows = await db.select().from(userInventory).where(eq(userInventory.userId, 'u1'));
 		expect(rows).toHaveLength(1);
 		expect(rows[0]?.itemId).toBe(result.item.id);
 		expect(rows[0]?.kind).toBe(result.item.kind);
 		expect(rows[0]?.source).toBe('purchase');
-		expect(await balanceOf('u1')).toBe(40);
+		expect(await balanceOf('u1')).toBe(20);
 	});
 
 	it('buys a background: deducts cost and writes one inventory row', async () => {
@@ -133,7 +133,7 @@ describe('purchaseItem', () => {
 
 	it('returns 409 on insufficient balance with no write and no deduction', async () => {
 		await seedUser('u1', 10);
-		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bowtie' });
+		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bandana' });
 		expect(result).toMatchObject({ ok: false, status: 409 });
 		expect(await balanceOf('u1')).toBe(10);
 		expect(await inventoryCount('u1')).toBe(0);
@@ -141,8 +141,8 @@ describe('purchaseItem', () => {
 
 	it('returns 409 when the item is already owned, with no deduction', async () => {
 		await seedUser('u1', 100);
-		await ownItem('u1', 'acc_bowtie');
-		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bowtie' });
+		await ownItem('u1', 'acc_bandana');
+		const result = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bandana' });
 		expect(result).toMatchObject({ ok: false, status: 409 });
 		expect(await balanceOf('u1')).toBe(100);
 		expect(await inventoryCount('u1')).toBe(1);
@@ -182,14 +182,14 @@ describe('purchaseItem', () => {
 
 	it('is safe on repeat: second buy of the same item is a clean 409, no double-spend or orphan', async () => {
 		await seedUser('u1', 200);
-		const first = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bowtie' });
+		const first = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bandana' });
 		expect(first.ok).toBe(true);
-		expect(await balanceOf('u1')).toBe(140);
+		expect(await balanceOf('u1')).toBe(120);
 
-		const second = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bowtie' });
+		const second = await purchaseItem({ database: db, userId: 'u1', itemId: 'acc_bandana' });
 		expect(second).toMatchObject({ ok: false, status: 409 });
 		// Deducted once, exactly one row.
-		expect(await balanceOf('u1')).toBe(140);
+		expect(await balanceOf('u1')).toBe(120);
 		expect(await inventoryCount('u1')).toBe(1);
 	});
 });
@@ -210,7 +210,7 @@ describe('checkPurchaseRateLimit', () => {
 describe('purchase endpoint sandbox path', () => {
 	it('returns a fake success without touching the database', async () => {
 		const formData = new FormData();
-		formData.set('itemId', 'acc_bowtie');
+		formData.set('itemId', 'acc_bandana');
 
 		// No db is provided; a sandbox request must never reach a DB import or write.
 		const response = await POST({
@@ -221,7 +221,7 @@ describe('purchase endpoint sandbox path', () => {
 
 		expect(response.status).toBe(200);
 		const body = (await response.json()) as { item: { id: string }; balance: number };
-		expect(body.item.id).toBe('acc_bowtie');
+		expect(body.item.id).toBe('acc_bandana');
 		expect(body.balance).toBe(SANDBOX_BALANCE);
 	});
 });

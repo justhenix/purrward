@@ -8,7 +8,7 @@ import { createClient, type Client } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { eq } from 'drizzle-orm';
 import * as schema from './db/schema';
-import { cats, rewardRedemptions, userInventory, users } from './db/schema';
+import { catEquippedCosmetics, cats, rewardRedemptions, userInventory, users } from './db/schema';
 
 type Database = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -61,6 +61,15 @@ beforeEach(async () => {
 				acquired_at integer NOT NULL
 			)`,
 			`CREATE UNIQUE INDEX user_inventory_user_item_idx ON user_inventory (user_id, item_id)`,
+			`CREATE TABLE cat_equipped_cosmetics (
+				id text PRIMARY KEY NOT NULL,
+				user_id text NOT NULL,
+				cat_id text NOT NULL,
+				slot text NOT NULL,
+				item_id text NOT NULL,
+				equipped_at integer NOT NULL
+			)`,
+			`CREATE UNIQUE INDEX cat_equipped_cosmetics_cat_slot_idx ON cat_equipped_cosmetics (cat_id, slot)`,
 			`CREATE TABLE reward_redemptions (
 				id text PRIMARY KEY NOT NULL,
 				user_id text NOT NULL,
@@ -92,8 +101,14 @@ describe('user_inventory ownership', () => {
 	it('allows a user to own two different items', async () => {
 		await seedUser('u1');
 		await db.insert(userInventory).values([
-			{ userId: 'u1', itemId: 'acc_bowtie', kind: 'accessory', source: 'gacha', acquiredAt: 1 },
-			{ userId: 'u1', itemId: 'acc_scarf', kind: 'accessory', source: 'purchase', acquiredAt: 2 }
+			{ userId: 'u1', itemId: 'acc_bandana', kind: 'accessory', source: 'gacha', acquiredAt: 1 },
+			{
+				userId: 'u1',
+				itemId: 'acc_bucket_hat',
+				kind: 'accessory',
+				source: 'purchase',
+				acquiredAt: 2
+			}
 		]);
 		const rows = await db.select().from(userInventory).where(eq(userInventory.userId, 'u1'));
 		expect(rows).toHaveLength(2);
@@ -103,7 +118,7 @@ describe('user_inventory ownership', () => {
 		await seedUser('u1');
 		await db.insert(userInventory).values({
 			userId: 'u1',
-			itemId: 'acc_bowtie',
+			itemId: 'acc_bandana',
 			kind: 'accessory',
 			source: 'gacha',
 			acquiredAt: 1
@@ -113,7 +128,7 @@ describe('user_inventory ownership', () => {
 		try {
 			await db.insert(userInventory).values({
 				userId: 'u1',
-				itemId: 'acc_bowtie',
+				itemId: 'acc_bandana',
 				kind: 'accessory',
 				source: 'purchase',
 				acquiredAt: 2
@@ -129,14 +144,14 @@ describe('user_inventory ownership', () => {
 		await seedUser('u2');
 		await db.insert(userInventory).values({
 			userId: 'u1',
-			itemId: 'acc_bowtie',
+			itemId: 'acc_bandana',
 			kind: 'accessory',
 			source: 'gacha',
 			acquiredAt: 1
 		});
 		await db.insert(userInventory).values({
 			userId: 'u2',
-			itemId: 'acc_bowtie',
+			itemId: 'acc_bandana',
 			kind: 'accessory',
 			source: 'gacha',
 			acquiredAt: 1
@@ -144,6 +159,42 @@ describe('user_inventory ownership', () => {
 
 		const all = await db.select().from(userInventory);
 		expect(all).toHaveLength(2);
+	});
+});
+
+describe('cat_equipped_cosmetics slots', () => {
+	it('enforces one item per cat slot', async () => {
+		await seedUser('u1');
+		await db.insert(cats).values({
+			id: 'c1',
+			userId: 'u1',
+			name: 'Mochi',
+			careMode: 'owned',
+			avatarId: 'orange',
+			purrpoints: 0,
+			createdAt: 1
+		});
+		await db.insert(catEquippedCosmetics).values({
+			userId: 'u1',
+			catId: 'c1',
+			slot: 'head',
+			itemId: 'acc_bucket_hat',
+			equippedAt: 1
+		});
+
+		let threw = false;
+		try {
+			await db.insert(catEquippedCosmetics).values({
+				userId: 'u1',
+				catId: 'c1',
+				slot: 'head',
+				itemId: 'acc_flower_crown',
+				equippedAt: 2
+			});
+		} catch {
+			threw = true;
+		}
+		expect(threw).toBe(true);
 	});
 });
 

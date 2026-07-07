@@ -10,6 +10,7 @@ type Database = typeof import('./db').db;
 
 // SECURITY: cost is server-owned; the client never supplies or influences it.
 export const GACHA_PULL_COST = 30;
+export const GACHA_DUPLICATE_REFUND = 5;
 
 // Per-user pull cap. IP-level limiting already runs in hooks.server.ts.
 export const GACHA_DAILY_LIMIT = 30;
@@ -20,7 +21,7 @@ const MAX_PULL_ATTEMPTS = 3;
 export type GachaItem = { id: string; title: string; kind: ItemKind; desc: string };
 
 export type GachaResult =
-	| { ok: true; item: GachaItem; balance: number }
+	| { ok: true; item: GachaItem; balance: number; duplicate: boolean; refund: number }
 	| { ok: false; status: number; error: string };
 
 function toGachaItem(item: CatalogItem): GachaItem {
@@ -62,8 +63,18 @@ export async function checkGachaRateLimit(input: {
 }
 
 // Sandbox pull: fake result, no DB write, no deduction — consistent with the redeem sandbox path.
-export function sandboxPull(): { item: GachaItem; balance: number } {
-	return { item: toGachaItem(GACHA_POOL[0]), balance: SANDBOX_BALANCE };
+export function sandboxPull(): {
+	item: GachaItem;
+	balance: number;
+	duplicate: boolean;
+	refund: number;
+} {
+	return {
+		item: toGachaItem(GACHA_POOL[0]),
+		balance: SANDBOX_BALANCE,
+		duplicate: false,
+		refund: 0
+	};
 }
 
 // Spends points to grant one unowned gacha item into account-wide inventory, atomically.
@@ -87,11 +98,6 @@ export async function pullGacha(input: {
 					.where(eq(userInventory.userId, input.userId));
 				const ownedIds = new Set(owned.map((row) => row.itemId));
 
-				const unowned = GACHA_POOL.filter((item) => !ownedIds.has(item.id));
-				// All owned: reject before any deduction.
-				if (unowned.length === 0)
-					return { ok: false, status: 409, error: 'All gacha items collected.' };
-
 				// SECURITY: conditional deduct guards against negative balance; 0 rows = not enough points.
 				const rows = await tx
 					.update(users)
@@ -103,7 +109,22 @@ export async function pullGacha(input: {
 				if (typeof balance !== 'number')
 					return { ok: false, status: 409, error: 'Not enough Purrpoints.' };
 
-				const item = pick(unowned);
+				const item = pick(GACHA_POOL);
+				if (ownedIds.has(item.id)) {
+					const refunded = await tx
+						.update(users)
+						.set({ purrpoints: sql`${users.purrpoints} + ${GACHA_DUPLICATE_REFUND}` })
+						.where(eq(users.id, input.userId))
+						.returning({ balance: users.purrpoints });
+					return {
+						ok: true,
+						item: toGachaItem(item),
+						balance: refunded[0]?.balance ?? balance + GACHA_DUPLICATE_REFUND,
+						duplicate: true,
+						refund: GACHA_DUPLICATE_REFUND
+					};
+				}
+
 				// SECURITY: unique (userId, itemId) is the duplicate/race backstop.
 				await tx.insert(userInventory).values({
 					userId: input.userId,
@@ -113,7 +134,7 @@ export async function pullGacha(input: {
 					acquiredAt: now
 				});
 
-				return { ok: true, item: toGachaItem(item), balance };
+				return { ok: true, item: toGachaItem(item), balance, duplicate: false, refund: 0 };
 			});
 		} catch (error) {
 			// A concurrent pull already took this item: the transaction rolled back (no deduct); retry.

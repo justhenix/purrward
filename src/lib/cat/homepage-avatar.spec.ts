@@ -83,4 +83,19 @@ describe('resolveHomepageCatAvatar', () => {
 		expect(bogus.renderStack.some((layer) => layer.id === 'jetpack')).toBe(false);
 		expect(bogus.warnings.some((w) => w.includes('jetpack'))).toBe(true);
 	});
+
+	it('layers multiple equipped accessories', () => {
+		const avatar = resolveHomepageCatAvatar({
+			coat: 'tabby',
+			mood: 'normal',
+			accessories: ['bucket_hat', 'nerd_glasses']
+		});
+
+		expect(avatar.renderStack.map((layer) => layer.id)).toEqual([
+			'tabby_sit',
+			'normal_green',
+			'bucket_hat',
+			'nerd_glasses'
+		]);
+	});
 });

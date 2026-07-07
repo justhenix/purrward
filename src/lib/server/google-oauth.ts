@@ -62,6 +62,7 @@ export function getOAuthStartRedirect(
 ): string | null {
 	const redirectUri = new URL(configuredRedirectUri);
 	if (requestUrl.origin === redirectUri.origin) return null;
+	if (!['localhost', '127.0.0.1'].includes(redirectUri.hostname)) return null;
 
 	const canonicalStart = new URL('/auth/google', redirectUri.origin);
 	canonicalStart.search = requestUrl.search;

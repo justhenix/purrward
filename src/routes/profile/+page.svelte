@@ -11,6 +11,7 @@
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import UserRound from '@lucide/svelte/icons/user-round';
 	import logo from '$lib/assets/logo/logo.svg';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import { deriveParentName } from '$lib/account-identity';
 	import { resolveProfileAvatar } from '$lib/profile-avatar';
@@ -81,9 +82,12 @@
 			<ChevronLeft size={23} strokeWidth={2.3} aria-hidden="true" />
 		</a>
 		<h1>Profile</h1>
-		<button class="logo-button" type="button" onclick={tapLogo} aria-label="Purrward">
-			<img src={logo} alt="" width="24" height="24" />
-		</button>
+		<div class="header-actions">
+			<button class="logo-button" type="button" onclick={tapLogo} aria-label="Purrward">
+				<img src={logo} alt="" width="24" height="24" />
+			</button>
+			<ThemeToggle theme={data.preferences.theme} compact />
+		</div>
 	</header>
 
 	{#if data.user}
@@ -231,6 +235,13 @@
 		font-size: 1.5rem;
 	}
 
+	.header-actions {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 8px;
+	}
+
 	.logo-button {
 		display: grid;
 		width: 38px;
@@ -250,6 +261,16 @@
 		width: 24px;
 		height: 24px;
 		object-fit: contain;
+	}
+
+	@media (max-width: 420px) {
+		.profile-header {
+			gap: 8px;
+		}
+
+		.profile-header h1 {
+			font-size: 1.28rem;
+		}
 	}
 
 	.summary-card,

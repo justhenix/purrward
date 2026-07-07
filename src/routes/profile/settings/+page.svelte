@@ -4,7 +4,6 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { CAT_AVATARS } from '$lib/cat-avatars';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { untrack } from 'svelte';
 	import { avatarInitial, deriveParentName } from '$lib/account-identity';
 	import { isRenderableAvatarUrl } from '$lib/avatar-url';
@@ -35,12 +34,6 @@
 		</a>
 		<h1>Profile settings</h1>
 	</header>
-
-	<section class="panel">
-		<div class="panel-heading"><h2>Appearance</h2></div>
-		<p class="panel-note">Choose a light, dark, or system-matched look.</p>
-		<ThemeToggle theme={data.preferences.theme} />
-	</section>
 
 	<form class="panel name-panel" method="POST" action="?/name">
 		<div class="name-row">
@@ -170,13 +163,6 @@
 		margin: 0;
 		color: var(--color-ink);
 		font-size: 1.14rem;
-	}
-
-	.panel-note {
-		margin: 0;
-		color: var(--color-muted);
-		font-size: 0.82rem;
-		font-weight: 700;
 	}
 
 	.field {
