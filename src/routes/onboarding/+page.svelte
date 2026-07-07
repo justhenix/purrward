@@ -8,7 +8,6 @@
 	import Camera from '@lucide/svelte/icons/camera';
 	import Star from '@lucide/svelte/icons/star';
 	import logo from '$lib/assets/logo/logo.svg';
-	import catPolaroid from '$lib/assets/cats/misc/cat-polaroid.webp';
 	import { getCatAvatar } from '$lib/cat-avatars';
 	import type { PageProps } from './$types';
 
@@ -93,11 +92,6 @@
 		{#if step === 1}
 			<section class="step" aria-label={stepLabel}>
 				<div class="step-content">
-					<span class="welcome-polaroid" aria-hidden="true">
-						{#if previewAvatar}<img class="polaroid-subject" src={previewAvatar.src} alt="" />{/if}
-						<img class="polaroid-frame" src={catPolaroid} alt="" />
-					</span>
-
 					<div class="step-head">
 						<p class="eyebrow">Let's set up care</p>
 						<h1>Who are you caring for?</h1>
@@ -372,34 +366,6 @@
 	.step-head {
 		display: grid;
 		gap: 5px;
-	}
-
-	.welcome-polaroid {
-		position: relative;
-		display: block;
-		justify-self: center;
-		width: min(38vw, 150px);
-		aspect-ratio: 3 / 4;
-		filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--color-charcoal) 12%, transparent));
-	}
-
-	.polaroid-frame,
-	.polaroid-subject {
-		position: absolute;
-		object-fit: contain;
-	}
-
-	.polaroid-frame {
-		inset: 0;
-		width: 100%;
-		height: 100%;
-	}
-
-	.polaroid-subject {
-		top: 18%;
-		left: 18%;
-		width: 64%;
-		height: 48%;
 	}
 
 	.eyebrow {
