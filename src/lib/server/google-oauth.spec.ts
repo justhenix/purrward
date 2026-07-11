@@ -58,13 +58,13 @@ describe('google oauth callback', () => {
 		).toBeNull();
 	});
 
-	it('does not canonicalize public callback origins behind tunnels', () => {
+	it('keeps public oauth starts on the callback origin', () => {
 		expect(
 			getOAuthStartRedirect(
-				new URL('http://localhost:5174/auth/google'),
-				'https://example.trycloudflare.com/auth/callback'
+				new URL('https://www.purrward.app/auth/google'),
+				'https://purrward.app/auth/callback'
 			)
-		).toBeNull();
+		).toBe('https://purrward.app/auth/google');
 	});
 
 	it('creates user and session from valid Google responses', async () => {
