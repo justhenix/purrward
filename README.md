@@ -1,5 +1,7 @@
 # Purrward
 
+Built by [Henix, full-stack web developer](https://henix.my.id).
+
 Purrward is a care-to-earn cat wellness PWA for #hackthekitty 2026. It rewards cat owners for consistent routines like feeding, water, litter care, play, grooming, and medication.
 
 ## Demo Flow
